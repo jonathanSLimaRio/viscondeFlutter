@@ -12,6 +12,7 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "@/lib/server/jwt";
+import { issueParentalUnlockToken } from "@/lib/server/parental-gate";
 import { getClientIp, getUserAgent } from "@/lib/server/request";
 import { verifyAppleIdentityToken } from "@/lib/server/social/apple";
 import { verifyGoogleIdToken } from "@/lib/server/social/google";
@@ -611,9 +612,13 @@ export async function verifyPin(userId: string, pin: string) {
     throw new ApiError("PIN invalido.", 401, "INVALID_PIN");
   }
 
+  const unlock = await issueParentalUnlockToken(userId);
+
   return {
     verified: true,
-    unlockTtlMinutes: 10,
+    unlockTtlMinutes: unlock.unlockTtlMinutes,
+    parentalUnlockToken: unlock.parentalUnlockToken,
+    parentalUnlockExpiresAt: unlock.parentalUnlockExpiresAt,
   };
 }
 

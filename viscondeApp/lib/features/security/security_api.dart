@@ -2,6 +2,20 @@ import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
 
+class PinVerifyResult {
+  const PinVerifyResult({
+    required this.verified,
+    required this.unlockTtlMinutes,
+    this.parentalUnlockToken,
+    this.parentalUnlockExpiresAt,
+  });
+
+  final bool verified;
+  final int unlockTtlMinutes;
+  final String? parentalUnlockToken;
+  final DateTime? parentalUnlockExpiresAt;
+}
+
 class SecurityApi {
   SecurityApi(this._dio);
 
@@ -25,7 +39,7 @@ class SecurityApi {
     );
   }
 
-  Future<bool> verifyPin(String accessToken, String pin) async {
+  Future<PinVerifyResult> verifyPin(String accessToken, String pin) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/security/pin/verify',
       data: {'pin': pin},
@@ -33,7 +47,16 @@ class SecurityApi {
     );
 
     final payload = response.data ?? <String, dynamic>{};
-    return (payload['verified'] as bool?) ?? false;
+    final expiresRaw = payload['parentalUnlockExpiresAt'] as String?;
+
+    return PinVerifyResult(
+      verified: (payload['verified'] as bool?) ?? false,
+      unlockTtlMinutes: (payload['unlockTtlMinutes'] as num?)?.toInt() ?? 10,
+      parentalUnlockToken: payload['parentalUnlockToken'] as String?,
+      parentalUnlockExpiresAt: expiresRaw == null
+          ? null
+          : DateTime.tryParse(expiresRaw),
+    );
   }
 
   Future<void> resetPin(

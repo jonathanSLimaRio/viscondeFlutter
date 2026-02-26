@@ -23,6 +23,51 @@ enum StoryStepKind {
   SYSTEM
 }
 
+enum StorySessionKind {
+  PRESENTIAL
+  REMOTE
+}
+
+enum RemoteRoomStatus {
+  OPEN
+  ACTIVE
+  CLOSED
+  EXPIRED
+}
+
+enum RemoteParticipantRole {
+  HOST_PARENT
+  GUEST_CHILD
+}
+
+enum RemoteParticipantStatus {
+  CONNECTED
+  DISCONNECTED
+  LEFT
+}
+
+enum CallMode {
+  NONE
+  AUDIO
+  VIDEO
+}
+
+enum InteractionType {
+  CHAT
+  REACTION
+}
+
+enum AgeBand {
+  AGE_4_5
+  AGE_6_8
+  AGE_9_10
+}
+
+enum VirtueSource {
+  MANUAL
+  AUTO
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String?
@@ -44,6 +89,8 @@ model User {
   stories             Story[]
   passwordResetTokens PasswordResetToken[]
   auditEvents         AuditEvent[]
+  remoteRoomsOwned    RemoteStoryRoom[]
+  storyInteractions   StoryInteraction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -130,11 +177,17 @@ model Story {
   id               String      @id @default(cuid())
   userId           String
   childProfileId   String
+  sessionKind      StorySessionKind @default(PRESENTIAL)
+  virtueId         String?
   titleDraft       String
   titleFinal       String?
   theme            String
   scenario         String
   objective        String
+  ageBand          AgeBand?
+  virtueSource     VirtueSource?
+  dilemmaText      String?
+  endQuestionText  String?
   status           StoryStatus @default(DRAFT)
   currentMode      StoryMode   @default(PARENT_NARRATOR)
   currentStepIndex Int         @default(0)
@@ -145,14 +198,93 @@ model Story {
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   childProfile ChildProfile @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  virtue       Virtue?       @relation(fields: [virtueId], references: [id], onDelete: SetNull)
   characters StoryCharacter[]
   steps      StoryStep[]
   ideaLogs   StoryIdeaLog[]
+  remoteRoom RemoteStoryRoom?
+  interactions StoryInteraction[]
 
   @@index([userId, childProfileId, status])
+  @@index([childProfileId, virtueId, status])
   @@index([updatedAt])
+}
+
+model RemoteStoryRoom {
+  id                 String            @id @default(cuid())
+  storyId            String            @unique
+  ownerUserId        String
+  status             RemoteRoomStatus  @default(OPEN)
+  joinCodeHash       String
+  joinCodeExpiresAt  DateTime
+  joinCodeConsumedAt DateTime?
+  callMode           CallMode          @default(AUDIO)
+  maxParticipants    Int               @default(2)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  closedAt           DateTime?
+
+  story        Story                   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  owner        User                    @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  participants RemoteStoryParticipant[]
+  interactions StoryInteraction[]
+
+  @@index([ownerUserId, status])
+  @@index([joinCodeExpiresAt])
+}
+
+model RemoteStoryParticipant {
+  id             String                  @id @default(cuid())
+  remoteRoomId   String
+  role           RemoteParticipantRole
+  displayName    String
+  status         RemoteParticipantStatus @default(CONNECTED)
+  lastSeenAt     DateTime                @default(now())
+  joinedAt       DateTime                @default(now())
+  leftAt         DateTime?
+  deviceInfo     String?
+
+  remoteRoom    RemoteStoryRoom          @relation(fields: [remoteRoomId], references: [id], onDelete: Cascade)
+  interactions  StoryInteraction[]
+
+  @@unique([remoteRoomId, role])
+  @@index([remoteRoomId, status])
+}
+
+model Virtue {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  name             String
+  shortDescription String
+  iconKey          String
+  sortOrder        Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  templates VirtueTemplate[]
+  stories   Story[]
+
+  @@index([isActive, sortOrder])
+}
+
+model VirtueTemplate {
+  id            String   @id @default(cuid())
+  virtueId      String
+  ageBand       AgeBand
+  dilemmaText   String
+  endQuestionText String
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  virtue Virtue @relation(fields: [virtueId], references: [id], onDelete: Cascade)
+
+  @@index([virtueId, ageBand, isActive])
+  @@unique([virtueId, ageBand, sortOrder])
 }
 
 model StoryCharacter {
@@ -203,6 +335,28 @@ model StoryIdeaLog {
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
 
   @@index([storyId, createdAt])
+}
+
+model StoryInteraction {
+  id                 String                 @id @default(cuid())
+  storyId            String
+  remoteRoomId       String
+  type               InteractionType
+  authorRole         RemoteParticipantRole
+  authorUserId       String?
+  authorParticipantId String?
+  authorDisplayName  String
+  messageText        String?
+  emoji              String?
+  createdAt          DateTime               @default(now())
+
+  story             Story                   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  remoteRoom        RemoteStoryRoom         @relation(fields: [remoteRoomId], references: [id], onDelete: Cascade)
+  authorUser        User?                   @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorParticipant RemoteStoryParticipant? @relation(fields: [authorParticipantId], references: [id], onDelete: SetNull)
+
+  @@index([storyId, createdAt])
+  @@index([remoteRoomId, createdAt])
 }
 
 model PasswordResetToken {

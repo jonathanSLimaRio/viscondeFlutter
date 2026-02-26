@@ -9,6 +9,7 @@ const pinSchema = z.string().regex(/^\d{6}$/, "PIN deve conter 6 digitos.");
 const storyModeSchema = z.enum(["PARENT_NARRATOR", "CHILD_CHOOSER"]);
 const storyStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const storyStepKindSchema = z.enum(["NARRATION", "CHILD_CHOICE", "SYSTEM"]);
+const callModeSchema = z.enum(["NONE", "AUDIO", "VIDEO"]);
 
 const optionalString = z
   .string()
@@ -101,6 +102,7 @@ export const createStorySessionSchema = z.object({
     .max(8),
   objective: z.string().trim().min(1).max(200),
   startMode: storyModeSchema.default("PARENT_NARRATOR"),
+  virtueId: z.string().trim().min(1).max(120).optional(),
 });
 
 export const updateStoryModeSchema = z.object({
@@ -149,6 +151,40 @@ export const finalizeStorySessionSchema = z.object({
 export const listStoriesQuerySchema = z.object({
   childProfileId: z.string().trim().min(1).max(120).optional(),
   status: storyStatusSchema.optional(),
+});
+
+export const virtueSuggestQuerySchema = z.object({
+  childProfileId: z.string().trim().min(1).max(120),
+});
+
+export const openRemoteRoomSchema = z.object({
+  callMode: callModeSchema.default("AUDIO").optional(),
+});
+
+export const joinRemoteRoomSchema = z.object({
+  code: z.string().trim().min(4).max(20),
+  displayName: z.string().trim().min(1).max(40),
+});
+
+export const createRemoteStepSchema = z.object({
+  kind: z.literal("CHILD_CHOICE").default("CHILD_CHOICE"),
+  stepIndex: z.number().int().min(1).max(12),
+  selectedOptionId: z.string().trim().min(1).max(80).optional(),
+  selectedOptionLabel: z.string().trim().min(1).max(200),
+  localEventId: z.string().trim().min(1).max(120),
+});
+
+export const createRemoteChatSchema = z.object({
+  messageText: z.string().trim().min(1).max(160),
+});
+
+const allowedReactionEmojis = ["👍", "👏", "❤️", "😂", "😮", "🎉", "💡", "🌟"];
+
+export const createRemoteReactionSchema = z.object({
+  emoji: z
+    .string()
+    .trim()
+    .refine((value) => allowedReactionEmojis.includes(value), "Emoji nao permitido."),
 });
 
 export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {

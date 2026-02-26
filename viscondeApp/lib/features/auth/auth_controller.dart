@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -77,10 +78,51 @@ class AuthController extends StateNotifier<AuthState> {
   final AuthApi _api;
   final SessionStorage _sessionStorage;
 
+  Future<bool> _tryDevAutoLogin() async {
+    if (!kDebugMode || !devAutoLoginEnabled) {
+      return false;
+    }
+
+    try {
+      final session = await _api.login(
+        email: devAdminEmail,
+        password: devAdminPassword,
+      );
+
+      await _sessionStorage.save(
+        StoredSession(
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          user: session.user,
+        ),
+      );
+
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        user: session.user,
+      );
+
+      return true;
+    } catch (error) {
+      state = AuthState(
+        status: AuthStatus.unauthenticated,
+        error: 'Auto-login dev falhou: ${parseDioError(error)}',
+      );
+      return false;
+    }
+  }
+
   Future<void> _restoreSession() async {
     final stored = await _sessionStorage.read();
     if (stored == null) {
-      state = const AuthState(status: AuthStatus.unauthenticated);
+      final autoLogged = await _tryDevAutoLogin();
+      if (!autoLogged) {
+        state = state.status == AuthStatus.loading
+            ? const AuthState(status: AuthStatus.unauthenticated)
+            : state;
+      }
       return;
     }
 

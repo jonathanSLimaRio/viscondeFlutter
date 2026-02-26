@@ -116,7 +116,11 @@ CREATE TABLE story_sync_events (
 
   Future<void> clearStory(String storyId) async {
     final db = await _open();
-    await db.delete('story_sync_events', where: 'story_id = ?', whereArgs: [storyId]);
+    await db.delete(
+      'story_sync_events',
+      where: 'story_id = ?',
+      whereArgs: [storyId],
+    );
   }
 
   Future<void> dispose() async {

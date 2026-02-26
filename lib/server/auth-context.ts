@@ -6,7 +6,7 @@ export type AuthContext = {
   sessionId: string;
 };
 
-function getBearerToken(request: Request) {
+export function getBearerToken(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (!authHeader) return null;
 

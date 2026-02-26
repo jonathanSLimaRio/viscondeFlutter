@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/auth/auth_controller.dart';
 import '../../children/ui/children_tab.dart';
 import '../../security/ui/adult_gate_tab.dart';
+import '../../story_library/ui/story_library_screen.dart';
 import 'profile_tab.dart';
 
 class HomeShellScreen extends ConsumerStatefulWidget {
@@ -18,7 +19,12 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = const [ProfileTab(), ChildrenTab(), AdultGateTab()];
+    final tabs = const [
+      StoryLibraryScreen(),
+      ChildrenTab(),
+      ProfileTab(),
+      AdultGateTab(),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -41,14 +47,19 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
+            icon: Icon(Icons.menu_book_outlined),
+            selectedIcon: Icon(Icons.menu_book),
+            label: 'Historias',
           ),
           NavigationDestination(
             icon: Icon(Icons.child_care_outlined),
             selectedIcon: Icon(Icons.child_care),
             label: 'Criancas',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_circle_outlined),
+            selectedIcon: Icon(Icons.account_circle),
+            label: 'Perfil',
           ),
           NavigationDestination(
             icon: Icon(Icons.lock_outline),

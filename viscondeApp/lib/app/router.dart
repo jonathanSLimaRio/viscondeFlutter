@@ -6,6 +6,10 @@ import '../features/auth/ui/forgot_password_screen.dart';
 import '../features/auth/ui/login_screen.dart';
 import '../features/auth/ui/signup_screen.dart';
 import '../features/profile/ui/home_shell_screen.dart';
+import '../features/security/ui/virtue_reports_screen.dart';
+import '../features/story_creation/ui/create_story_screen.dart';
+import '../features/story_room/ui/story_room_screen.dart';
+import '../features/story_room/ui/story_summary_screen.dart';
 import '../shared/loading_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -24,6 +28,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/adult/virtues/reports',
+        builder: (context, state) => const VirtueReportsScreen(),
+      ),
+      GoRoute(
+        path: '/stories/new',
+        builder: (context, state) => const CreateStoryScreen(),
+      ),
+      GoRoute(
+        path: '/stories/:id/room',
+        builder: (context, state) {
+          final storyId = state.pathParameters['id'] ?? '';
+          return StoryRoomScreen(storyId: storyId);
+        },
+      ),
+      GoRoute(
+        path: '/stories/:id/summary',
+        builder: (context, state) {
+          final storyId = state.pathParameters['id'] ?? '';
+          return StorySummaryScreen(storyId: storyId);
+        },
       ),
       GoRoute(path: '/', builder: (context, state) => const HomeShellScreen()),
     ],

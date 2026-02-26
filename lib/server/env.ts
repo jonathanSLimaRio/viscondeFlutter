@@ -26,6 +26,16 @@ const envSchema = z
     OPENAI_API_KEY: z.string().min(1).optional(),
     OPENAI_IDEAS_MODEL: z.string().min(1).optional(),
     OPENAI_BASE_URL: z.string().url().optional(),
+
+    REALTIME_GATEWAY_PUBLIC_WS_URL: z.string().url().optional(),
+    REALTIME_GATEWAY_INTERNAL_HTTP_URL: z.string().url().optional(),
+    REALTIME_GATEWAY_INTERNAL_SECRET: z.string().min(1).optional(),
+    REMOTE_PARTICIPANT_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().optional(),
+    REMOTE_JOIN_CODE_TTL_MINUTES: z.coerce.number().int().positive().optional(),
+    WEBRTC_STUN_URLS: z.string().optional(),
+    WEBRTC_TURN_URL: z.string().url().optional(),
+    WEBRTC_TURN_USERNAME: z.string().min(1).optional(),
+    WEBRTC_TURN_PASSWORD: z.string().min(1).optional(),
   })
   .passthrough();
 
@@ -73,6 +83,19 @@ export const env = {
   openaiApiKey: raw.OPENAI_API_KEY,
   openaiIdeasModel: raw.OPENAI_IDEAS_MODEL ?? "gpt-4.1-mini",
   openaiBaseUrl: raw.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+
+  realtimeGatewayPublicWsUrl: raw.REALTIME_GATEWAY_PUBLIC_WS_URL,
+  realtimeGatewayInternalHttpUrl: raw.REALTIME_GATEWAY_INTERNAL_HTTP_URL,
+  realtimeGatewayInternalSecret: raw.REALTIME_GATEWAY_INTERNAL_SECRET,
+  remoteParticipantTokenTtlMinutes: toPositiveInt(raw.REMOTE_PARTICIPANT_TOKEN_TTL_MINUTES, 240),
+  remoteJoinCodeTtlMinutes: toPositiveInt(raw.REMOTE_JOIN_CODE_TTL_MINUTES, 15),
+  webrtcStunUrls: (raw.WEBRTC_STUN_URLS ?? "stun:stun.l.google.com:19302")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean),
+  webrtcTurnUrl: raw.WEBRTC_TURN_URL,
+  webrtcTurnUsername: raw.WEBRTC_TURN_USERNAME,
+  webrtcTurnPassword: raw.WEBRTC_TURN_PASSWORD,
 };
 
 export function assertRuntimeSecrets() {

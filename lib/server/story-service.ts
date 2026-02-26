@@ -1,9 +1,24 @@
-import type { StoryMode, StoryStatus, StoryStepKind } from "@prisma/client";
+import type {
+  AgeBand,
+  CallMode,
+  RemoteRoomStatus,
+  StoryMode,
+  StorySessionKind,
+  StoryStatus,
+  StoryStepKind,
+  VirtueSource,
+} from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/server/errors";
 import { generateStoryIdeas } from "@/lib/server/story-idea-service";
 import { assertSafeContext } from "@/lib/server/story-safety";
+import { resolveVirtueForStoryCreation } from "@/lib/server/virtue-service";
+import { selectVirtueTemplateOrThrow } from "@/lib/server/virtue-template-service";
+import {
+  publishStoryModeChangedEvent,
+  publishStoryStepCreatedEvent,
+} from "@/lib/server/remote-realtime-events";
 
 const MAX_STORY_STEPS = 12;
 const MIN_STORY_STEPS_TO_PUBLISH = 3;
@@ -17,6 +32,16 @@ type StorySessionInclude = {
       avatarUrl: true;
     };
   };
+  virtue: {
+    select: {
+      id: true;
+      slug: true;
+      name: true;
+      shortDescription: true;
+      iconKey: true;
+      sortOrder: true;
+    };
+  };
   characters: {
     orderBy: {
       createdAt: "asc";
@@ -25,6 +50,31 @@ type StorySessionInclude = {
   steps: {
     orderBy: {
       stepIndex: "asc";
+    };
+  };
+  remoteRoom: {
+    select: {
+      id: true;
+      status: true;
+      callMode: true;
+      maxParticipants: true;
+      joinCodeExpiresAt: true;
+      joinCodeConsumedAt: true;
+      closedAt: true;
+      participants: {
+        select: {
+          id: true;
+          role: true;
+          displayName: true;
+          status: true;
+          lastSeenAt: true;
+          joinedAt: true;
+          leftAt: true;
+        };
+        orderBy: {
+          joinedAt: "asc";
+        };
+      };
     };
   };
 };
@@ -38,6 +88,16 @@ const storySessionInclude: StorySessionInclude = {
       avatarUrl: true,
     },
   },
+  virtue: {
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      shortDescription: true,
+      iconKey: true,
+      sortOrder: true,
+    },
+  },
   characters: {
     orderBy: {
       createdAt: "asc",
@@ -46,6 +106,31 @@ const storySessionInclude: StorySessionInclude = {
   steps: {
     orderBy: {
       stepIndex: "asc",
+    },
+  },
+  remoteRoom: {
+    select: {
+      id: true,
+      status: true,
+      callMode: true,
+      maxParticipants: true,
+      joinCodeExpiresAt: true,
+      joinCodeConsumedAt: true,
+      closedAt: true,
+      participants: {
+        select: {
+          id: true,
+          role: true,
+          displayName: true,
+          status: true,
+          lastSeenAt: true,
+          joinedAt: true,
+          leftAt: true,
+        },
+        orderBy: {
+          joinedAt: "asc",
+        },
+      },
     },
   },
 };
@@ -129,11 +214,17 @@ function toStorySessionDTO(story: {
   id: string;
   userId: string;
   childProfileId: string;
+  sessionKind: StorySessionKind;
+  virtueId: string | null;
   titleDraft: string;
   titleFinal: string | null;
   theme: string;
   scenario: string;
   objective: string;
+  ageBand: AgeBand | null;
+  virtueSource: VirtueSource | null;
+  dilemmaText: string | null;
+  endQuestionText: string | null;
   status: StoryStatus;
   currentMode: StoryMode;
   currentStepIndex: number;
@@ -149,6 +240,14 @@ function toStorySessionDTO(story: {
     birthDate: Date;
     avatarUrl: string | null;
   };
+  virtue: {
+    id: string;
+    slug: string;
+    name: string;
+    shortDescription: string;
+    iconKey: string;
+    sortOrder: number;
+  } | null;
   characters: Array<{ id: string; name: string; role: string | null; createdAt: Date }>;
   steps: Array<{
     id: string;
@@ -164,17 +263,41 @@ function toStorySessionDTO(story: {
     autoSavedAt: Date;
     createdAt: Date;
   }>;
+  remoteRoom: {
+    id: string;
+    status: RemoteRoomStatus;
+    callMode: CallMode;
+    maxParticipants: number;
+    joinCodeExpiresAt: Date;
+    joinCodeConsumedAt: Date | null;
+    closedAt: Date | null;
+    participants: Array<{
+      id: string;
+      role: string;
+      displayName: string;
+      status: string;
+      lastSeenAt: Date;
+      joinedAt: Date;
+      leftAt: Date | null;
+    }>;
+  } | null;
 }) {
   return {
     id: story.id,
     userId: story.userId,
     childProfileId: story.childProfileId,
+    sessionKind: story.sessionKind,
     titleDraft: story.titleDraft,
     titleFinal: story.titleFinal,
     title: story.titleFinal ?? story.titleDraft,
     theme: story.theme,
     scenario: story.scenario,
     objective: story.objective,
+    ageBand: story.ageBand,
+    virtueSource: story.virtueSource,
+    dilemmaText: story.dilemmaText,
+    endQuestionText: story.endQuestionText,
+    virtue: story.virtue,
     status: story.status,
     currentMode: story.currentMode,
     currentStepIndex: story.currentStepIndex,
@@ -197,6 +320,28 @@ function toStorySessionDTO(story: {
       createdAt: character.createdAt,
     })),
     steps: story.steps.map(toStoryStepDTO),
+    remote: story.remoteRoom
+      ? {
+          id: story.remoteRoom.id,
+          status: story.remoteRoom.status,
+          callMode: story.remoteRoom.callMode,
+          maxParticipants: story.remoteRoom.maxParticipants,
+          joinCodeExpiresAt: story.remoteRoom.joinCodeExpiresAt,
+          joinCodeConsumedAt: story.remoteRoom.joinCodeConsumedAt,
+          closedAt: story.remoteRoom.closedAt,
+          isOpen:
+            story.remoteRoom.status === "OPEN" || story.remoteRoom.status === "ACTIVE",
+          participants: story.remoteRoom.participants.map((participant) => ({
+            id: participant.id,
+            role: participant.role,
+            displayName: participant.displayName,
+            status: participant.status,
+            lastSeenAt: participant.lastSeenAt,
+            joinedAt: participant.joinedAt,
+            leftAt: participant.leftAt,
+          })),
+        }
+      : null,
   };
 }
 
@@ -285,6 +430,7 @@ export async function createStorySession(
     characters: Array<{ name: string; role?: string }>;
     objective: string;
     startMode: StoryMode;
+    virtueId?: string;
   }
 ) {
   assertSafeContext([
@@ -300,15 +446,32 @@ export async function createStorySession(
 
   const child = await getOwnedChildOrThrow(userId, input.childProfileId);
 
+  const resolvedVirtue = await resolveVirtueForStoryCreation({
+    userId,
+    childProfileId: child.id,
+    virtueId: input.virtueId,
+  });
+
+  const template = await selectVirtueTemplateOrThrow({
+    virtueId: resolvedVirtue.virtue.id,
+    ageBand: resolvedVirtue.ageBand,
+  });
+
   const created = await prisma.story.create({
     data: {
       userId,
       childProfileId: child.id,
+      virtueId: resolvedVirtue.virtue.id,
       titleDraft: input.titleDraft,
       theme: input.theme,
       scenario: input.scenario,
       objective: input.objective,
+      ageBand: resolvedVirtue.ageBand,
+      virtueSource: resolvedVirtue.virtueSource,
+      dilemmaText: template.dilemmaText,
+      endQuestionText: template.endQuestionText,
       status: "DRAFT",
+      sessionKind: "PRESENTIAL",
       currentMode: input.startMode,
       ageSnapshotYears: calculateAgeYears(child.birthDate),
       startedAt: new Date(),
@@ -359,7 +522,13 @@ export async function updateStoryMode(userId: string, storyId: string, mode: Sto
     },
   });
 
-  return getStorySession(userId, storyId);
+  const updated = await getStorySession(userId, storyId);
+  await publishStoryModeChangedEvent({
+    storyId,
+    mode,
+  });
+
+  return updated;
 }
 
 export async function createStoryStep(
@@ -425,11 +594,20 @@ export async function createStoryStep(
 
   if (existingAtIndex) {
     if (existingAtIndex.localEventId === input.localEventId) {
-      return {
+      const result = {
         idempotent: true,
         step: toStoryStepDTO(existingAtIndex),
         story: await getStorySession(userId, storyId),
       };
+
+      await publishStoryStepCreatedEvent({
+        storyId,
+        step: result.step,
+        story: result.story,
+        idempotent: result.idempotent,
+      });
+
+      return result;
     }
 
     throw new ApiError(
@@ -491,11 +669,20 @@ export async function createStoryStep(
     return step;
   });
 
-  return {
+  const result = {
     idempotent: false,
     step: toStoryStepDTO(created),
     story: await getStorySession(userId, storyId),
   };
+
+  await publishStoryStepCreatedEvent({
+    storyId,
+    step: result.step,
+    story: result.story,
+    idempotent: result.idempotent,
+  });
+
+  return result;
 }
 
 export async function requestStoryIdeas(
@@ -522,6 +709,11 @@ export async function requestStoryIdeas(
         },
         take: 3,
       },
+      virtue: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 
@@ -539,7 +731,7 @@ export async function requestStoryIdeas(
     .at(0);
 
   const ideaResult = await generateStoryIdeas({
-    theme: story.theme,
+    theme: story.virtue?.name ? `${story.theme} (${story.virtue.name})` : story.theme,
     scenario: story.scenario,
     objective: story.objective,
     ageSnapshotYears: story.ageSnapshotYears,
@@ -597,6 +789,14 @@ export async function finalizeStorySession(
     throw new ApiError("A sessao ja foi publicada.", 409, "STORY_ALREADY_FINALIZED");
   }
 
+  if (!story.dilemmaText || !story.endQuestionText) {
+    throw new ApiError(
+      "A historia precisa de dilema e pergunta final para ser publicada.",
+      409,
+      "VIRTUE_CONTEXT_REQUIRED"
+    );
+  }
+
   if (story._count.steps < MIN_STORY_STEPS_TO_PUBLISH) {
     throw new ApiError(
       `Sao necessarias pelo menos ${MIN_STORY_STEPS_TO_PUBLISH} etapas para publicar.`,
@@ -645,6 +845,20 @@ export async function listStories(
           name: true,
         },
       },
+      virtue: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+        },
+      },
+      remoteRoom: {
+        select: {
+          id: true,
+          status: true,
+          callMode: true,
+        },
+      },
       _count: {
         select: {
           steps: true,
@@ -659,6 +873,7 @@ export async function listStories(
   return stories.map((story) => ({
     id: story.id,
     childProfileId: story.childProfileId,
+    sessionKind: story.sessionKind,
     childName: story.childProfile.name,
     titleDraft: story.titleDraft,
     titleFinal: story.titleFinal,
@@ -666,6 +881,12 @@ export async function listStories(
     theme: story.theme,
     scenario: story.scenario,
     objective: story.objective,
+    ageBand: story.ageBand,
+    virtueSource: story.virtueSource,
+    dilemmaText: story.dilemmaText,
+    endQuestionText: story.endQuestionText,
+    virtue: story.virtue,
+    remote: story.remoteRoom,
     status: story.status,
     currentMode: story.currentMode,
     currentStepIndex: story.currentStepIndex,

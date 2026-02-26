@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
+import '../parental_gate_controller.dart';
 
 class AdultGateTab extends ConsumerStatefulWidget {
   const AdultGateTab({super.key});
@@ -121,12 +123,27 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
       if (!mounted) return;
 
       setState(() {
-        _isUnlocked = valid;
+        _isUnlocked = valid.verified;
       });
+
+      if (valid.verified &&
+          valid.parentalUnlockToken != null &&
+          valid.parentalUnlockExpiresAt != null) {
+        ref
+            .read(parentalGateControllerProvider.notifier)
+            .setUnlocked(
+              token: valid.parentalUnlockToken!,
+              expiresAt: valid.parentalUnlockExpiresAt!,
+            );
+      } else {
+        ref.read(parentalGateControllerProvider.notifier).clear();
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(valid ? 'Area adulta liberada.' : 'PIN invalido.'),
+          content: Text(
+            valid.verified ? 'Area adulta liberada.' : 'PIN invalido.',
+          ),
         ),
       );
     } catch (error) {
@@ -250,6 +267,14 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
             color: _isUnlocked ? Colors.green : Colors.orange,
             fontWeight: FontWeight.w600,
           ),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: _isUnlocked
+              ? () => context.push('/adult/virtues/reports')
+              : null,
+          icon: const Icon(Icons.insights_outlined),
+          label: const Text('Relatorio de virtudes'),
         ),
       ],
     );

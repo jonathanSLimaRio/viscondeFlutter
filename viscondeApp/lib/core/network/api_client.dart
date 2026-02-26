@@ -1,6 +1,21 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+const devAutoLoginEnabled = bool.fromEnvironment(
+  'DEV_AUTO_LOGIN',
+  defaultValue: false,
+);
+
+const devAdminEmail = String.fromEnvironment(
+  'DEV_ADMIN_EMAIL',
+  defaultValue: 'admin@visconde.app',
+);
+
+const devAdminPassword = String.fromEnvironment(
+  'DEV_ADMIN_PASSWORD',
+  defaultValue: 'admin123',
+);
+
 final apiBaseUrlProvider = Provider<String>((ref) {
   return const String.fromEnvironment(
     'API_BASE_URL',

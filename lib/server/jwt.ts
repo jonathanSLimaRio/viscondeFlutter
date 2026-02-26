@@ -3,6 +3,7 @@ import { jwtVerify, SignJWT } from "jose";
 import { env } from "@/lib/server/env";
 
 type TokenType = "access" | "refresh";
+type RemoteParticipantRole = "HOST_PARENT" | "GUEST_CHILD";
 
 type TokenPayload = {
   sub: string;
@@ -67,4 +68,54 @@ export async function verifyAccessToken(token: string) {
 
 export async function verifyRefreshToken(token: string) {
   return verifyToken(token, "refresh");
+}
+
+export async function signRemoteParticipantToken(input: {
+  storyId: string;
+  remoteRoomId: string;
+  participantId: string;
+  role: RemoteParticipantRole;
+}) {
+  return new SignJWT({
+    typ: "remote_participant",
+    rid: input.remoteRoomId,
+    pid: input.participantId,
+    role: input.role,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(input.storyId)
+    .setIssuedAt()
+    .setExpirationTime(`${env.remoteParticipantTokenTtlMinutes}m`)
+    .sign(secret);
+}
+
+export async function verifyRemoteParticipantToken(token: string) {
+  const { payload } = await jwtVerify(token, secret, {
+    algorithms: ["HS256"],
+  });
+
+  if (payload.typ !== "remote_participant") {
+    throw new Error("Tipo de token remoto invalido.");
+  }
+
+  const storyId = payload.sub;
+  const remoteRoomId = payload.rid;
+  const participantId = payload.pid;
+  const role = payload.role;
+
+  if (
+    typeof storyId !== "string" ||
+    typeof remoteRoomId !== "string" ||
+    typeof participantId !== "string" ||
+    (role !== "HOST_PARENT" && role !== "GUEST_CHILD")
+  ) {
+    throw new Error("Token remoto invalido.");
+  }
+
+  return {
+    storyId,
+    remoteRoomId,
+    participantId,
+    role,
+  } as const;
 }

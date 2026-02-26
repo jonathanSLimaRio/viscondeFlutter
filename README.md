@@ -34,3 +34,45 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Seed admin (dev)
+
+Cria/atualiza o usuario de desenvolvimento:
+
+- email: `admin@visconde.app`
+- senha: `admin123`
+
+```bash
+npm run seed:admin
+```
+
+## Auto-login dev no Flutter
+
+O app Flutter aceita auto-login somente em debug com flag explicita:
+
+```bash
+flutter run \
+  --dart-define=API_BASE_URL=http://localhost:3000/api/v1 \
+  --dart-define=DEV_AUTO_LOGIN=true
+```
+
+Opcionalmente, sobrescreva credenciais:
+
+- `DEV_ADMIN_EMAIL`
+- `DEV_ADMIN_PASSWORD`
+
+## Sala remota (multiplayer)
+
+Backend exposto em `/api/v1` com endpoints de sala remota:
+
+- `POST /story-sessions/:id/remote/open`
+- `POST /story-sessions/:id/remote/close`
+- `POST /story-sessions/:id/remote/code/regenerate`
+- `GET /story-sessions/:id/remote/state`
+- `POST /story-sessions/remote/join`
+- `POST /story-sessions/:id/remote/steps`
+- `POST /story-sessions/:id/remote/chat`
+- `POST /story-sessions/:id/remote/reactions`
+- `GET /stories/:id/interactions`
+
+As variáveis de ambiente para gateway realtime e ICE estão em `.env.exemple`.
