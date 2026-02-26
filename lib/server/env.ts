@@ -22,6 +22,10 @@ const envSchema = z
 
     RESEND_API_KEY: z.string().min(1).optional(),
     RESEND_FROM_EMAIL: z.string().email().optional(),
+
+    OPENAI_API_KEY: z.string().min(1).optional(),
+    OPENAI_IDEAS_MODEL: z.string().min(1).optional(),
+    OPENAI_BASE_URL: z.string().url().optional(),
   })
   .passthrough();
 
@@ -65,6 +69,10 @@ export const env = {
 
   resendApiKey: raw.RESEND_API_KEY,
   resendFromEmail: raw.RESEND_FROM_EMAIL,
+
+  openaiApiKey: raw.OPENAI_API_KEY,
+  openaiIdeasModel: raw.OPENAI_IDEAS_MODEL ?? "gpt-4.1-mini",
+  openaiBaseUrl: raw.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
 };
 
 export function assertRuntimeSecrets() {

@@ -6,6 +6,9 @@ const passwordSchema = z
   .max(128, "A senha deve ter no maximo 128 caracteres.");
 
 const pinSchema = z.string().regex(/^\d{6}$/, "PIN deve conter 6 digitos.");
+const storyModeSchema = z.enum(["PARENT_NARRATOR", "CHILD_CHOOSER"]);
+const storyStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
+const storyStepKindSchema = z.enum(["NARRATION", "CHILD_CHOICE", "SYSTEM"]);
 
 const optionalString = z
   .string()
@@ -80,6 +83,72 @@ export const resetPinSchema = z.object({
   currentPassword: z.string().min(1).optional(),
   googleIdToken: z.string().min(1).optional(),
   appleIdentityToken: z.string().min(1).optional(),
+});
+
+export const createStorySessionSchema = z.object({
+  childProfileId: z.string().trim().min(1).max(120),
+  titleDraft: z.string().trim().min(1).max(140),
+  theme: z.string().trim().min(1).max(120),
+  scenario: z.string().trim().min(1).max(160),
+  characters: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(80),
+        role: z.string().trim().min(1).max(80).optional(),
+      })
+    )
+    .min(1)
+    .max(8),
+  objective: z.string().trim().min(1).max(200),
+  startMode: storyModeSchema.default("PARENT_NARRATOR"),
+});
+
+export const updateStoryModeSchema = z.object({
+  mode: storyModeSchema,
+});
+
+export const storyIdeasSchema = z.object({
+  contextHint: z.string().trim().min(1).max(500).optional(),
+});
+
+export const createStoryStepSchema = z
+  .object({
+    kind: storyStepKindSchema,
+    stepIndex: z.number().int().min(1).max(12),
+    narratorText: z.string().trim().min(1).max(4000).optional(),
+    narratorPrompt: z.string().trim().min(1).max(4000).optional(),
+    selectedOptionId: z.string().trim().min(1).max(80).optional(),
+    selectedOptionLabel: z.string().trim().min(1).max(200).optional(),
+    localEventId: z.string().trim().min(1).max(120),
+  })
+  .superRefine((value, context) => {
+    if (value.kind === "NARRATION") {
+      if (!value.narratorText && !value.narratorPrompt) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Etapa de narracao exige narratorText ou narratorPrompt.",
+          path: ["narratorText"],
+        });
+      }
+      return;
+    }
+
+    if (value.kind === "CHILD_CHOICE" && !value.selectedOptionLabel) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Etapa de escolha exige selectedOptionLabel.",
+        path: ["selectedOptionLabel"],
+      });
+    }
+  });
+
+export const finalizeStorySessionSchema = z.object({
+  titleFinal: z.string().trim().min(1).max(140).optional(),
+});
+
+export const listStoriesQuerySchema = z.object({
+  childProfileId: z.string().trim().min(1).max(120).optional(),
+  status: storyStatusSchema.optional(),
 });
 
 export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {

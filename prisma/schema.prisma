@@ -6,6 +6,23 @@ datasource db {
   provider = "postgresql"
 }
 
+enum StoryStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum StoryMode {
+  PARENT_NARRATOR
+  CHILD_CHOOSER
+}
+
+enum StoryStepKind {
+  NARRATION
+  CHILD_CHOICE
+  SYSTEM
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String?
@@ -24,6 +41,7 @@ model User {
   sessions            Session[]
   mobileSessions      MobileSession[]
   childProfiles       ChildProfile[]
+  stories             Story[]
   passwordResetTokens PasswordResetToken[]
   auditEvents         AuditEvent[]
 
@@ -100,11 +118,91 @@ model ChildProfile {
   isArchived     Boolean  @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stories Story[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId, isArchived])
+}
+
+model Story {
+  id               String      @id @default(cuid())
+  userId           String
+  childProfileId   String
+  titleDraft       String
+  titleFinal       String?
+  theme            String
+  scenario         String
+  objective        String
+  status           StoryStatus @default(DRAFT)
+  currentMode      StoryMode   @default(PARENT_NARRATOR)
+  currentStepIndex Int         @default(0)
+  ageSnapshotYears Int
+  startedAt        DateTime    @default(now())
+  publishedAt      DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  childProfile ChildProfile @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  characters StoryCharacter[]
+  steps      StoryStep[]
+  ideaLogs   StoryIdeaLog[]
+
+  @@index([userId, childProfileId, status])
+  @@index([updatedAt])
+}
+
+model StoryCharacter {
+  id        String   @id @default(cuid())
+  storyId   String
+  name      String
+  role      String?
+  createdAt DateTime @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+}
+
+model StoryStep {
+  id                  String       @id @default(cuid())
+  storyId             String
+  stepIndex           Int
+  kind                StoryStepKind
+  modeUsed            StoryMode
+  localEventId        String
+  narratorPrompt      String?
+  childOptionsJson    Json?
+  selectedOptionId    String?
+  selectedOptionLabel String?
+  narratorText        String?
+  autoSavedAt         DateTime     @default(now())
+  createdAt           DateTime     @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, stepIndex])
+  @@index([storyId, localEventId])
+  @@index([storyId, createdAt])
+}
+
+model StoryIdeaLog {
+  id             String   @id @default(cuid())
+  storyId        String
+  stepIndex      Int?
+  source         String
+  safetyAdjusted Boolean  @default(false)
+  promptInput    String?
+  ideasJson      Json
+  fallbackReason String?
+  createdAt      DateTime @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId, createdAt])
 }
 
 model PasswordResetToken {
