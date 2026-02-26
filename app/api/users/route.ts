@@ -13,7 +13,7 @@ export async function GET() {
     return NextResponse.json(users);
   } catch {
     return NextResponse.json(
-      { error: "Nao foi possivel listar usuarios." },
+      { error: "Nao foi possivel listar usuarios vindo do banco." },
       { status: 500 }
     );
   }
