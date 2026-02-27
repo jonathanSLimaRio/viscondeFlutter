@@ -98,12 +98,16 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
 
     setState(() => _loading = true);
     try {
-      final collections = await ref.read(storyApiProvider).listStoryVaultCollections(
+      final collections = await ref
+          .read(storyApiProvider)
+          .listStoryVaultCollections(
             token,
             childProfileId: _selectedChildId,
             dateFrom: _dateFrom,
             dateTo: _dateTo,
-            theme: _themeController.text.trim().isEmpty ? null : _themeController.text.trim(),
+            theme: _themeController.text.trim().isEmpty
+                ? null
+                : _themeController.text.trim(),
             virtueId: _selectedVirtueId,
             favoriteOnly: _favoriteOnly,
           );
@@ -136,11 +140,9 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     }
 
     try {
-      await ref.read(storyApiProvider).setStoryVaultFavorite(
-            token,
-            item.id,
-            isFavorite: !item.isFavorite,
-          );
+      await ref
+          .read(storyApiProvider)
+          .setStoryVaultFavorite(token, item.id, isFavorite: !item.isFavorite);
       await _loadCollections();
     } catch (error) {
       if (!mounted) {
@@ -205,7 +207,9 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             subtitle: '${_collections.length} sagas encontradas',
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
             trailing: ViscondeAvatarBadge(
-              imageAsset: ViscondeArtRegistry.resolve(ViscondeArtKey.avatarChild),
+              imageAsset: ViscondeArtRegistry.resolve(
+                ViscondeArtKey.avatarChild,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -368,7 +372,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                       '${item.episodesCount} ep',
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

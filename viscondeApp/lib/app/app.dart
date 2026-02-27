@@ -19,7 +19,7 @@ class ViscondeApp extends ConsumerWidget {
         return ViscondeScaffoldBackground(
           child: child ?? const SizedBox.shrink(),
         );
-      ),
+      },
       routerConfig: router,
     );
   }
