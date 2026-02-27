@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -519,6 +520,17 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            ViscondeHeroBanner(
+              title: 'Admin • Prompts',
+              subtitle: 'Prompts de ideia, fallback e narração.',
+              assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroSpace),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarParent,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
@@ -530,7 +542,7 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
                 child: Text('Nenhum prompt cadastrado.'),
               ),
             ..._prompts.map(
-              (prompt) => Card(
+              (prompt) => ViscondeGlassCard(
                 child: ListTile(
                   title: Text(prompt.title),
                   subtitle: Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -139,14 +140,17 @@ class _StoryInteractionsAdultScreenState
     if (!gate.isUnlocked || gate.unlockToken == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Interacoes remotas')),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'Area protegida por PIN. Volte e desbloqueie novamente.',
-              textAlign: TextAlign.center,
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: const [
+            ViscondeGlassCard(
+              child: ViscondeSectionTitle(
+                title: 'Área protegida',
+                subtitle:
+                    'Volte para a área adulta, faça desbloqueio por PIN e tente novamente.',
+              ),
             ),
-          ),
+          ],
         ),
       );
     }
@@ -158,6 +162,17 @@ class _StoryInteractionsAdultScreenState
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            ViscondeHeroBanner(
+              title: 'Interações da Sala',
+              subtitle: 'Histórico de chat e reações do modo remoto.',
+              assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroSpace),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarParent,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
@@ -169,7 +184,7 @@ class _StoryInteractionsAdultScreenState
                 child: Text('Nenhuma historia encontrada.'),
               ),
             ..._stories.map(
-              (story) => Card(
+              (story) => ViscondeGlassCard(
                 child: ListTile(
                   title: Text(story.title),
                   subtitle: Text(

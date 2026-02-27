@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -172,14 +173,17 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
     if (!gate.isUnlocked || gate.unlockToken == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Relatorio de Virtudes')),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'Area protegida por PIN. Volte para a Area adulta e desbloqueie novamente.',
-              textAlign: TextAlign.center,
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: const [
+            ViscondeGlassCard(
+              child: ViscondeSectionTitle(
+                title: 'Área protegida',
+                subtitle:
+                    'Volte para a área adulta, desbloqueie via PIN e abra novamente os relatórios.',
+              ),
             ),
-          ),
+          ],
         ),
       );
     }
@@ -191,13 +195,26 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            ViscondeHeroBanner(
+              title: 'Relatórios de Virtudes',
+              subtitle: 'Acompanhe evolução por criança e por capítulo.',
+              assetPath: ViscondeArtRegistry.resolve(
+                ViscondeArtKey.heroTreasure,
+              ),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarParent,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
                 child: Center(child: CircularProgressIndicator()),
               ),
             if (_overview != null) ...[
-              Card(
+              ViscondeGlassCard(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -228,7 +245,7 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
               ),
               const SizedBox(height: 8),
               ..._overview!.children.map(
-                (item) => Card(
+                (item) => ViscondeGlassCard(
                   child: ListTile(
                     title: Text(item.childName),
                     subtitle: Text(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/models/child_profile.dart';
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -304,6 +305,19 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          ViscondeHeroBanner(
+            title: 'Game Hub',
+            subtitle: 'Progresso saudável, missões e cosméticos.',
+            assetPath: ViscondeArtRegistry.resolve(
+              ViscondeArtKey.heroUnderwater,
+            ),
+            trailing: ViscondeAvatarBadge(
+              imageAsset: ViscondeArtRegistry.resolve(
+                ViscondeArtKey.avatarChild,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           if (_loading)
             const Padding(
               padding: EdgeInsets.only(bottom: 12),
@@ -312,6 +326,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
           if (_children.isNotEmpty)
             DropdownButtonFormField<String>(
               initialValue: _selectedChildId,
+              isExpanded: true,
               decoration: const InputDecoration(labelText: 'Criança'),
               items: _children
                   .map(
@@ -328,7 +343,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
               },
             ),
           const SizedBox(height: 12),
-          Card(
+          ViscondeGlassCard(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -346,7 +361,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Card(
+          ViscondeGlassCard(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -365,13 +380,13 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Missões semanais',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          const ViscondeSectionTitle(
+            title: 'Missões Semanais',
+            subtitle: 'Objetivos da semana por criança.',
           ),
           const SizedBox(height: 6),
           ...?progression?.weeklyMissions.map(
-            (mission) => Card(
+            (mission) => ViscondeGlassCard(
               child: ListTile(
                 title: Text(mission.title),
                 subtitle: Text(
@@ -385,13 +400,13 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Conquistas',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          const ViscondeSectionTitle(
+            title: 'Conquistas',
+            subtitle: 'Marcos já desbloqueados na conta.',
           ),
           const SizedBox(height: 6),
           ..._achievements.map(
-            (achievement) => Card(
+            (achievement) => ViscondeGlassCard(
               child: ListTile(
                 leading: Icon(
                   achievement.unlocked
@@ -409,9 +424,9 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Loja e inventário',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          const ViscondeSectionTitle(
+            title: 'Loja e Inventário',
+            subtitle: 'Desbloqueie e equipe itens cosméticos.',
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -440,7 +455,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
           ),
           const SizedBox(height: 8),
           ..._catalog.map(
-            (item) => Card(
+            (item) => ViscondeGlassCard(
               child: ListTile(
                 title: Text(item.name),
                 subtitle: Text(
@@ -460,7 +475,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Card(
+          ViscondeGlassCard(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(

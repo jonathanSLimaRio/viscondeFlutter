@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -1126,6 +1127,17 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            ViscondeHeroBanner(
+              title: 'Admin • Templates',
+              subtitle: 'Árvore de decisão e publicação versionada.',
+              assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarParent,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
@@ -1169,7 +1181,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
             if (detail == null)
               const Text('Selecione um template para editar.'),
             if (detail != null) ...[
-              Card(
+              ViscondeGlassCard(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -1217,7 +1229,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                 ),
               ),
               if (_lastValidation != null)
-                Card(
+                ViscondeGlassCard(
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(
@@ -1266,7 +1278,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                 ],
               ),
               ...detail.characters.map(
-                (character) => Card(
+                (character) => ViscondeGlassCard(
                   child: ListTile(
                     title: Text(character.name),
                     subtitle: Text(
@@ -1292,7 +1304,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                 ],
               ),
               ...detail.nodes.map(
-                (node) => Card(
+                (node) => ViscondeGlassCard(
                   child: ExpansionTile(
                     title: Text('${node.nodeKey} · ${node.title}'),
                     subtitle: Text(
@@ -1334,7 +1346,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                           child: Text('Sem opcoes.'),
                         ),
                       ...node.options.map(
-                        (option) => Card(
+                        (option) => ViscondeGlassCard(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
                             title: Text(option.label),

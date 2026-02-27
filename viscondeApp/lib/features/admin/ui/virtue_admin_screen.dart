@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -601,6 +602,19 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            ViscondeHeroBanner(
+              title: 'Admin • Virtudes',
+              subtitle: 'Virtudes ativas e dilemas por faixa etária.',
+              assetPath: ViscondeArtRegistry.resolve(
+                ViscondeArtKey.heroTreasure,
+              ),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarParent,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
@@ -623,7 +637,7 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
             ),
             const SizedBox(height: 8),
             ..._virtues.map(
-              (virtue) => Card(
+              (virtue) => ViscondeGlassCard(
                 child: ListTile(
                   title: Text(virtue.name),
                   subtitle: Text(
@@ -720,7 +734,7 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
             ),
             const SizedBox(height: 8),
             ..._templates.map(
-              (item) => Card(
+              (item) => ViscondeGlassCard(
                 child: ListTile(
                   title: Text(_virtueName(item.virtueId)),
                   subtitle: Text(

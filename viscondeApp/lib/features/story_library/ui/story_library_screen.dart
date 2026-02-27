@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -81,31 +82,39 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          FilledButton.icon(
-            onPressed: () => context.push('/stories/new'),
-            icon: const Icon(Icons.auto_stories),
-            label: const Text('Nova Sala de Historia'),
+          ViscondeHeroBanner(
+            title: 'Biblioteca Clássica',
+            subtitle: 'Visão por capítulos individuais.',
+            assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
           ),
           const SizedBox(height: 12),
-          SegmentedButton<StoryStatus?>(
-            segments: const [
-              ButtonSegment<StoryStatus?>(value: null, label: Text('Todos')),
-              ButtonSegment<StoryStatus?>(
-                value: StoryStatus.draft,
-                label: Text('Rascunhos'),
-              ),
-              ButtonSegment<StoryStatus?>(
-                value: StoryStatus.published,
-                label: Text('Publicados'),
-              ),
-            ],
-            selected: <StoryStatus?>{_statusFilter},
-            onSelectionChanged: (values) {
-              setState(() {
-                _statusFilter = values.first;
-              });
-              _loadStories();
-            },
+          ViscondePrimaryCta(
+            onPressed: () => context.push('/stories/new'),
+            icon: Icons.auto_stories,
+            label: 'Nova Sala de História',
+          ),
+          const SizedBox(height: 12),
+          ViscondeGlassCard(
+            child: SegmentedButton<StoryStatus?>(
+              segments: const [
+                ButtonSegment<StoryStatus?>(value: null, label: Text('Todos')),
+                ButtonSegment<StoryStatus?>(
+                  value: StoryStatus.draft,
+                  label: Text('Rascunhos'),
+                ),
+                ButtonSegment<StoryStatus?>(
+                  value: StoryStatus.published,
+                  label: Text('Publicados'),
+                ),
+              ],
+              selected: <StoryStatus?>{_statusFilter},
+              onSelectionChanged: (values) {
+                setState(() {
+                  _statusFilter = values.first;
+                });
+                _loadStories();
+              },
+            ),
           ),
           const SizedBox(height: 12),
           if (_loading)
@@ -119,7 +128,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen> {
               child: Text('Nenhuma historia encontrada.'),
             ),
           ..._stories.map(
-            (story) => Card(
+            (story) => ViscondeGlassCard(
               child: ListTile(
                 onTap: () => context.push('/stories/${story.id}/room'),
                 leading: const CircleAvatar(

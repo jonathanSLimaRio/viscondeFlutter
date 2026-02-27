@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../story_room/models/story_models.dart';
@@ -86,26 +87,47 @@ class _RemoteJoinScreenState extends ConsumerState<RemoteJoinScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          TextField(
-            controller: _codeController,
-            textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(labelText: 'Codigo da sala'),
+          ViscondeHeroBanner(
+            title: 'Conexão Remota',
+            subtitle: 'Entre com código para criar junto em tempo real.',
+            assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroSpace),
+            trailing: ViscondeAvatarBadge(
+              imageAsset: ViscondeArtRegistry.resolve(
+                ViscondeArtKey.avatarChild,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Seu nome'),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _loading ? null : _join,
-            icon: const Icon(Icons.meeting_room_outlined),
-            label: Text(_loading ? 'Entrando...' : 'Entrar na sala'),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'No MVP remoto 1:1, apenas um convidado entra por codigo.',
-            style: TextStyle(fontSize: 12),
+          ViscondeGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const ViscondeSectionTitle(
+                  title: 'Acesso do Convidado',
+                  subtitle:
+                      'No MVP remoto 1:1, apenas um convidado entra por código.',
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _codeController,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: 'Código da sala',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Seu nome'),
+                ),
+                const SizedBox(height: 16),
+                ViscondePrimaryCta(
+                  onPressed: _loading ? null : _join,
+                  icon: Icons.meeting_room_outlined,
+                  label: _loading ? 'Entrando...' : 'Entrar na sala',
+                ),
+              ],
+            ),
           ),
         ],
       ),

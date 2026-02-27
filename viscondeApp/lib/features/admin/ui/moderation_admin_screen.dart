@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -350,6 +351,17 @@ class _ModerationAdminScreenState extends ConsumerState<ModerationAdminScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            ViscondeHeroBanner(
+              title: 'Admin • Moderação',
+              subtitle: 'Termos bloqueados e políticas por escopo.',
+              assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarParent,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
@@ -361,7 +373,7 @@ class _ModerationAdminScreenState extends ConsumerState<ModerationAdminScreen> {
                 child: Text('Nenhum termo de moderacao cadastrado.'),
               ),
             ..._terms.map(
-              (term) => Card(
+              (term) => ViscondeGlassCard(
                 child: ListTile(
                   title: Text(term.displayTerm),
                   subtitle: Text(

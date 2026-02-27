@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -786,7 +787,22 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Card(
+            ViscondeHeroBanner(
+              title: widget.isGuest ? 'Convidado Online' : 'Sala Remota',
+              subtitle: 'Sincronização em tempo real da aventura.',
+              assetPath: ViscondeArtRegistry.resolve(
+                ViscondeArtKey.heroUnderwater,
+              ),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  widget.isGuest
+                      ? ViscondeArtKey.avatarChild
+                      : ViscondeArtKey.avatarParent,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ViscondeGlassCard(
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -830,7 +846,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                 },
               ),
             const SizedBox(height: 12),
-            Card(
+            ViscondeGlassCard(
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -957,7 +973,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                 onSelect: _sendGuestChoice,
               )
             else
-              Card(
+              ViscondeGlassCard(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
@@ -974,7 +990,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
             ),
             const SizedBox(height: 8),
             ..._interactions.map(
-              (item) => Card(
+              (item) => ViscondeGlassCard(
                 child: ListTile(
                   dense: true,
                   leading: CircleAvatar(
@@ -1001,9 +1017,10 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                FilledButton(
+                ViscondePrimaryCta(
                   onPressed: _sendingChat ? null : _sendChat,
-                  child: const Text('Enviar'),
+                  label: 'Enviar',
+                  fullWidth: false,
                 ),
               ],
             ),

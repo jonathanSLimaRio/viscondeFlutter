@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -298,6 +299,17 @@ class _ThemeAdminScreenState extends ConsumerState<ThemeAdminScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            ViscondeHeroBanner(
+              title: 'Admin • Temas',
+              subtitle: 'Catálogo visual de temas do app.',
+              assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroForest),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarParent,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
@@ -309,7 +321,7 @@ class _ThemeAdminScreenState extends ConsumerState<ThemeAdminScreen> {
                 child: Text('Nenhum tema cadastrado.'),
               ),
             ..._themes.map(
-              (theme) => Card(
+              (theme) => ViscondeGlassCard(
                 child: ListTile(
                   title: Text(theme.name),
                   subtitle: Text(
