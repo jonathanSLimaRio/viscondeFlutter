@@ -1,3 +1,5 @@
+// ignore_for_file: use_null_aware_elements
+
 import 'package:flutter/material.dart';
 
 class ViscondeSectionTitle extends StatelessWidget {

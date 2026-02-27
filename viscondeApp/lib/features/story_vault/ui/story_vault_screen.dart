@@ -182,17 +182,6 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     await _loadCollections();
   }
 
-  String _statusLabel(StoryStatus status) {
-    switch (status) {
-      case StoryStatus.published:
-        return 'Publicado';
-      case StoryStatus.archived:
-        return 'Arquivado';
-      case StoryStatus.draft:
-        return 'Rascunho';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');
