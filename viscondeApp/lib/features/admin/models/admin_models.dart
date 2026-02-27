@@ -112,6 +112,26 @@ String adminModerationScopeToApi(AdminModerationScope value) {
   }
 }
 
+class AdminRefModel {
+  const AdminRefModel({
+    required this.id,
+    required this.slug,
+    required this.name,
+  });
+
+  final String id;
+  final String slug;
+  final String name;
+
+  factory AdminRefModel.fromJson(Map<String, dynamic> json) {
+    return AdminRefModel(
+      id: (json['id'] as String?) ?? '',
+      slug: (json['slug'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+    );
+  }
+}
+
 class AdminThemeModel {
   const AdminThemeModel({
     required this.id,
@@ -217,6 +237,8 @@ class AdminPromptModel {
     required this.text,
     this.ageBand,
     this.mode,
+    this.theme,
+    this.virtue,
     required this.sortOrder,
     required this.isActive,
   });
@@ -228,6 +250,8 @@ class AdminPromptModel {
   final String text;
   final String? ageBand;
   final String? mode;
+  final AdminRefModel? theme;
+  final AdminRefModel? virtue;
   final int sortOrder;
   final bool isActive;
 
@@ -240,6 +264,12 @@ class AdminPromptModel {
       text: (json['text'] as String?) ?? '',
       ageBand: json['ageBand'] as String?,
       mode: json['mode'] as String?,
+      theme: (json['theme'] as Map<String, dynamic>?) == null
+          ? null
+          : AdminRefModel.fromJson(json['theme'] as Map<String, dynamic>),
+      virtue: (json['virtue'] as Map<String, dynamic>?) == null
+          ? null
+          : AdminRefModel.fromJson(json['virtue'] as Map<String, dynamic>),
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
       isActive: (json['isActive'] as bool?) ?? true,
     );
@@ -252,6 +282,11 @@ class AdminStoryTemplateListItem {
     required this.slug,
     required this.title,
     required this.description,
+    this.ageBand,
+    this.updatedAt,
+    this.publishedAt,
+    this.theme,
+    this.virtue,
     required this.isActive,
     required this.isPublished,
     required this.version,
@@ -263,6 +298,11 @@ class AdminStoryTemplateListItem {
   final String slug;
   final String title;
   final String description;
+  final String? ageBand;
+  final DateTime? updatedAt;
+  final DateTime? publishedAt;
+  final AdminRefModel? theme;
+  final AdminRefModel? virtue;
   final bool isActive;
   final bool isPublished;
   final int version;
@@ -275,6 +315,15 @@ class AdminStoryTemplateListItem {
       slug: (json['slug'] as String?) ?? '',
       title: (json['title'] as String?) ?? '',
       description: (json['description'] as String?) ?? '',
+      ageBand: json['ageBand'] as String?,
+      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+      publishedAt: DateTime.tryParse(json['publishedAt'] as String? ?? ''),
+      theme: (json['theme'] as Map<String, dynamic>?) == null
+          ? null
+          : AdminRefModel.fromJson(json['theme'] as Map<String, dynamic>),
+      virtue: (json['virtue'] as Map<String, dynamic>?) == null
+          ? null
+          : AdminRefModel.fromJson(json['virtue'] as Map<String, dynamic>),
       isActive: (json['isActive'] as bool?) ?? true,
       isPublished: (json['isPublished'] as bool?) ?? false,
       version: (json['version'] as num?)?.toInt() ?? 1,
@@ -361,9 +410,7 @@ class AdminStoryTemplateCharacterModel {
   final String? role;
   final int sortOrder;
 
-  factory AdminStoryTemplateCharacterModel.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory AdminStoryTemplateCharacterModel.fromJson(Map<String, dynamic> json) {
     return AdminStoryTemplateCharacterModel(
       id: (json['id'] as String?) ?? '',
       name: (json['name'] as String?) ?? '',
@@ -379,8 +426,11 @@ class AdminStoryTemplateDetail {
     required this.slug,
     required this.title,
     required this.description,
+    this.ageBand,
     required this.defaultScenario,
     required this.defaultObjective,
+    this.theme,
+    this.virtue,
     required this.isActive,
     required this.isPublished,
     required this.version,
@@ -392,8 +442,11 @@ class AdminStoryTemplateDetail {
   final String slug;
   final String title;
   final String description;
+  final String? ageBand;
   final String defaultScenario;
   final String defaultObjective;
+  final AdminRefModel? theme;
+  final AdminRefModel? virtue;
   final bool isActive;
   final bool isPublished;
   final int version;
@@ -406,8 +459,15 @@ class AdminStoryTemplateDetail {
       slug: (json['slug'] as String?) ?? '',
       title: (json['title'] as String?) ?? '',
       description: (json['description'] as String?) ?? '',
+      ageBand: json['ageBand'] as String?,
       defaultScenario: (json['defaultScenario'] as String?) ?? '',
       defaultObjective: (json['defaultObjective'] as String?) ?? '',
+      theme: (json['theme'] as Map<String, dynamic>?) == null
+          ? null
+          : AdminRefModel.fromJson(json['theme'] as Map<String, dynamic>),
+      virtue: (json['virtue'] as Map<String, dynamic>?) == null
+          ? null
+          : AdminRefModel.fromJson(json['virtue'] as Map<String, dynamic>),
       isActive: (json['isActive'] as bool?) ?? true,
       isPublished: (json['isPublished'] as bool?) ?? false,
       version: (json['version'] as num?)?.toInt() ?? 1,
@@ -444,7 +504,10 @@ class AdminTemplateValidationIssue {
 }
 
 class AdminTemplateValidationResult {
-  const AdminTemplateValidationResult({required this.valid, required this.issues});
+  const AdminTemplateValidationResult({
+    required this.valid,
+    required this.issues,
+  });
 
   final bool valid;
   final List<AdminTemplateValidationIssue> issues;

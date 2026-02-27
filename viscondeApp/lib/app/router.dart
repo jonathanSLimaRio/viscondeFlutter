@@ -5,6 +5,13 @@ import '../features/auth/auth_controller.dart';
 import '../features/auth/ui/forgot_password_screen.dart';
 import '../features/auth/ui/login_screen.dart';
 import '../features/auth/ui/signup_screen.dart';
+import '../features/admin/ui/admin_access_denied_screen.dart';
+import '../features/admin/ui/admin_hub_screen.dart';
+import '../features/admin/ui/moderation_admin_screen.dart';
+import '../features/admin/ui/prompt_admin_screen.dart';
+import '../features/admin/ui/template_admin_screen.dart';
+import '../features/admin/ui/theme_admin_screen.dart';
+import '../features/admin/ui/virtue_admin_screen.dart';
 import '../features/profile/ui/home_shell_screen.dart';
 import '../features/remote_room/ui/remote_join_screen.dart';
 import '../features/remote_room/ui/remote_room_screen.dart';
@@ -41,6 +48,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/adult/interactions',
         builder: (context, state) => const StoryInteractionsAdultScreen(),
+      ),
+      GoRoute(
+        path: '/adult/admin/denied',
+        builder: (context, state) => const AdminAccessDeniedScreen(),
+      ),
+      GoRoute(
+        path: '/adult/admin',
+        builder: (context, state) => const AdminHubScreen(),
+      ),
+      GoRoute(
+        path: '/adult/admin/themes',
+        builder: (context, state) => const ThemeAdminScreen(),
+      ),
+      GoRoute(
+        path: '/adult/admin/virtues',
+        builder: (context, state) => const VirtueAdminScreen(),
+      ),
+      GoRoute(
+        path: '/adult/admin/prompts',
+        builder: (context, state) => const PromptAdminScreen(),
+      ),
+      GoRoute(
+        path: '/adult/admin/templates',
+        builder: (context, state) => const TemplateAdminScreen(),
+      ),
+      GoRoute(
+        path: '/adult/admin/moderation',
+        builder: (context, state) => const ModerationAdminScreen(),
       ),
       GoRoute(
         path: '/remote/join',
@@ -101,6 +136,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           location == '/forgot-password';
       final isRemotePublicRoute =
           location == '/remote/join' || location == '/remote/room';
+      final isAdminDeniedRoute = location == '/adult/admin/denied';
+      final isAdminProtectedRoute =
+          (location == '/adult/admin' ||
+              location.startsWith('/adult/admin/')) &&
+          !isAdminDeniedRoute;
 
       if (auth.status == AuthStatus.loading) {
         return location == '/loading' ? null : '/loading';
@@ -111,8 +151,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (auth.status == AuthStatus.authenticated) {
+        final isAdmin = auth.user?.isAdmin ?? false;
         if (location == '/loading' || isAuthRoute) {
           return '/';
+        }
+        if (isAdminProtectedRoute && !isAdmin) {
+          return '/adult/admin/denied';
+        }
+        if (isAdminDeniedRoute && isAdmin) {
+          return '/adult/admin';
         }
       }
 

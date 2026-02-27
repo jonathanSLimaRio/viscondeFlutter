@@ -25,12 +25,16 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
   List<ChildProfile> _children = const [];
   List<VirtueModel> _virtues = const [];
+  List<ContentStoryTemplateModel> _templates = const [];
   String? _selectedChildId;
   String? _selectedVirtueId;
+  String? _selectedTemplateId;
   String? _suggestionReason;
   StoryMode _mode = StoryMode.parentNarrator;
   bool _loadingChildren = false;
   bool _loadingVirtues = false;
+  bool _loadingTemplates = false;
+  bool _applyingTemplate = false;
   bool _suggestingVirtue = false;
   bool _submitting = false;
 
@@ -40,6 +44,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadChildren();
       _loadVirtues();
+      _loadTemplates();
     });
   }
 
@@ -116,6 +121,107 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         setState(() => _loadingVirtues = false);
       }
     }
+  }
+
+  Future<void> _loadTemplates() async {
+    final token = ref.read(authControllerProvider).accessToken;
+    if (token == null) {
+      return;
+    }
+
+    setState(() => _loadingTemplates = true);
+
+    try {
+      final templates = await ref
+          .read(storyApiProvider)
+          .listPublishedStoryTemplates(token);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _templates = templates;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+    } finally {
+      if (mounted) {
+        setState(() => _loadingTemplates = false);
+      }
+    }
+  }
+
+  Future<void> _applyTemplatePrefill(String templateId) async {
+    final token = ref.read(authControllerProvider).accessToken;
+    if (token == null) {
+      return;
+    }
+
+    setState(() => _applyingTemplate = true);
+    try {
+      final prefill = await ref
+          .read(storyApiProvider)
+          .getStoryTemplatePrefill(token, templateId);
+      if (!mounted) {
+        return;
+      }
+
+      final charactersText = prefill.characters
+          .map((item) => (item['name'] ?? '').trim())
+          .where((item) => item.isNotEmpty)
+          .join(', ');
+
+      setState(() {
+        if (_titleController.text.trim().isEmpty && prefill.title.isNotEmpty) {
+          _titleController.text = prefill.title;
+        }
+        if (prefill.theme.trim().isNotEmpty) {
+          _themeController.text = prefill.theme.trim();
+        }
+        if (prefill.scenario.trim().isNotEmpty) {
+          _scenarioController.text = prefill.scenario.trim();
+        }
+        if (prefill.objective.trim().isNotEmpty) {
+          _objectiveController.text = prefill.objective.trim();
+        }
+        if (charactersText.isNotEmpty) {
+          _charactersController.text = charactersText;
+        }
+        if (prefill.virtueId != null &&
+            prefill.virtueId!.isNotEmpty &&
+            _virtues.any((virtue) => virtue.id == prefill.virtueId)) {
+          _selectedVirtueId = prefill.virtueId;
+        }
+        _suggestionReason = 'Template aplicado: ${prefill.title}.';
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+    } finally {
+      if (mounted) {
+        setState(() => _applyingTemplate = false);
+      }
+    }
+  }
+
+  Future<void> _onTemplateSelected(String? templateId) async {
+    setState(() {
+      _selectedTemplateId = templateId;
+      _suggestionReason = null;
+    });
+    if (templateId == null || templateId.isEmpty) {
+      return;
+    }
+    await _applyTemplatePrefill(templateId);
   }
 
   Future<void> _suggestVirtueAutomatically() async {
@@ -218,6 +324,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
           objective: objective,
           startMode: _mode,
           virtueId: _selectedVirtueId,
+          sourceTemplateId: _selectedTemplateId,
         );
 
     if (!mounted) {
@@ -267,6 +374,35 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                     setState(() => _selectedChildId = value);
                   },
                   decoration: const InputDecoration(labelText: 'Crianca'),
+                ),
+                const SizedBox(height: 12),
+                if (_loadingTemplates || _applyingTemplate)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: LinearProgressIndicator(),
+                  ),
+                DropdownButtonFormField<String?>(
+                  initialValue: _selectedTemplateId,
+                  decoration: const InputDecoration(
+                    labelText: 'Template publicado (opcional)',
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Sem template'),
+                    ),
+                    ..._templates.map(
+                      (template) => DropdownMenuItem<String?>(
+                        value: template.id,
+                        child: Text(template.title),
+                      ),
+                    ),
+                  ],
+                  onChanged: _loadingTemplates || _applyingTemplate
+                      ? null
+                      : (value) {
+                          _onTemplateSelected(value);
+                        },
                 ),
                 const SizedBox(height: 12),
                 TextField(

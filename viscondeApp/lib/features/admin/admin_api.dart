@@ -215,6 +215,8 @@ class AdminApi {
     required AdminPromptKind kind,
     required String title,
     required String text,
+    String? themeId,
+    String? virtueId,
     String? ageBand,
     String? mode,
     int sortOrder = 0,
@@ -227,6 +229,8 @@ class AdminApi {
         'kind': adminPromptKindToApi(kind),
         'title': title,
         'text': text,
+        if (themeId != null && themeId.isNotEmpty) 'themeId': themeId,
+        if (virtueId != null && virtueId.isNotEmpty) 'virtueId': virtueId,
         if (ageBand != null) 'ageBand': ageBand,
         if (mode != null) 'mode': mode,
         'sortOrder': sortOrder,
@@ -241,16 +245,28 @@ class AdminApi {
   Future<AdminPromptModel> updatePrompt(
     String accessToken,
     String promptId, {
+    String? key,
+    AdminPromptKind? kind,
     String? title,
     String? text,
+    String? themeId,
+    String? virtueId,
+    String? ageBand,
+    String? mode,
     int? sortOrder,
     bool? isActive,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/prompts/$promptId',
       data: {
+        if (key != null) 'key': key,
+        if (kind != null) 'kind': adminPromptKindToApi(kind),
         if (title != null) 'title': title,
         if (text != null) 'text': text,
+        if (themeId != null) 'themeId': themeId,
+        if (virtueId != null) 'virtueId': virtueId,
+        if (ageBand != null) 'ageBand': ageBand,
+        if (mode != null) 'mode': mode,
         if (sortOrder != null) 'sortOrder': sortOrder,
         if (isActive != null) 'isActive': isActive,
       },
@@ -276,22 +292,28 @@ class AdminApi {
 
   Future<AdminStoryTemplateListItem> createStoryTemplate(
     String accessToken, {
+    String? slug,
     required String title,
     required String description,
-    required String defaultScenario,
-    required String defaultObjective,
+    String? themeId,
     String? virtueId,
     String? ageBand,
+    required String defaultScenario,
+    required String defaultObjective,
+    bool isActive = true,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/admin/story-templates',
       data: {
+        if (slug != null && slug.isNotEmpty) 'slug': slug,
         'title': title,
         'description': description,
+        if (themeId != null && themeId.isNotEmpty) 'themeId': themeId,
         'defaultScenario': defaultScenario,
         'defaultObjective': defaultObjective,
         if (virtueId != null) 'virtueId': virtueId,
         if (ageBand != null) 'ageBand': ageBand,
+        'isActive': isActive,
       },
       options: authOptions(accessToken),
     );
@@ -318,8 +340,12 @@ class AdminApi {
   Future<AdminStoryTemplateDetail> updateStoryTemplate(
     String accessToken,
     String templateId, {
+    String? slug,
     String? title,
     String? description,
+    String? themeId,
+    String? virtueId,
+    String? ageBand,
     String? defaultScenario,
     String? defaultObjective,
     bool? isActive,
@@ -327,8 +353,12 @@ class AdminApi {
     final response = await _dio.put<Map<String, dynamic>>(
       '/admin/story-templates/$templateId',
       data: {
+        if (slug != null) 'slug': slug,
         if (title != null) 'title': title,
         if (description != null) 'description': description,
+        if (themeId != null) 'themeId': themeId,
+        if (virtueId != null) 'virtueId': virtueId,
+        if (ageBand != null) 'ageBand': ageBand,
         if (defaultScenario != null) 'defaultScenario': defaultScenario,
         if (defaultObjective != null) 'defaultObjective': defaultObjective,
         if (isActive != null) 'isActive': isActive,
@@ -346,12 +376,14 @@ class AdminApi {
     String templateId, {
     required String name,
     String? role,
+    int? sortOrder,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/admin/story-templates/$templateId/characters',
       data: {
         'name': name,
         if (role != null && role.isNotEmpty) 'role': role,
+        if (sortOrder != null) 'sortOrder': sortOrder,
       },
       options: authOptions(accessToken),
     );
@@ -368,6 +400,8 @@ class AdminApi {
     required AdminStoryTemplateNodeKind kind,
     required String title,
     String? narratorText,
+    String? promptHint,
+    int? sortOrder,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/admin/story-templates/$templateId/nodes',
@@ -377,6 +411,9 @@ class AdminApi {
         'title': title,
         if (narratorText != null && narratorText.isNotEmpty)
           'narratorText': narratorText,
+        if (promptHint != null && promptHint.isNotEmpty)
+          'promptHint': promptHint,
+        if (sortOrder != null) 'sortOrder': sortOrder,
       },
       options: authOptions(accessToken),
     );
@@ -390,12 +427,22 @@ class AdminApi {
     String accessToken,
     String templateId,
     String nodeId, {
+    String? nodeKey,
+    AdminStoryTemplateNodeKind? kind,
     String? title,
+    String? narratorText,
+    String? promptHint,
+    int? sortOrder,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/story-templates/$templateId/nodes/$nodeId',
       data: {
+        if (nodeKey != null) 'nodeKey': nodeKey,
+        if (kind != null) 'kind': adminStoryTemplateNodeKindToApi(kind),
         if (title != null) 'title': title,
+        if (narratorText != null) 'narratorText': narratorText,
+        if (promptHint != null) 'promptHint': promptHint,
+        if (sortOrder != null) 'sortOrder': sortOrder,
       },
       options: authOptions(accessToken),
     );
@@ -412,6 +459,7 @@ class AdminApi {
     required String optionKey,
     required String label,
     required String nextNodeId,
+    int? sortOrder,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/admin/story-templates/$templateId/options',
@@ -420,6 +468,7 @@ class AdminApi {
         'optionKey': optionKey,
         'label': label,
         'nextNodeId': nextNodeId,
+        if (sortOrder != null) 'sortOrder': sortOrder,
       },
       options: authOptions(accessToken),
     );
@@ -433,14 +482,18 @@ class AdminApi {
     String accessToken,
     String templateId,
     String optionId, {
+    String? optionKey,
     String? label,
     String? nextNodeId,
+    int? sortOrder,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/story-templates/$templateId/options/$optionId',
       data: {
+        if (optionKey != null) 'optionKey': optionKey,
         if (label != null) 'label': label,
         if (nextNodeId != null) 'nextNodeId': nextNodeId,
+        if (sortOrder != null) 'sortOrder': sortOrder,
       },
       options: authOptions(accessToken),
     );

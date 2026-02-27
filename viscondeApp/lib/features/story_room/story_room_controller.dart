@@ -234,6 +234,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     required String objective,
     required StoryMode startMode,
     String? virtueId,
+    String? sourceTemplateId,
   }) async {
     final token = _accessToken();
     if (token == null) {
@@ -253,6 +254,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
         objective: objective,
         startMode: startMode,
         virtueId: virtueId,
+        sourceTemplateId: sourceTemplateId,
       );
 
       await _refreshPendingCount();

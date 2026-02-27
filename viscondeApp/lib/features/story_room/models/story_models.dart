@@ -437,6 +437,139 @@ class RemoteRoomModel {
   }
 }
 
+class ContentStoryTemplateModel {
+  const ContentStoryTemplateModel({
+    required this.id,
+    required this.slug,
+    required this.title,
+    required this.description,
+    this.ageBand,
+    required this.version,
+    this.theme,
+    this.virtue,
+    required this.defaultScenario,
+    required this.defaultObjective,
+    required this.charactersCount,
+    required this.nodesCount,
+  });
+
+  final String id;
+  final String slug;
+  final String title;
+  final String description;
+  final AgeBand? ageBand;
+  final int version;
+  final StoryNamedRef? theme;
+  final StoryNamedRef? virtue;
+  final String defaultScenario;
+  final String defaultObjective;
+  final int charactersCount;
+  final int nodesCount;
+
+  factory ContentStoryTemplateModel.fromJson(Map<String, dynamic> json) {
+    return ContentStoryTemplateModel(
+      id: (json['id'] as String?) ?? '',
+      slug: (json['slug'] as String?) ?? '',
+      title: (json['title'] as String?) ?? '',
+      description: (json['description'] as String?) ?? '',
+      ageBand: ageBandFromApi(json['ageBand'] as String?),
+      version: (json['version'] as num?)?.toInt() ?? 1,
+      theme: (json['theme'] as Map<String, dynamic>?) == null
+          ? null
+          : StoryNamedRef.fromJson(json['theme'] as Map<String, dynamic>),
+      virtue: (json['virtue'] as Map<String, dynamic>?) == null
+          ? null
+          : StoryNamedRef.fromJson(json['virtue'] as Map<String, dynamic>),
+      defaultScenario: (json['defaultScenario'] as String?) ?? '',
+      defaultObjective: (json['defaultObjective'] as String?) ?? '',
+      charactersCount: (json['charactersCount'] as num?)?.toInt() ?? 0,
+      nodesCount: (json['nodesCount'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class StoryTemplatePrefillModel {
+  const StoryTemplatePrefillModel({
+    required this.id,
+    required this.slug,
+    required this.title,
+    required this.description,
+    this.ageBand,
+    required this.version,
+    this.virtueId,
+    required this.theme,
+    required this.scenario,
+    required this.objective,
+    required this.characters,
+    this.virtue,
+    this.themeMeta,
+  });
+
+  final String id;
+  final String slug;
+  final String title;
+  final String description;
+  final AgeBand? ageBand;
+  final int version;
+  final String? virtueId;
+  final String theme;
+  final String scenario;
+  final String objective;
+  final List<Map<String, String?>> characters;
+  final StoryNamedRef? virtue;
+  final StoryNamedRef? themeMeta;
+
+  factory StoryTemplatePrefillModel.fromJson(Map<String, dynamic> json) {
+    return StoryTemplatePrefillModel(
+      id: (json['id'] as String?) ?? '',
+      slug: (json['slug'] as String?) ?? '',
+      title: (json['title'] as String?) ?? '',
+      description: (json['description'] as String?) ?? '',
+      ageBand: ageBandFromApi(json['ageBand'] as String?),
+      version: (json['version'] as num?)?.toInt() ?? 1,
+      virtueId: json['virtueId'] as String?,
+      theme: (json['theme'] as String?) ?? '',
+      scenario: (json['scenario'] as String?) ?? '',
+      objective: (json['objective'] as String?) ?? '',
+      characters: ((json['characters'] as List<dynamic>?) ?? <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (item) => <String, String?>{
+              'name': (item['name'] as String?) ?? '',
+              'role': item['role'] as String?,
+            },
+          )
+          .toList(),
+      virtue: (json['virtue'] as Map<String, dynamic>?) == null
+          ? null
+          : StoryNamedRef.fromJson(json['virtue'] as Map<String, dynamic>),
+      themeMeta: (json['themeMeta'] as Map<String, dynamic>?) == null
+          ? null
+          : StoryNamedRef.fromJson(json['themeMeta'] as Map<String, dynamic>),
+    );
+  }
+}
+
+class StoryNamedRef {
+  const StoryNamedRef({
+    required this.id,
+    required this.slug,
+    required this.name,
+  });
+
+  final String id;
+  final String slug;
+  final String name;
+
+  factory StoryNamedRef.fromJson(Map<String, dynamic> json) {
+    return StoryNamedRef(
+      id: (json['id'] as String?) ?? '',
+      slug: (json['slug'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '',
+    );
+  }
+}
+
 class StorySessionModel {
   const StorySessionModel({
     required this.id,
@@ -444,6 +577,7 @@ class StorySessionModel {
     required this.collectionId,
     required this.episodeNumber,
     this.continuedFromStoryId,
+    this.sourceTemplateId,
     required this.sessionKind,
     required this.titleDraft,
     this.titleFinal,
@@ -471,6 +605,7 @@ class StorySessionModel {
   final String collectionId;
   final int episodeNumber;
   final String? continuedFromStoryId;
+  final String? sourceTemplateId;
   final StorySessionKind sessionKind;
   final String titleDraft;
   final String? titleFinal;
@@ -499,6 +634,7 @@ class StorySessionModel {
       collectionId: (json['collectionId'] as String?) ?? '',
       episodeNumber: (json['episodeNumber'] as num?)?.toInt() ?? 1,
       continuedFromStoryId: json['continuedFromStoryId'] as String?,
+      sourceTemplateId: json['sourceTemplateId'] as String?,
       sessionKind: storySessionKindFromApi(json['sessionKind'] as String?),
       titleDraft: (json['titleDraft'] as String?) ?? '',
       titleFinal: json['titleFinal'] as String?,
@@ -541,6 +677,7 @@ class StorySessionModel {
     String? collectionId,
     int? episodeNumber,
     String? continuedFromStoryId,
+    String? sourceTemplateId,
     String? titleDraft,
     String? titleFinal,
     String? title,
@@ -562,6 +699,7 @@ class StorySessionModel {
       collectionId: collectionId ?? this.collectionId,
       episodeNumber: episodeNumber ?? this.episodeNumber,
       continuedFromStoryId: continuedFromStoryId ?? this.continuedFromStoryId,
+      sourceTemplateId: sourceTemplateId ?? this.sourceTemplateId,
       sessionKind: sessionKind,
       titleDraft: titleDraft ?? this.titleDraft,
       titleFinal: titleFinal ?? this.titleFinal,
@@ -592,6 +730,7 @@ class StoryListItem {
     required this.collectionId,
     required this.episodeNumber,
     this.continuedFromStoryId,
+    this.sourceTemplateId,
     required this.title,
     required this.status,
     required this.sessionKind,
@@ -610,6 +749,7 @@ class StoryListItem {
   final String collectionId;
   final int episodeNumber;
   final String? continuedFromStoryId;
+  final String? sourceTemplateId;
   final String title;
   final StoryStatus status;
   final StorySessionKind sessionKind;
@@ -629,6 +769,7 @@ class StoryListItem {
       collectionId: (json['collectionId'] as String?) ?? '',
       episodeNumber: (json['episodeNumber'] as num?)?.toInt() ?? 1,
       continuedFromStoryId: json['continuedFromStoryId'] as String?,
+      sourceTemplateId: json['sourceTemplateId'] as String?,
       title: (json['title'] as String?) ?? '',
       status: storyStatusFromApi((json['status'] as String?) ?? 'DRAFT'),
       sessionKind: storySessionKindFromApi(json['sessionKind'] as String?),
@@ -1168,7 +1309,8 @@ class StoryVaultCollectionDetail {
   final List<StoryVaultEpisodeDetail> episodes;
 
   factory StoryVaultCollectionDetail.fromJson(Map<String, dynamic> json) {
-    final collection = (json['collection'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    final collection =
+        (json['collection'] as Map<String, dynamic>?) ?? <String, dynamic>{};
     return StoryVaultCollectionDetail(
       id: (collection['id'] as String?) ?? '',
       title: (collection['title'] as String?) ?? '',

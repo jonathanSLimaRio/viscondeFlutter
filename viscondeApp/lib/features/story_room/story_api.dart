@@ -40,6 +40,7 @@ class StoryApi {
     required String objective,
     required StoryMode startMode,
     String? virtueId,
+    String? sourceTemplateId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/story-sessions',
@@ -53,6 +54,8 @@ class StoryApi {
         'startMode': storyModeToApi(startMode),
         if (virtueId != null && virtueId.trim().isNotEmpty)
           'virtueId': virtueId.trim(),
+        if (sourceTemplateId != null && sourceTemplateId.trim().isNotEmpty)
+          'sourceTemplateId': sourceTemplateId.trim(),
       },
       options: authOptions(accessToken),
     );
@@ -307,6 +310,34 @@ class StoryApi {
         .whereType<Map<String, dynamic>>()
         .map(VirtueModel.fromJson)
         .toList();
+  }
+
+  Future<List<ContentStoryTemplateModel>> listPublishedStoryTemplates(
+    String accessToken,
+  ) async {
+    final response = await _dio.get<List<dynamic>>(
+      '/content/story-templates',
+      options: authOptions(accessToken),
+    );
+
+    return (response.data ?? <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(ContentStoryTemplateModel.fromJson)
+        .toList();
+  }
+
+  Future<StoryTemplatePrefillModel> getStoryTemplatePrefill(
+    String accessToken,
+    String templateId,
+  ) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/content/story-templates/$templateId/prefill',
+      options: authOptions(accessToken),
+    );
+
+    return StoryTemplatePrefillModel.fromJson(
+      response.data ?? <String, dynamic>{},
+    );
   }
 
   Future<VirtueSuggestionResult> suggestVirtue(

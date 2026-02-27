@@ -201,6 +201,8 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = ref.watch(authControllerProvider);
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -284,6 +286,14 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
           icon: const Icon(Icons.forum_outlined),
           label: const Text('Interacoes remotas'),
         ),
+        if (auth.user?.isAdmin ?? false) ...[
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            onPressed: _isUnlocked ? () => context.push('/adult/admin') : null,
+            icon: const Icon(Icons.admin_panel_settings_outlined),
+            label: const Text('Administracao'),
+          ),
+        ],
       ],
     );
   }

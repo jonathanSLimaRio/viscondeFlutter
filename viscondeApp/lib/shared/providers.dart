@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/api_client.dart';
+import '../features/admin/admin_api.dart';
 import '../features/children/children_api.dart';
 import '../features/gamification/gamification_api.dart';
 import '../features/profile/profile_api.dart';
@@ -26,6 +27,10 @@ final gamificationApiProvider = Provider<GamificationApi>((ref) {
 
 final storyApiProvider = Provider<StoryApi>((ref) {
   return StoryApi(ref.watch(dioProvider));
+});
+
+final adminApiProvider = Provider<AdminApi>((ref) {
+  return AdminApi(ref.watch(dioProvider));
 });
 
 final storySyncQueueProvider = Provider<StorySyncQueue>((ref) {
