@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -96,179 +98,421 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: Colors.transparent,
+      body: ViscondeScaffoldBackground(
+        safeArea: false,
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 36, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Flexible(
-                  child: Text(
-                    'Entrar no ',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: context.viscondeColors.textStrong,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                // ── Title ────────────────────────────────────────────────────
+                _buildTitle(context),
+                const SizedBox(height: 20),
+
+                // ── Hero Banner ──────────────────────────────────────────────
+                ViscondeHeroBanner(
+                  title: 'Criando com o Papai!',
+                  subtitle: 'Transforme tempo em\nmemórias mágicas.',
+                  assetPath: ViscondeArtRegistry.resolve(
+                    ViscondeArtKey.heroTreasure,
                   ),
+                  trailing: ViscondeAvatarBadge(
+                    imageAsset: ViscondeArtRegistry.resolve(
+                      ViscondeArtKey.avatarParent,
+                    ),
+                  ),
+                  height: 180,
                 ),
-                Image.asset(
-                  ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
-                  height: 40,
-                  width: 120, // Add constraint to image to help layout
-                  fit: BoxFit.contain, // ensure it scales correctly
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 40,
-                      width: 120,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: context.viscondeColors.primary.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Visconde',
-                        style: TextStyle(
-                          color: context.viscondeColors.primaryDark,
-                          fontWeight: FontWeight.bold,
+                const SizedBox(height: 16),
+
+                // ── Login Card ───────────────────────────────────────────────
+                ViscondeGlassCard(
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Card header
+                        const ViscondeSectionTitle(
+                          title: 'Acessar conta',
+                          subtitle: 'Continue a próxima aventura.',
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            ViscondeHeroBanner(
-              title: 'Criando com o Papai!',
-              subtitle: 'Transforme tempo em memórias mágicas.',
-              assetPath: ViscondeArtRegistry.resolve(
-                ViscondeArtKey.heroTreasure,
-              ),
-              trailing: ViscondeAvatarBadge(
-                imageAsset: ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.avatarParent,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            ViscondeGlassCard(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    const ViscondeSectionTitle(
-                      title: 'Acessar conta',
-                      subtitle: 'Continue a próxima aventura.',
+                        const SizedBox(height: 16),
+
+                        // Email field
+                        _buildEmailField(context),
+                        const SizedBox(height: 12),
+
+                        // Password field
+                        _buildPasswordField(context),
+                        const SizedBox(height: 20),
+
+                        // Entrar button
+                        ViscondePrimaryCta(
+                          onPressed: _submit,
+                          label: 'Entrar',
+                          icon: Icons.arrow_forward_rounded,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: 'E-mail',
-                        prefixIcon: Icon(Icons.email_outlined, color: context.viscondeColors.primary),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Informe seu e-mail';
-                        }
-                        if (!value.contains('@')) {
-                          return 'E-mail invalido';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Senha',
-                        prefixIcon: Icon(Icons.lock_outline, color: context.viscondeColors.primary),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Informe sua senha';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    ViscondePrimaryCta(
-                      onPressed: _submit,
-                      label: 'Entrar',
-                      icon: Icons.login,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => context.push('/forgot-password'),
-              style: TextButton.styleFrom(
-                foregroundColor: context.viscondeColors.primaryDark,
-              ),
-              child: const Text('Esqueci minha senha'),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(child: Divider(color: context.viscondeColors.borderSoft)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'ou',
-                    style: TextStyle(color: context.viscondeColors.textMuted),
                   ),
                 ),
-                Expanded(child: Divider(color: context.viscondeColors.borderSoft)),
+                const SizedBox(height: 4),
+
+                // ── Forgot password ──────────────────────────────────────────
+                TextButton(
+                  onPressed: () => context.push('/forgot-password'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: context.viscondeColors.primaryDark,
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  child: const Text('Esqueci minha senha'),
+                ),
+
+                const SizedBox(height: 4),
+
+                // ── Divider "ou" ─────────────────────────────────────────────
+                _buildOrDivider(context),
+
+                const SizedBox(height: 16),
+
+                // ── Google button ────────────────────────────────────────────
+                _buildSocialButton(
+                  context: context,
+                  onPressed: _googleLogin,
+                  icon: _GoogleIcon(),
+                  label: 'Continuar com Google',
+                ),
+                const SizedBox(height: 12),
+
+                // ── Apple button ─────────────────────────────────────────────
+                _buildSocialButton(
+                  context: context,
+                  onPressed: _appleLogin,
+                  icon: const Icon(Icons.apple, size: 22, color: Colors.black87),
+                  label: 'Continuar com Apple',
+                ),
+
+                // ── Error message ────────────────────────────────────────────
+                if (authState.error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    authState.error!,
+                    style: TextStyle(
+                      color: context.viscondeColors.warning,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _googleLogin,
-              icon: const Icon(Icons.g_mobiledata, size: 28),
-              label: const Text('Continuar com Google'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: context.viscondeColors.textStrong,
-                elevation: 1,
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                textStyle: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _appleLogin,
-              icon: const Icon(Icons.apple, size: 24),
-              label: const Text('Continuar com Apple'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: context.viscondeColors.textStrong,
-                elevation: 1,
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                textStyle: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => context.push('/signup'),
-              child: const Text('Criar conta'),
-            ),
-            if (authState.error != null) ...[
-              const SizedBox(height: 12),
-              Text(authState.error!, style: const TextStyle(color: Colors.red)),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  Widget _buildTitle(BuildContext context) {
+    final colors = context.viscondeColors;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          'Entrar no ',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w500,
+            color: colors.textStrong,
+            letterSpacing: -0.3,
+          ),
+        ),
+        Image.asset(
+          ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
+          height: 56,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Text(
+            'Visconde',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              color: colors.textStrong,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmailField(BuildContext context) {
+    final colors = context.viscondeColors;
+    return TextFormField(
+      controller: _emailController,
+      keyboardType: TextInputType.emailAddress,
+      style: TextStyle(color: colors.textStrong, fontSize: 15),
+      decoration: InputDecoration(
+        hintText: 'E-mail',
+        hintStyle: TextStyle(color: colors.textMuted, fontSize: 15),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 14, right: 10),
+          child: Icon(Icons.mail_outline_rounded, color: colors.primary, size: 22),
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.78),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.borderSoft, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.borderSoft.withOpacity(0.6), width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.warning, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.warning, width: 1.5),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Informe seu e-mail';
+        }
+        if (!value.contains('@')) {
+          return 'E-mail invalido';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildPasswordField(BuildContext context) {
+    final colors = context.viscondeColors;
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: true,
+      style: TextStyle(color: colors.textStrong, fontSize: 15),
+      decoration: InputDecoration(
+        hintText: 'Senha',
+        hintStyle: TextStyle(color: colors.textMuted, fontSize: 15),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 14, right: 10),
+          child: Icon(Icons.lock_outline_rounded, color: colors.primary, size: 22),
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.78),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.borderSoft, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.borderSoft.withOpacity(0.6), width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.warning, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.warning, width: 1.5),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Informe sua senha';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildOrDivider(BuildContext context) {
+    final colors = context.viscondeColors;
+    return Row(
+      children: [
+        Expanded(
+          child: Divider(
+            color: colors.textMuted.withOpacity(0.25),
+            thickness: 1,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text(
+            'ou',
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Divider(
+            color: colors.textMuted.withOpacity(0.25),
+            thickness: 1,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSocialButton({
+    required BuildContext context,
+    required VoidCallback onPressed,
+    required Widget icon,
+    required String label,
+  }) {
+    final colors = context.viscondeColors;
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        backgroundColor: Colors.white.withOpacity(0.82),
+        foregroundColor: colors.textStrong,
+        side: BorderSide(color: colors.borderSoft.withOpacity(0.5), width: 1),
+        shape: const StadiumBorder(),
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        textStyle: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+        elevation: 0,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          icon,
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+}
+
+/// Google "G" logo painted with the four brand colors.
+class _GoogleIcon extends StatelessWidget {
+  const _GoogleIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(22, 22),
+      painter: _GoogleLogoPainter(),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r = size.width / 2;
+
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    // Draw circular clip
+    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: Offset(cx, cy), radius: r)));
+
+    // White background circle
+    paint.color = Colors.white;
+    canvas.drawCircle(Offset(cx, cy), r, paint);
+
+    // Draw letter G segments using arcs and rects
+    // Blue (top-left arc)
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.72),
+      _toRad(225),
+      _toRad(135),
+      true,
+      paint,
+    );
+
+    // Red (top-right to right arc)
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.72),
+      _toRad(315),
+      _toRad(90),
+      true,
+      paint,
+    );
+    // also cover the white gap
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.72),
+      _toRad(270),
+      _toRad(45),
+      true,
+      paint,
+    );
+
+    // Yellow (bottom-right)
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.72),
+      _toRad(0),
+      _toRad(90),
+      true,
+      paint,
+    );
+
+    // Green (bottom-left)
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.72),
+      _toRad(90),
+      _toRad(135),
+      true,
+      paint,
+    );
+
+    // White inner circle (donut hole)
+    paint.color = Colors.white;
+    canvas.drawCircle(Offset(cx, cy), r * 0.46, paint);
+
+    // "G" horizontal bar — right side extension
+    paint.color = const Color(0xFF4285F4);
+    final barTop = cy - r * 0.11;
+    final barBottom = cy + r * 0.11;
+    canvas.drawRect(
+      Rect.fromLTRB(cx, barTop, cx + r * 0.72, barBottom),
+      paint,
+    );
+
+    // Redraw white donut to clean up
+    paint.color = Colors.white;
+    canvas.drawCircle(Offset(cx, cy), r * 0.46, paint);
+  }
+
+  double _toRad(double deg) => deg * 3.14159265 / 180;
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

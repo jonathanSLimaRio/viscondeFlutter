@@ -40,4 +40,17 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
   end
+
+  # Fix: "Target native_assets required define SdkRoot but it was not provided"
+  # The Flutter-generated native_assets target is missing SDKROOT in its build
+  # configuration, which causes a non-fatal Xcode warning on every build.
+  installer.generated_projects.each do |project|
+    project.targets.each do |target|
+      target.build_configurations.each do |config|
+        if config.build_settings['SDKROOT'].nil?
+          config.build_settings['SDKROOT'] = 'iphoneos'
+        end
+      end
+    end
+  end
 end
