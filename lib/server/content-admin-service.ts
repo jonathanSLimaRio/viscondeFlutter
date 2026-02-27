@@ -1024,41 +1024,57 @@ export async function findFallbackIdeasFromPrompts(input: {
     where: {
       kind: "IDEA_FALLBACK",
       isActive: true,
-      OR: [
-        {
-          theme: input.theme
-            ? {
-                name: {
-                  contains: input.theme,
-                  mode: "insensitive",
-                },
-              }
-            : undefined,
+    },
+    include: {
+      theme: {
+        select: {
+          name: true,
         },
-        input.virtueId
-          ? {
-              virtueId: input.virtueId,
-            }
-          : undefined,
-        input.ageBand
-          ? {
-              ageBand: input.ageBand,
-            }
-          : undefined,
-        input.mode
-          ? {
-              mode: input.mode,
-            }
-          : undefined,
-        {},
-      ].filter((entry) => Boolean(entry)),
+      },
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-    take: 8,
-    select: {
-      text: true,
-    },
+    take: 60,
   });
 
-  return prompts.map((prompt) => prompt.text.trim()).filter(Boolean);
+  const normalizedTheme = input.theme?.toLowerCase().trim();
+
+  const ranked = prompts
+    .map((prompt) => {
+      let score = 0;
+      if (
+        normalizedTheme &&
+        prompt.theme?.name &&
+        prompt.theme.name.toLowerCase().includes(normalizedTheme)
+      ) {
+        score += 3;
+      }
+      if (input.virtueId && prompt.virtueId === input.virtueId) {
+        score += 3;
+      }
+      if (input.ageBand && prompt.ageBand === input.ageBand) {
+        score += 2;
+      }
+      if (input.mode && prompt.mode === input.mode) {
+        score += 2;
+      }
+      return {
+        score,
+        prompt,
+      };
+    })
+    .sort((left, right) => {
+      if (left.score !== right.score) {
+        return right.score - left.score;
+      }
+      if (left.prompt.sortOrder !== right.prompt.sortOrder) {
+        return left.prompt.sortOrder - right.prompt.sortOrder;
+      }
+      return left.prompt.createdAt.getTime() - right.prompt.createdAt.getTime();
+    });
+
+  return ranked
+    .map((entry) => entry.prompt)
+    .slice(0, 8)
+    .map((prompt) => prompt.text.trim())
+    .filter(Boolean);
 }

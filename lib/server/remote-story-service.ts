@@ -10,6 +10,7 @@ import type {
 
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/server/errors";
+import { moderateTextInput } from "@/lib/server/moderation-service";
 import { getUserAgent } from "@/lib/server/request";
 import {
   assertRealtimeGatewayAvailable,
@@ -868,6 +869,15 @@ export async function createStoryInteraction(
     emoji?: string;
   }
 ) {
+  const moderatedMessageText =
+    input.type === "CHAT" && input.messageText
+      ? await moderateTextInput({
+          value: input.messageText,
+          scope: "CHAT_TEXT",
+          field: "messageText",
+        })
+      : input.messageText;
+
   const actor = await resolveRemoteActorForInteraction({
     auth,
     storyId,
@@ -882,7 +892,7 @@ export async function createStoryInteraction(
       authorUserId: actor.authorUserId,
       authorParticipantId: actor.authorParticipantId,
       authorDisplayName: actor.authorDisplayName,
-      messageText: input.messageText,
+      messageText: moderatedMessageText,
       emoji: input.emoji,
     },
   });

@@ -10,8 +10,10 @@ import type {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { resolveTemplateForStoryCreation } from "@/lib/server/content-admin-service";
 import { ApiError } from "@/lib/server/errors";
 import { processStoryPublished } from "@/lib/server/gamification-service";
+import { moderateTextInput } from "@/lib/server/moderation-service";
 import { generateStoryIdeas } from "@/lib/server/story-idea-service";
 import { assertSafeContext } from "@/lib/server/story-safety";
 import { resolveVirtueForStoryCreation } from "@/lib/server/virtue-service";
@@ -216,6 +218,7 @@ function toStorySessionDTO(story: {
   userId: string;
   childProfileId: string;
   collectionId: string;
+  sourceTemplateId: string | null;
   episodeNumber: number;
   continuedFromStoryId: string | null;
   sessionKind: StorySessionKind;
@@ -291,6 +294,7 @@ function toStorySessionDTO(story: {
     userId: story.userId,
     childProfileId: story.childProfileId,
     collectionId: story.collectionId,
+    sourceTemplateId: story.sourceTemplateId,
     episodeNumber: story.episodeNumber,
     continuedFromStoryId: story.continuedFromStoryId,
     sessionKind: story.sessionKind,
@@ -438,25 +442,71 @@ export async function createStorySession(
     objective: string;
     startMode: StoryMode;
     virtueId?: string;
+    sourceTemplateId?: string;
   }
 ) {
+  const normalizedTitleDraft = await moderateTextInput({
+    value: input.titleDraft,
+    scope: "STORY_TEXT",
+    field: "titleDraft",
+    userId,
+  });
+  const normalizedTheme = await moderateTextInput({
+    value: input.theme,
+    scope: "STORY_TEXT",
+    field: "theme",
+    userId,
+  });
+  const normalizedScenario = await moderateTextInput({
+    value: input.scenario,
+    scope: "STORY_TEXT",
+    field: "scenario",
+    userId,
+  });
+  const normalizedObjective = await moderateTextInput({
+    value: input.objective,
+    scope: "STORY_TEXT",
+    field: "objective",
+    userId,
+  });
+  const normalizedCharacters = await Promise.all(
+    input.characters.map(async (character) => ({
+      name: await moderateTextInput({
+        value: character.name,
+        scope: "STORY_TEXT",
+        field: "characterName",
+        userId,
+      }),
+      role: character.role
+        ? await moderateTextInput({
+            value: character.role,
+            scope: "STORY_TEXT",
+            field: "characterRole",
+            userId,
+          })
+        : undefined,
+    }))
+  );
+
   assertSafeContext([
-    { field: "titulo", value: input.titleDraft },
-    { field: "tema", value: input.theme },
-    { field: "cenario", value: input.scenario },
-    { field: "objetivo", value: input.objective },
-    ...input.characters.map((character) => ({
+    { field: "titulo", value: normalizedTitleDraft },
+    { field: "tema", value: normalizedTheme },
+    { field: "cenario", value: normalizedScenario },
+    { field: "objetivo", value: normalizedObjective },
+    ...normalizedCharacters.map((character) => ({
       field: "personagem",
       value: `${character.name} ${character.role ?? ""}`,
     })),
   ]);
 
   const child = await getOwnedChildOrThrow(userId, input.childProfileId);
+  const sourceTemplate = await resolveTemplateForStoryCreation(input.sourceTemplateId);
+  const resolvedVirtueId = input.virtueId ?? sourceTemplate?.virtueId ?? undefined;
 
   const resolvedVirtue = await resolveVirtueForStoryCreation({
     userId,
     childProfileId: child.id,
-    virtueId: input.virtueId,
+    virtueId: resolvedVirtueId,
   });
 
   const template = await selectVirtueTemplateOrThrow({
@@ -471,8 +521,8 @@ export async function createStorySession(
       data: {
         userId,
         childProfileId: child.id,
-        title: input.titleDraft,
-        theme: input.theme,
+        title: normalizedTitleDraft,
+        theme: normalizedTheme,
         virtueId: resolvedVirtue.virtue.id,
         isFavorite: false,
         lastReferenceAt: now,
@@ -487,12 +537,13 @@ export async function createStorySession(
         userId,
         childProfileId: child.id,
         collectionId: collection.id,
+        sourceTemplateId: sourceTemplate?.id ?? null,
         episodeNumber: 1,
         virtueId: resolvedVirtue.virtue.id,
-        titleDraft: input.titleDraft,
-        theme: input.theme,
-        scenario: input.scenario,
-        objective: input.objective,
+        titleDraft: normalizedTitleDraft,
+        theme: normalizedTheme,
+        scenario: normalizedScenario,
+        objective: normalizedObjective,
         ageBand: resolvedVirtue.ageBand,
         virtueSource: resolvedVirtue.virtueSource,
         dilemmaText: template.dilemmaText,
@@ -503,7 +554,7 @@ export async function createStorySession(
         ageSnapshotYears: calculateAgeYears(child.birthDate),
         startedAt: now,
         characters: {
-          create: input.characters.map((character) => ({
+          create: normalizedCharacters.map((character) => ({
             name: character.name,
             role: character.role,
           })),
@@ -646,10 +697,35 @@ export async function createStoryStep(
     );
   }
 
+  const moderatedNarratorText = input.narratorText
+    ? await moderateTextInput({
+        value: input.narratorText,
+        scope: "STORY_TEXT",
+        field: "narratorText",
+        userId,
+      })
+    : undefined;
+  const moderatedNarratorPrompt = input.narratorPrompt
+    ? await moderateTextInput({
+        value: input.narratorPrompt,
+        scope: "STORY_TEXT",
+        field: "narratorPrompt",
+        userId,
+      })
+    : undefined;
+  const moderatedSelectedOptionLabel = input.selectedOptionLabel
+    ? await moderateTextInput({
+        value: input.selectedOptionLabel,
+        scope: "STORY_TEXT",
+        field: "selectedOptionLabel",
+        userId,
+      })
+    : undefined;
+
   assertSafeContext([
-    { field: "narracao", value: input.narratorText },
-    { field: "prompt", value: input.narratorPrompt },
-    { field: "escolha", value: input.selectedOptionLabel },
+    { field: "narracao", value: moderatedNarratorText },
+    { field: "prompt", value: moderatedNarratorPrompt },
+    { field: "escolha", value: moderatedSelectedOptionLabel },
   ]);
 
   const childOptions =
@@ -658,9 +734,9 @@ export async function createStoryStep(
           scenario: story.scenario,
           objective: story.objective,
           context:
-            input.selectedOptionLabel ??
-            input.narratorPrompt ??
-            input.narratorText ??
+            moderatedSelectedOptionLabel ??
+            moderatedNarratorPrompt ??
+            moderatedNarratorText ??
             story.objective,
           stepIndex: input.stepIndex,
         })
@@ -676,11 +752,11 @@ export async function createStoryStep(
         kind: input.kind,
         modeUsed: story.currentMode,
         localEventId: input.localEventId,
-        narratorPrompt: input.narratorPrompt,
+        narratorPrompt: moderatedNarratorPrompt,
         childOptionsJson: childOptions as never,
         selectedOptionId: input.selectedOptionId,
-        selectedOptionLabel: input.selectedOptionLabel,
-        narratorText: input.narratorText,
+        selectedOptionLabel: moderatedSelectedOptionLabel,
+        narratorText: moderatedNarratorText,
         autoSavedAt: now,
       },
     });
@@ -732,6 +808,15 @@ export async function requestStoryIdeas(
     contextHint?: string;
   }
 ) {
+  const moderatedContextHint = input.contextHint
+    ? await moderateTextInput({
+        value: input.contextHint,
+        scope: "STORY_TEXT",
+        field: "contextHint",
+        userId,
+      })
+    : undefined;
+
   const story = await prisma.story.findFirst({
     where: {
       id: storyId,
@@ -777,7 +862,7 @@ export async function requestStoryIdeas(
     ageSnapshotYears: story.ageSnapshotYears,
     characters: story.characters.map((character) => character.name),
     currentMode: story.currentMode,
-    contextHint: input.contextHint,
+    contextHint: moderatedContextHint,
     lastNarrative,
   });
 
@@ -787,7 +872,7 @@ export async function requestStoryIdeas(
       stepIndex: story.currentStepIndex,
       source: ideaResult.source,
       safetyAdjusted: ideaResult.safetyAdjusted,
-      promptInput: input.contextHint,
+      promptInput: moderatedContextHint,
       ideasJson: ideaResult.ideas as never,
       fallbackReason: ideaResult.fallbackReason,
     },
@@ -947,6 +1032,7 @@ export async function listStories(
     id: story.id,
     childProfileId: story.childProfileId,
     collectionId: story.collectionId,
+    sourceTemplateId: story.sourceTemplateId,
     episodeNumber: story.episodeNumber,
     continuedFromStoryId: story.continuedFromStoryId,
     sessionKind: story.sessionKind,

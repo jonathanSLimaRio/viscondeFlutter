@@ -11,6 +11,17 @@ const storyStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const storyStepKindSchema = z.enum(["NARRATION", "CHILD_CHOICE", "SYSTEM"]);
 const callModeSchema = z.enum(["NONE", "AUDIO", "VIDEO"]);
 const catalogItemTypeSchema = z.enum(["SCENARIO", "CHARACTER", "SKIN", "AVATAR"]);
+const ageBandSchema = z.enum(["AGE_4_5", "AGE_6_8", "AGE_9_10"]);
+const promptKindSchema = z.enum(["IDEA_SYSTEM", "IDEA_FALLBACK", "NARRATOR_HINT"]);
+const storyTemplateNodeKindSchema = z.enum(["START", "NARRATION", "CHOICE", "END"]);
+const moderationPolicySchema = z.enum(["BLOCK", "SANITIZE"]);
+const moderationScopeSchema = z.enum([
+  "USER_NAME",
+  "CHILD_NAME",
+  "STORY_TEXT",
+  "CHAT_TEXT",
+  "TEMPLATE_TEXT",
+]);
 
 const optionalString = z
   .string()
@@ -104,6 +115,7 @@ export const createStorySessionSchema = z.object({
   objective: z.string().trim().min(1).max(200),
   startMode: storyModeSchema.default("PARENT_NARRATOR"),
   virtueId: z.string().trim().min(1).max(120).optional(),
+  sourceTemplateId: z.string().trim().min(1).max(120).optional(),
 });
 
 export const updateStoryModeSchema = z.object({
@@ -238,6 +250,176 @@ export const createRemoteReactionSchema = z.object({
     .string()
     .trim()
     .refine((value) => allowedReactionEmojis.includes(value), "Emoji nao permitido."),
+});
+
+export const listAdminVirtueTemplatesQuerySchema = z.object({
+  virtueId: z.string().trim().min(1).max(120).optional(),
+  ageBand: ageBandSchema.optional(),
+});
+
+export const listAdminPromptsQuerySchema = z.object({
+  kind: promptKindSchema.optional(),
+  themeId: z.string().trim().min(1).max(120).optional(),
+  virtueId: z.string().trim().min(1).max(120).optional(),
+  ageBand: ageBandSchema.optional(),
+  mode: storyModeSchema.optional(),
+});
+
+export const createAdminThemeSchema = z.object({
+  slug: z.string().trim().min(1).max(120).optional(),
+  name: z.string().trim().min(1).max(120),
+  shortDescription: z.string().trim().min(1).max(220),
+  iconKey: z.string().trim().min(1).max(120),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const updateAdminThemeSchema = z.object({
+  slug: z.string().trim().min(1).max(120).optional(),
+  name: z.string().trim().min(1).max(120).optional(),
+  shortDescription: z.string().trim().min(1).max(220).optional(),
+  iconKey: z.string().trim().min(1).max(120).optional(),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const createAdminVirtueSchema = z.object({
+  slug: z.string().trim().min(1).max(120).optional(),
+  name: z.string().trim().min(1).max(120),
+  shortDescription: z.string().trim().min(1).max(220),
+  iconKey: z.string().trim().min(1).max(120),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const updateAdminVirtueSchema = z.object({
+  slug: z.string().trim().min(1).max(120).optional(),
+  name: z.string().trim().min(1).max(120).optional(),
+  shortDescription: z.string().trim().min(1).max(220).optional(),
+  iconKey: z.string().trim().min(1).max(120).optional(),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const createAdminVirtueTemplateSchema = z.object({
+  virtueId: z.string().trim().min(1).max(120),
+  ageBand: ageBandSchema,
+  dilemmaText: z.string().trim().min(1).max(4000),
+  endQuestionText: z.string().trim().min(1).max(2000),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const updateAdminVirtueTemplateSchema = z.object({
+  dilemmaText: z.string().trim().min(1).max(4000).optional(),
+  endQuestionText: z.string().trim().min(1).max(2000).optional(),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const createAdminPromptSchema = z.object({
+  key: z.string().trim().min(1).max(120),
+  kind: promptKindSchema,
+  title: z.string().trim().min(1).max(180),
+  text: z.string().trim().min(1).max(4000),
+  themeId: z.string().trim().min(1).max(120).optional().nullable(),
+  virtueId: z.string().trim().min(1).max(120).optional().nullable(),
+  ageBand: ageBandSchema.optional().nullable(),
+  mode: storyModeSchema.optional().nullable(),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const updateAdminPromptSchema = z.object({
+  key: z.string().trim().min(1).max(120).optional(),
+  kind: promptKindSchema.optional(),
+  title: z.string().trim().min(1).max(180).optional(),
+  text: z.string().trim().min(1).max(4000).optional(),
+  themeId: z.string().trim().min(1).max(120).optional().nullable(),
+  virtueId: z.string().trim().min(1).max(120).optional().nullable(),
+  ageBand: ageBandSchema.optional().nullable(),
+  mode: storyModeSchema.optional().nullable(),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const createAdminStoryTemplateSchema = z.object({
+  slug: z.string().trim().min(1).max(120).optional(),
+  title: z.string().trim().min(1).max(180),
+  description: z.string().trim().min(1).max(1000),
+  themeId: z.string().trim().min(1).max(120).optional().nullable(),
+  virtueId: z.string().trim().min(1).max(120).optional().nullable(),
+  ageBand: ageBandSchema.optional().nullable(),
+  defaultScenario: z.string().trim().min(1).max(300),
+  defaultObjective: z.string().trim().min(1).max(300),
+  isActive: z.boolean().optional(),
+});
+
+export const updateAdminStoryTemplateSchema = z.object({
+  slug: z.string().trim().min(1).max(120).optional(),
+  title: z.string().trim().min(1).max(180).optional(),
+  description: z.string().trim().min(1).max(1000).optional(),
+  themeId: z.string().trim().min(1).max(120).optional().nullable(),
+  virtueId: z.string().trim().min(1).max(120).optional().nullable(),
+  ageBand: ageBandSchema.optional().nullable(),
+  defaultScenario: z.string().trim().min(1).max(300).optional(),
+  defaultObjective: z.string().trim().min(1).max(300).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const createAdminStoryTemplateCharacterSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  role: z.string().trim().min(1).max(120).optional().nullable(),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+});
+
+export const createAdminStoryTemplateNodeSchema = z.object({
+  nodeKey: z.string().trim().min(1).max(120),
+  kind: storyTemplateNodeKindSchema,
+  title: z.string().trim().min(1).max(180),
+  narratorText: z.string().trim().min(1).max(4000).optional().nullable(),
+  promptHint: z.string().trim().min(1).max(1000).optional().nullable(),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+});
+
+export const updateAdminStoryTemplateNodeSchema = z.object({
+  nodeKey: z.string().trim().min(1).max(120).optional(),
+  kind: storyTemplateNodeKindSchema.optional(),
+  title: z.string().trim().min(1).max(180).optional(),
+  narratorText: z.string().trim().min(1).max(4000).optional().nullable(),
+  promptHint: z.string().trim().min(1).max(1000).optional().nullable(),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+});
+
+export const createAdminStoryTemplateOptionSchema = z.object({
+  nodeId: z.string().trim().min(1).max(120),
+  optionKey: z.string().trim().min(1).max(120),
+  label: z.string().trim().min(1).max(220),
+  nextNodeId: z.string().trim().min(1).max(120),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+});
+
+export const updateAdminStoryTemplateOptionSchema = z.object({
+  optionKey: z.string().trim().min(1).max(120).optional(),
+  label: z.string().trim().min(1).max(220).optional(),
+  nextNodeId: z.string().trim().min(1).max(120).optional(),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+});
+
+export const createModerationTermSchema = z.object({
+  displayTerm: z.string().trim().min(1).max(120),
+  policy: moderationPolicySchema,
+  replacement: z.string().trim().min(1).max(120).optional().nullable(),
+  scope: moderationScopeSchema,
+  isActive: z.boolean().optional(),
+});
+
+export const updateModerationTermSchema = z.object({
+  displayTerm: z.string().trim().min(1).max(120).optional(),
+  policy: moderationPolicySchema.optional(),
+  replacement: z.string().trim().min(1).max(120).optional().nullable(),
+  scope: moderationScopeSchema.optional(),
+  isActive: z.boolean().optional(),
 });
 
 export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {

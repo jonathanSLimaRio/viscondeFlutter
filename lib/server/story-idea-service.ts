@@ -1,6 +1,8 @@
+import { findFallbackIdeasFromPrompts } from "@/lib/server/content-admin-service";
 import { env } from "@/lib/server/env";
 
 import { assertSafeContext, filterSafeIdeas } from "@/lib/server/story-safety";
+import { resolveAgeBand } from "@/lib/server/virtue-service";
 
 type StoryIdeaSource = "AI" | "TEMPLATE";
 
@@ -178,6 +180,7 @@ export async function generateStoryIdeas(context: StoryIdeaContext): Promise<Sto
   let source: StoryIdeaSource = "TEMPLATE";
   let fallbackReason: string | null = null;
   let rawIdeas: string[] = [];
+  const ageBand = resolveAgeBand(context.ageSnapshotYears);
 
   if (env.openaiApiKey) {
     try {
@@ -195,7 +198,13 @@ export async function generateStoryIdeas(context: StoryIdeaContext): Promise<Sto
   }
 
   if (rawIdeas.length < 2) {
-    rawIdeas = fallbackIdeas(context);
+    const promptIdeas = await findFallbackIdeasFromPrompts({
+      theme: context.theme,
+      ageBand,
+      mode: context.currentMode,
+    });
+
+    rawIdeas = promptIdeas.length >= 2 ? promptIdeas : fallbackIdeas(context);
     source = "TEMPLATE";
     fallbackReason = fallbackReason ?? "Resposta IA insuficiente.";
   }

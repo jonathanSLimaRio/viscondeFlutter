@@ -361,6 +361,95 @@ const gamificationCatalogItems = [
   },
 ];
 
+const storyThemesCatalog = [
+  {
+    slug: "amizade",
+    name: "Amizade",
+    shortDescription: "Aventuras sobre cooperacao e laços afetivos.",
+    iconKey: "theme_friendship",
+    sortOrder: 1,
+  },
+  {
+    slug: "misterio",
+    name: "Misterio",
+    shortDescription: "Pistas, enigmas e descobertas com seguranca infantil.",
+    iconKey: "theme_mystery",
+    sortOrder: 2,
+  },
+  {
+    slug: "fantasia",
+    name: "Fantasia",
+    shortDescription: "Cenarios magicos e criativos para contar historias.",
+    iconKey: "theme_fantasy",
+    sortOrder: 3,
+  },
+  {
+    slug: "familia",
+    name: "Familia",
+    shortDescription: "Narrativas de cuidado, escuta e gratidao.",
+    iconKey: "theme_family",
+    sortOrder: 4,
+  },
+];
+
+const contentPromptsCatalog = [
+  {
+    key: "fallback_empatia_4_5",
+    kind: "IDEA_FALLBACK",
+    title: "Empatia inicial 4-5",
+    text: "Um amigo ficou triste e precisa de ajuda para voltar a sorrir.",
+    virtueSlug: "empatia",
+    ageBand: "AGE_4_5",
+    mode: "PARENT_NARRATOR",
+    sortOrder: 1,
+  },
+  {
+    key: "fallback_coragem_6_8",
+    kind: "IDEA_FALLBACK",
+    title: "Coragem criativa 6-8",
+    text: "A equipe encontra uma ponte desafiadora e decide agir com calma.",
+    virtueSlug: "coragem",
+    ageBand: "AGE_6_8",
+    mode: "PARENT_NARRATOR",
+    sortOrder: 2,
+  },
+  {
+    key: "fallback_gratidao_9_10",
+    kind: "IDEA_FALLBACK",
+    title: "Gratidao em equipe 9-10",
+    text: "No fim da missao, o grupo relembra quem ajudou nos bastidores.",
+    virtueSlug: "gratidao",
+    ageBand: "AGE_9_10",
+    mode: "CHILD_CHOOSER",
+    sortOrder: 3,
+  },
+];
+
+const moderationSeedTerms = [
+  "sexo",
+  "sexual",
+  "porn",
+  "droga",
+  "drogas",
+  "matar",
+  "morte",
+  "assassino",
+  "abuso",
+  "tortura",
+  "terror",
+  "sequestro",
+  "suicidio",
+];
+
+function normalizeTerm(value) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 async function main() {
   const passwordHash = await hash(adminPassword, HASH_OPTIONS);
 
@@ -370,12 +459,14 @@ async function main() {
       name: "admin",
       timezone: "UTC",
       passwordHash,
+      role: "ADMIN",
     },
     create: {
       email: adminEmail,
       name: "admin",
       timezone: "UTC",
       passwordHash,
+      role: "ADMIN",
     },
     select: {
       id: true,
@@ -450,6 +541,225 @@ async function main() {
     }
   }
 
+  const themesBySlug = new Map();
+  for (const theme of storyThemesCatalog) {
+    const saved = await prisma.storyTheme.upsert({
+      where: { slug: theme.slug },
+      update: {
+        name: theme.name,
+        shortDescription: theme.shortDescription,
+        iconKey: theme.iconKey,
+        sortOrder: theme.sortOrder,
+        isActive: true,
+      },
+      create: {
+        slug: theme.slug,
+        name: theme.name,
+        shortDescription: theme.shortDescription,
+        iconKey: theme.iconKey,
+        sortOrder: theme.sortOrder,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        slug: true,
+      },
+    });
+    themesBySlug.set(saved.slug, saved.id);
+  }
+
+  for (const prompt of contentPromptsCatalog) {
+    const virtueId = virtuesBySlug.get(prompt.virtueSlug) ?? null;
+    await prisma.contentPrompt.upsert({
+      where: { key: prompt.key },
+      update: {
+        kind: prompt.kind,
+        title: prompt.title,
+        text: prompt.text,
+        virtueId,
+        ageBand: prompt.ageBand,
+        mode: prompt.mode,
+        sortOrder: prompt.sortOrder,
+        isActive: true,
+      },
+      create: {
+        key: prompt.key,
+        kind: prompt.kind,
+        title: prompt.title,
+        text: prompt.text,
+        virtueId,
+        ageBand: prompt.ageBand,
+        mode: prompt.mode,
+        sortOrder: prompt.sortOrder,
+        isActive: true,
+      },
+    });
+  }
+
+  const sampleTemplate = await prisma.storyTemplate.upsert({
+    where: { slug: "aventura-floresta-encantada" },
+    update: {
+      title: "Aventura na Floresta Encantada",
+      description: "Template de exemplo com escolhas para criacao guiada.",
+      themeId: themesBySlug.get("fantasia") ?? null,
+      virtueId: virtuesBySlug.get("coragem") ?? null,
+      ageBand: "AGE_6_8",
+      defaultScenario: "Floresta encantada com trilhas brilhantes",
+      defaultObjective: "Ajudar um amigo a encontrar o mapa perdido",
+      isActive: true,
+      updatedByUserId: user.id,
+    },
+    create: {
+      slug: "aventura-floresta-encantada",
+      title: "Aventura na Floresta Encantada",
+      description: "Template de exemplo com escolhas para criacao guiada.",
+      themeId: themesBySlug.get("fantasia") ?? null,
+      virtueId: virtuesBySlug.get("coragem") ?? null,
+      ageBand: "AGE_6_8",
+      defaultScenario: "Floresta encantada com trilhas brilhantes",
+      defaultObjective: "Ajudar um amigo a encontrar o mapa perdido",
+      isActive: true,
+      isPublished: true,
+      publishedAt: new Date(),
+      version: 1,
+      createdByUserId: user.id,
+      updatedByUserId: user.id,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  const existingTemplateCharacters = await prisma.storyTemplateCharacter.count({
+    where: {
+      templateId: sampleTemplate.id,
+    },
+  });
+
+  if (existingTemplateCharacters === 0) {
+    await prisma.storyTemplateCharacter.createMany({
+      data: [
+        {
+          templateId: sampleTemplate.id,
+          name: "Luna",
+          role: "exploradora",
+          sortOrder: 0,
+        },
+        {
+          templateId: sampleTemplate.id,
+          name: "Theo",
+          role: "amigo curioso",
+          sortOrder: 1,
+        },
+      ],
+    });
+  }
+
+  const existingTemplateNodes = await prisma.storyTemplateNode.count({
+    where: {
+      templateId: sampleTemplate.id,
+    },
+  });
+
+  if (existingTemplateNodes === 0) {
+    const startNode = await prisma.storyTemplateNode.create({
+      data: {
+        templateId: sampleTemplate.id,
+        nodeKey: "start",
+        kind: "START",
+        title: "Inicio da aventura",
+        narratorText: "A dupla encontra uma trilha de luz no meio da floresta.",
+        sortOrder: 0,
+      },
+    });
+
+    const choiceNode = await prisma.storyTemplateNode.create({
+      data: {
+        templateId: sampleTemplate.id,
+        nodeKey: "escolha_trilha",
+        kind: "CHOICE",
+        title: "Escolha da trilha",
+        narratorText: "Agora e hora de decidir qual caminho seguir.",
+        sortOrder: 1,
+      },
+    });
+
+    const endNodeA = await prisma.storyTemplateNode.create({
+      data: {
+        templateId: sampleTemplate.id,
+        nodeKey: "final_pontes",
+        kind: "END",
+        title: "Final da ponte brilhante",
+        narratorText: "Com coragem, todos atravessam e encontram o mapa.",
+        sortOrder: 2,
+      },
+    });
+
+    const endNodeB = await prisma.storyTemplateNode.create({
+      data: {
+        templateId: sampleTemplate.id,
+        nodeKey: "final_cachoeira",
+        kind: "END",
+        title: "Final da cachoeira",
+        narratorText: "Perto da cachoeira, o amigo recupera o mapa perdido.",
+        sortOrder: 3,
+      },
+    });
+
+    await prisma.storyTemplateOption.createMany({
+      data: [
+        {
+          nodeId: startNode.id,
+          optionKey: "seguir_escolha",
+          label: "Continuar para a escolha principal",
+          nextNodeId: choiceNode.id,
+          sortOrder: 0,
+        },
+        {
+          nodeId: choiceNode.id,
+          optionKey: "ponte",
+          label: "Ir pela ponte brilhante",
+          nextNodeId: endNodeA.id,
+          sortOrder: 0,
+        },
+        {
+          nodeId: choiceNode.id,
+          optionKey: "cachoeira",
+          label: "Ir pela trilha da cachoeira",
+          nextNodeId: endNodeB.id,
+          sortOrder: 1,
+        },
+      ],
+    });
+  }
+
+  for (const term of moderationSeedTerms) {
+    const normalized = normalizeTerm(term);
+    await prisma.moderationTerm.upsert({
+      where: {
+        termNormalized: normalized,
+      },
+      update: {
+        displayTerm: term,
+        policy: "BLOCK",
+        replacement: null,
+        scope: "TEMPLATE_TEXT",
+        isActive: true,
+        updatedByUserId: user.id,
+      },
+      create: {
+        termNormalized: normalized,
+        displayTerm: term,
+        policy: "BLOCK",
+        replacement: null,
+        scope: "TEMPLATE_TEXT",
+        isActive: true,
+        createdByUserId: user.id,
+        updatedByUserId: user.id,
+      },
+    });
+  }
+
   const achievementsToUpsert = [
     ...achievementCatalog,
     ...virtuesCatalog.map((virtue, index) => ({
@@ -516,6 +826,9 @@ async function main() {
   }
 
   console.log(`Virtudes seedadas: ${virtuesCatalog.length}`);
+  console.log(`Temas seedados: ${storyThemesCatalog.length}`);
+  console.log(`Prompts seedados: ${contentPromptsCatalog.length}`);
+  console.log(`Termos de moderacao seedados: ${moderationSeedTerms.length}`);
   console.log(`Conquistas seedadas: ${achievementsToUpsert.length}`);
   console.log(`Itens de catalogo seedados: ${gamificationCatalogItems.length}`);
 }

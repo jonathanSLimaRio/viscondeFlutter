@@ -701,6 +701,8 @@ model Virtue {
   updatedAt        DateTime @updatedAt
 
   templates        VirtueTemplate[]
+  contentPrompts   ContentPrompt[]
+  storyTemplates   StoryTemplate[]
   stories          Story[]
   storyCollections StoryCollection[]
   weeklyMissions   ChildWeeklyMission[]
