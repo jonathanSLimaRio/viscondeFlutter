@@ -77,7 +77,7 @@ void main() {
 
     await tester.pumpWidget(
       wrapTestApp(
-        const StoryVaultScreen(),
+        const Scaffold(body: StoryVaultScreen()),
         overrides: [
           ...authOverrides(user: buildTestUser(), authenticated: true),
           childrenApiProvider.overrideWith(

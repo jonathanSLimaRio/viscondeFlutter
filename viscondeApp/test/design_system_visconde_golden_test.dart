@@ -11,15 +11,18 @@ void main() {
     await tester.pumpWidget(
       wrapTestApp(
         Center(
-          child: ViscondeGlassCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('Baú de Aventuras'),
-                SizedBox(height: 8),
-                Text('4 histórias · 1 livro criado'),
-              ],
+          child: SizedBox(
+            width: 280,
+            child: ViscondeGlassCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('Baú'),
+                  SizedBox(height: 8),
+                  Text('4 histórias'),
+                ],
+              ),
             ),
           ),
         ),

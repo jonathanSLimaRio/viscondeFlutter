@@ -232,6 +232,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                     Expanded(
                       child: DropdownButtonFormField<String?>(
                         initialValue: _selectedChildId,
+                        isExpanded: true,
                         decoration: const InputDecoration(labelText: 'Crianca'),
                         items: [
                           const DropdownMenuItem<String?>(
@@ -255,6 +256,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                     Expanded(
                       child: DropdownButtonFormField<String?>(
                         initialValue: _selectedVirtueId,
+                        isExpanded: true,
                         decoration: const InputDecoration(labelText: 'Virtude'),
                         items: [
                           const DropdownMenuItem<String?>(

@@ -79,9 +79,12 @@ void main() {
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const ViscondeApp(),
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const ViscondeApp(),
+        ),
       ),
     );
 

@@ -14,11 +14,16 @@ class LoadingScreen extends StatelessWidget {
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 CircularProgressIndicator(),
                 SizedBox(width: 12),
-                Text('Preparando sua aventura...'),
+                Flexible(
+                  child: Text(
+                    'Preparando sua aventura...',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),

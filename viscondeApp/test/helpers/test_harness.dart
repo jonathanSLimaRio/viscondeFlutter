@@ -12,6 +12,7 @@ import 'package:visconde_app/features/auth/auth_controller.dart';
 import 'package:visconde_app/features/children/children_api.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
 import 'package:visconde_app/features/story_room/story_api.dart';
+import 'package:visconde_app/features/story_sync/story_sync_queue.dart';
 import 'package:visconde_app/shared/providers.dart';
 
 class MemorySessionStorage extends SessionStorage {
@@ -138,6 +139,64 @@ class FakeStoryApi extends StoryApi {
   }
 }
 
+class FakeStorySyncQueue extends StorySyncQueue {
+  FakeStorySyncQueue();
+
+  final List<StorySyncEvent> _events = <StorySyncEvent>[];
+  int _nextId = 1;
+
+  @override
+  Future<void> clearStory(String storyId) async {
+    _events.removeWhere((event) => event.storyId == storyId);
+  }
+
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Future<void> enqueueStep({
+    required String storyId,
+    required Map<String, dynamic> payload,
+    DateTime? createdAt,
+  }) async {
+    _events.add(
+      StorySyncEvent(
+        id: _nextId++,
+        storyId: storyId,
+        payload: Map<String, dynamic>.from(payload),
+        createdAt: createdAt ?? DateTime.now(),
+      ),
+    );
+  }
+
+  @override
+  Future<List<StorySyncEvent>> listPending({String? storyId}) async {
+    final list = storyId == null
+        ? _events
+        : _events.where((event) => event.storyId == storyId).toList();
+    return list.toList()..sort((a, b) {
+      final createdCompare = a.createdAt.compareTo(b.createdAt);
+      if (createdCompare != 0) {
+        return createdCompare;
+      }
+      return a.id.compareTo(b.id);
+    });
+  }
+
+  @override
+  Future<int> pendingCount({String? storyId}) async {
+    if (storyId == null) {
+      return _events.length;
+    }
+    return _events.where((event) => event.storyId == storyId).length;
+  }
+
+  @override
+  Future<void> removeEvent(int id) async {
+    _events.removeWhere((event) => event.id == id);
+  }
+}
+
 Widget wrapTestApp(Widget child, {List<Override> overrides = const []}) {
   return ProviderScope(
     overrides: overrides,
@@ -146,7 +205,12 @@ Widget wrapTestApp(Widget child, {List<Override> overrides = const []}) {
       theme: ViscondeTheme.buildLightTheme(),
       builder: (context, inner) {
         return ViscondeScaffoldBackground(
-          child: inner ?? const SizedBox.shrink(),
+          child: MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(0.8)),
+            child: inner ?? const SizedBox.shrink(),
+          ),
         );
       },
       home: child,
@@ -183,5 +247,6 @@ List<Override> authOverrides({
   return [
     authApiProvider.overrideWith((ref) => FakeAuthApi(user: user)),
     sessionStorageProvider.overrideWith((ref) => storage),
+    storySyncQueueProvider.overrideWith((ref) => FakeStorySyncQueue()),
   ];
 }
