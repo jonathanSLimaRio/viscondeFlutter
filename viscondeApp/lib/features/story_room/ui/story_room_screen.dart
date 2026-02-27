@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/visconde.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
 import 'child_choice_panel.dart';
@@ -100,41 +101,46 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${story.theme} · ${story.scenario}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+            ViscondeHeroBanner(
+              title: story.title,
+              subtitle: '${story.theme} · ${story.scenario}',
+              assetPath: ViscondeArtRegistry.resolve(
+                ViscondeArtKey.heroUnderwater,
+              ),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarChild,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ViscondeGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Objetivo: ${story.objective}'),
+                  if (story.virtue != null) ...[
                     const SizedBox(height: 4),
-                    Text('Objetivo: ${story.objective}'),
-                    if (story.virtue != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Virtude: ${story.virtue!.name} (faixa ${ageBandLabel(story.ageBand)})',
-                      ),
-                    ],
-                    if (story.dilemmaText != null &&
-                        story.dilemmaText!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text('Dilema: ${story.dilemmaText!}'),
-                    ],
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Chip(label: Text('Etapa ${story.currentStepIndex}/12')),
-                        Chip(label: Text(controller.syncLabel())),
-                        Chip(label: Text('${state.pendingCount} pendentes')),
-                      ],
+                    Text(
+                      'Virtude: ${story.virtue!.name} (faixa ${ageBandLabel(story.ageBand)})',
                     ),
                   ],
-                ),
+                  if (story.dilemmaText != null &&
+                      story.dilemmaText!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text('Dilema: ${story.dilemmaText!}'),
+                  ],
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Chip(label: Text('Etapa ${story.currentStepIndex}/12')),
+                      Chip(label: Text(controller.syncLabel())),
+                      Chip(label: Text('${state.pendingCount} pendentes')),
+                    ],
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
@@ -180,9 +186,9 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                 },
               ),
             const SizedBox(height: 20),
-            const Text(
-              'Timeline da sessao',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const ViscondeSectionTitle(
+              title: 'Timeline da sessão',
+              subtitle: 'Cada passo salvo da aventura.',
             ),
             const SizedBox(height: 8),
             if (story.steps.isEmpty)
@@ -200,10 +206,10 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            FilledButton.icon(
+            ViscondePrimaryCta(
               onPressed: () => context.push('/stories/${story.id}/summary'),
-              icon: const Icon(Icons.publish_outlined),
-              label: const Text('Revisar e publicar capitulo'),
+              icon: Icons.publish_outlined,
+              label: 'Revisar e publicar capitulo',
             ),
           ],
         ),

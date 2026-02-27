@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/models/child_profile.dart';
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -310,34 +311,38 @@ class _StoryVaultDetailScreenState
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${detail.child.name} · ${detail.theme}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    if (detail.virtue != null)
-                      Text('Virtude: ${detail.virtue!.name}'),
-                    Text('Episodios: ${detail.episodes.length}'),
-                    Text(
-                      'Ultima referencia: ${dateFormat.format(detail.lastReferenceAt)}',
-                    ),
-                  ],
+            ViscondeHeroBanner(
+              title: detail.title,
+              subtitle: '${detail.child.name} · ${detail.theme}',
+              assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroForest),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarChild,
                 ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ViscondeGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (detail.virtue != null)
+                    Text('Virtude: ${detail.virtue!.name}'),
+                  Text('Episodios: ${detail.episodes.length}'),
+                  Text(
+                    'Ultima referencia: ${dateFormat.format(detail.lastReferenceAt)}',
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
-                  child: FilledButton.icon(
+                  child: ViscondePrimaryCta(
                     onPressed: _working ? null : _continueAdventure,
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Continuar aventura'),
+                    icon: Icons.play_arrow,
+                    label: 'Continuar aventura',
                   ),
                 ),
               ],
@@ -355,9 +360,9 @@ class _StoryVaultDetailScreenState
               ],
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Capitulos',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const ViscondeSectionTitle(
+              title: 'Capítulos',
+              subtitle: 'Detalhes de cada episódio da saga',
             ),
             const SizedBox(height: 8),
             ...detail.episodes.map(

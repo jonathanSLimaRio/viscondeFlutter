@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../design_system/visconde.dart';
+
 class ParentNarratorPanel extends StatefulWidget {
   const ParentNarratorPanel({
     super.key,
@@ -50,7 +52,7 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
       children: [
         const Text(
           'Painel do pai narrador',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -62,10 +64,10 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
           ),
         ),
         const SizedBox(height: 8),
-        FilledButton.icon(
+        ViscondePrimaryCta(
           onPressed: widget.loading ? null : _saveNarration,
-          icon: const Icon(Icons.save_outlined),
-          label: const Text('Salvar etapa (autosave)'),
+          icon: Icons.save_outlined,
+          label: 'Salvar etapa (autosave)',
         ),
         const SizedBox(height: 12),
         TextField(
@@ -92,7 +94,7 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
           ),
           const SizedBox(height: 8),
           ...widget.ideas.map(
-            (idea) => Card(
+            (idea) => ViscondeGlassCard(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 title: Text(idea),

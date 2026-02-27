@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/models/child_profile.dart';
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -353,158 +354,184 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                if (_children.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      'Cadastre ao menos uma crianca na aba Criancas antes de iniciar.',
+                ViscondeHeroBanner(
+                  title: 'Criando com o Papai!',
+                  subtitle: 'Monte tema, cenário e heróis da aventura.',
+                  assetPath: ViscondeArtRegistry.resolve(
+                    ViscondeArtKey.heroUnderwater,
+                  ),
+                  trailing: ViscondeAvatarBadge(
+                    imageAsset: ViscondeArtRegistry.resolve(
+                      ViscondeArtKey.avatarParent,
                     ),
                   ),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedChildId,
-                  items: _children
-                      .map(
-                        (child) => DropdownMenuItem(
-                          value: child.id,
-                          child: Text(child.name),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() => _selectedChildId = value);
-                  },
-                  decoration: const InputDecoration(labelText: 'Crianca'),
                 ),
                 const SizedBox(height: 12),
-                if (_loadingTemplates || _applyingTemplate)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: LinearProgressIndicator(),
-                  ),
-                DropdownButtonFormField<String?>(
-                  initialValue: _selectedTemplateId,
-                  decoration: const InputDecoration(
-                    labelText: 'Template publicado (opcional)',
-                  ),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Sem template'),
-                    ),
-                    ..._templates.map(
-                      (template) => DropdownMenuItem<String?>(
-                        value: template.id,
-                        child: Text(template.title),
+                ViscondeGlassCard(
+                  child: Column(
+                    children: [
+                      const ViscondeSectionTitle(
+                        title: 'Configuração da História',
+                        subtitle: 'Escolha criança, virtude e modo de sessão.',
                       ),
-                    ),
-                  ],
-                  onChanged: _loadingTemplates || _applyingTemplate
-                      ? null
-                      : (value) {
-                          _onTemplateSelected(value);
-                        },
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Titulo provisiorio',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _themeController,
-                  decoration: const InputDecoration(labelText: 'Tema'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _scenarioController,
-                  decoration: const InputDecoration(labelText: 'Cenario'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _objectiveController,
-                  decoration: const InputDecoration(
-                    labelText: 'Objetivo da aventura',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _charactersController,
-                  decoration: const InputDecoration(
-                    labelText: 'Personagens (separe por virgula)',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (_loadingVirtues)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: LinearProgressIndicator(),
-                  ),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedVirtueId,
-                  items: _virtues
-                      .map(
-                        (virtue) => DropdownMenuItem(
-                          value: virtue.id,
-                          child: Text(virtue.name),
+                      const SizedBox(height: 12),
+                      if (_children.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: Text(
+                            'Cadastre ao menos uma crianca na aba Criancas antes de iniciar.',
+                          ),
                         ),
-                      )
-                      .toList(),
-                  onChanged: _virtues.isEmpty
-                      ? null
-                      : (value) {
-                          setState(() => _selectedVirtueId = value);
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedChildId,
+                        items: _children
+                            .map(
+                              (child) => DropdownMenuItem(
+                                value: child.id,
+                                child: Text(child.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedChildId = value);
                         },
-                  decoration: const InputDecoration(
-                    labelText: 'Virtude principal',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: (_suggestingVirtue || _selectedChildId == null)
-                      ? null
-                      : _suggestVirtueAutomatically,
-                  icon: const Icon(Icons.auto_awesome),
-                  label: Text(
-                    _suggestingVirtue
-                        ? 'Sugerindo...'
-                        : 'Sugerir automaticamente por idade',
-                  ),
-                ),
-                if (_suggestionReason != null && _suggestionReason!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      _suggestionReason!,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                const SizedBox(height: 12),
-                SegmentedButton<StoryMode>(
-                  segments: const [
-                    ButtonSegment<StoryMode>(
-                      value: StoryMode.parentNarrator,
-                      label: Text('Pai narrador'),
-                    ),
-                    ButtonSegment<StoryMode>(
-                      value: StoryMode.childChooser,
-                      label: Text('Crianca escolhe'),
-                    ),
-                  ],
-                  selected: <StoryMode>{_mode},
-                  onSelectionChanged: (values) {
-                    setState(() => _mode = values.first);
-                  },
-                ),
-                const SizedBox(height: 20),
-                FilledButton.icon(
-                  onPressed: (_submitting || _children.isEmpty)
-                      ? null
-                      : _createStory,
-                  icon: const Icon(Icons.play_arrow),
-                  label: Text(
-                    _submitting ? 'Criando...' : 'Abrir Sala de Historia',
+                        decoration: const InputDecoration(labelText: 'Crianca'),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_loadingTemplates || _applyingTemplate)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: LinearProgressIndicator(),
+                        ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: _selectedTemplateId,
+                        decoration: const InputDecoration(
+                          labelText: 'Template publicado (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Sem template'),
+                          ),
+                          ..._templates.map(
+                            (template) => DropdownMenuItem<String?>(
+                              value: template.id,
+                              child: Text(template.title),
+                            ),
+                          ),
+                        ],
+                        onChanged: _loadingTemplates || _applyingTemplate
+                            ? null
+                            : (value) {
+                                _onTemplateSelected(value);
+                              },
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Titulo provisiorio',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _themeController,
+                        decoration: const InputDecoration(labelText: 'Tema'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _scenarioController,
+                        decoration: const InputDecoration(labelText: 'Cenario'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _objectiveController,
+                        decoration: const InputDecoration(
+                          labelText: 'Objetivo da aventura',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _charactersController,
+                        decoration: const InputDecoration(
+                          labelText: 'Personagens (separe por virgula)',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_loadingVirtues)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: LinearProgressIndicator(),
+                        ),
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedVirtueId,
+                        items: _virtues
+                            .map(
+                              (virtue) => DropdownMenuItem(
+                                value: virtue.id,
+                                child: Text(virtue.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: _virtues.isEmpty
+                            ? null
+                            : (value) {
+                                setState(() => _selectedVirtueId = value);
+                              },
+                        decoration: const InputDecoration(
+                          labelText: 'Virtude principal',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed:
+                            (_suggestingVirtue || _selectedChildId == null)
+                            ? null
+                            : _suggestVirtueAutomatically,
+                        icon: const Icon(Icons.auto_awesome),
+                        label: Text(
+                          _suggestingVirtue
+                              ? 'Sugerindo...'
+                              : 'Sugerir automaticamente por idade',
+                        ),
+                      ),
+                      if (_suggestionReason != null &&
+                          _suggestionReason!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            _suggestionReason!,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      SegmentedButton<StoryMode>(
+                        segments: const [
+                          ButtonSegment<StoryMode>(
+                            value: StoryMode.parentNarrator,
+                            label: Text('Pai narrador'),
+                          ),
+                          ButtonSegment<StoryMode>(
+                            value: StoryMode.childChooser,
+                            label: Text('Crianca escolhe'),
+                          ),
+                        ],
+                        selected: <StoryMode>{_mode},
+                        onSelectionChanged: (values) {
+                          setState(() => _mode = values.first);
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      ViscondePrimaryCta(
+                        onPressed: (_submitting || _children.isEmpty)
+                            ? null
+                            : _createStory,
+                        icon: Icons.play_arrow,
+                        label: _submitting
+                            ? 'Criando...'
+                            : 'Abrir Sala de Historia',
+                      ),
+                    ],
                   ),
                 ),
               ],

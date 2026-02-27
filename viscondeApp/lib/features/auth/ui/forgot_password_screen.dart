@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../auth_controller.dart';
 
@@ -33,7 +34,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Se o e-mail existir, enviaremos as instrucoes de redefinicao.',
+              'Se o e-mail existir, enviaremos as instruções de redefinição.',
             ),
           ),
         );
@@ -55,22 +56,38 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Recuperar senha')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'E-mail'),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          ViscondeHeroBanner(
+            title: 'Recupere seu acesso',
+            subtitle: 'Enviamos o link para você continuar a aventura.',
+            assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
+          ),
+          const SizedBox(height: 14),
+          ViscondeGlassCard(
+            child: Column(
+              children: [
+                const ViscondeSectionTitle(
+                  title: 'Confirme seu e-mail',
+                  subtitle: 'Vamos enviar instruções de redefinição.',
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'E-mail'),
+                ),
+                const SizedBox(height: 16),
+                ViscondePrimaryCta(
+                  onPressed: _isLoading ? null : _submit,
+                  label: _isLoading ? 'Enviando...' : 'Enviar link',
+                  icon: Icons.send_rounded,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _isLoading ? null : _submit,
-              child: Text(_isLoading ? 'Enviando...' : 'Enviar link'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

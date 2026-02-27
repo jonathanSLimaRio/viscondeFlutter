@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../gamification/models/gamification_models.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
@@ -156,58 +157,72 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(labelText: 'Titulo final'),
+          ViscondeHeroBanner(
+            title: 'Fechar capítulo',
+            subtitle: 'Revise a história antes de publicar.',
+            assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
           ),
           const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Crianca: ${story.child.name}'),
-                  Text('Tema: ${story.theme}'),
-                  Text('Cenario: ${story.scenario}'),
-                  Text('Objetivo: ${story.objective}'),
-                  if (story.virtue != null)
-                    Text(
-                      'Virtude: ${story.virtue!.name} (faixa ${ageBandLabel(story.ageBand)})',
-                    ),
-                  if (story.dilemmaText != null &&
-                      story.dilemmaText!.trim().isNotEmpty)
-                    Text('Dilema: ${story.dilemmaText}'),
-                  if (story.endQuestionText != null &&
-                      story.endQuestionText!.trim().isNotEmpty)
-                    Text('Pergunta do fim: ${story.endQuestionText}'),
-                  Text('Etapas salvas: ${story.steps.length}'),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Trechos da aventura',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          ...story.steps.map(
-            (step) => Card(
-              child: ListTile(
-                leading: CircleAvatar(child: Text(step.stepIndex.toString())),
-                title: Text(
-                  step.selectedOptionLabel ?? step.narratorText ?? '-',
+          ViscondeGlassCard(
+            child: Column(
+              children: [
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(labelText: 'Titulo final'),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: state.finalizing ? null : _finalize,
-            icon: const Icon(Icons.publish),
-            label: Text(
-              state.finalizing ? 'Publicando...' : 'Publicar capitulo',
+                const SizedBox(height: 12),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Crianca: ${story.child.name}'),
+                        Text('Tema: ${story.theme}'),
+                        Text('Cenario: ${story.scenario}'),
+                        Text('Objetivo: ${story.objective}'),
+                        if (story.virtue != null)
+                          Text(
+                            'Virtude: ${story.virtue!.name} (faixa ${ageBandLabel(story.ageBand)})',
+                          ),
+                        if (story.dilemmaText != null &&
+                            story.dilemmaText!.trim().isNotEmpty)
+                          Text('Dilema: ${story.dilemmaText}'),
+                        if (story.endQuestionText != null &&
+                            story.endQuestionText!.trim().isNotEmpty)
+                          Text('Pergunta do fim: ${story.endQuestionText}'),
+                        Text('Etapas salvas: ${story.steps.length}'),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const ViscondeSectionTitle(
+                  title: 'Trechos da aventura',
+                  subtitle: 'Momentos registrados na timeline',
+                ),
+                const SizedBox(height: 8),
+                ...story.steps.map(
+                  (step) => Card(
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        child: Text(step.stepIndex.toString()),
+                      ),
+                      title: Text(
+                        step.selectedOptionLabel ?? step.narratorText ?? '-',
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ViscondePrimaryCta(
+                  onPressed: state.finalizing ? null : _finalize,
+                  icon: Icons.publish,
+                  label: state.finalizing
+                      ? 'Publicando...'
+                      : 'Publicar capitulo',
+                ),
+              ],
             ),
           ),
         ],

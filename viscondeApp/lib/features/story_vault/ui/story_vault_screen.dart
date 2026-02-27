@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/models/child_profile.dart';
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -199,107 +200,135 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          TextField(
-            controller: _themeController,
-            decoration: InputDecoration(
-              labelText: 'Filtro por tema',
-              suffixIcon: IconButton(
-                onPressed: _loadCollections,
-                icon: const Icon(Icons.search),
-              ),
+          ViscondeHeroBanner(
+            title: 'Baú de Aventuras',
+            subtitle: '${_collections.length} sagas encontradas',
+            assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
+            trailing: ViscondeAvatarBadge(
+              imageAsset: ViscondeArtRegistry.resolve(ViscondeArtKey.avatarChild),
             ),
-            onSubmitted: (_) => _loadCollections(),
           ),
           const SizedBox(height: 12),
-          if (_loadingFilters)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: LinearProgressIndicator(),
-            ),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String?>(
-                  initialValue: _selectedChildId,
-                  decoration: const InputDecoration(labelText: 'Crianca'),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Todas'),
+          ViscondeGlassCard(
+            child: Column(
+              children: [
+                const ViscondeSectionTitle(
+                  title: 'Filtros',
+                  subtitle: 'Refine por criança, virtude e período.',
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _themeController,
+                  decoration: InputDecoration(
+                    labelText: 'Filtro por tema',
+                    suffixIcon: IconButton(
+                      onPressed: _loadCollections,
+                      icon: const Icon(Icons.search),
                     ),
-                    ..._children.map(
-                      (child) => DropdownMenuItem<String?>(
-                        value: child.id,
-                        child: Text(child.name),
+                  ),
+                  onSubmitted: (_) => _loadCollections(),
+                ),
+                const SizedBox(height: 10),
+                if (_loadingFilters)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: LinearProgressIndicator(),
+                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String?>(
+                        initialValue: _selectedChildId,
+                        decoration: const InputDecoration(labelText: 'Crianca'),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Todas'),
+                          ),
+                          ..._children.map(
+                            (child) => DropdownMenuItem<String?>(
+                              value: child.id,
+                              child: Text(child.name),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) async {
+                          setState(() => _selectedChildId = value);
+                          await _loadCollections();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String?>(
+                        initialValue: _selectedVirtueId,
+                        decoration: const InputDecoration(labelText: 'Virtude'),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Todas'),
+                          ),
+                          ..._virtues.map(
+                            (virtue) => DropdownMenuItem<String?>(
+                              value: virtue.id,
+                              child: Text(virtue.name),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) async {
+                          setState(() => _selectedVirtueId = value);
+                          await _loadCollections();
+                        },
                       ),
                     ),
                   ],
-                  onChanged: (value) async {
-                    setState(() => _selectedChildId = value);
-                    await _loadCollections();
-                  },
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String?>(
-                  initialValue: _selectedVirtueId,
-                  decoration: const InputDecoration(labelText: 'Virtude'),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Todas'),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _pickFromDate,
+                        icon: const Icon(Icons.date_range),
+                        label: Text(
+                          _dateFrom == null
+                              ? 'Data inicial'
+                              : 'De ${dateFormat.format(_dateFrom!)}',
+                        ),
+                      ),
                     ),
-                    ..._virtues.map(
-                      (virtue) => DropdownMenuItem<String?>(
-                        value: virtue.id,
-                        child: Text(virtue.name),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _pickToDate,
+                        icon: const Icon(Icons.event),
+                        label: Text(
+                          _dateTo == null
+                              ? 'Data final'
+                              : 'Ate ${dateFormat.format(_dateTo!)}',
+                        ),
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _favoriteOnly,
                   onChanged: (value) async {
-                    setState(() => _selectedVirtueId = value);
+                    setState(() => _favoriteOnly = value);
                     await _loadCollections();
                   },
+                  title: const Text('Somente favoritas'),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickFromDate,
-                  icon: const Icon(Icons.date_range),
-                  label: Text(
-                    _dateFrom == null
-                        ? 'Data inicial'
-                        : 'De ${dateFormat.format(_dateFrom!)}',
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickToDate,
-                  icon: const Icon(Icons.event),
-                  label: Text(
-                    _dateTo == null ? 'Data final' : 'Ate ${dateFormat.format(_dateTo!)}',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: _favoriteOnly,
-            onChanged: (value) async {
-              setState(() => _favoriteOnly = value);
-              await _loadCollections();
-            },
-            title: const Text('Somente favoritas'),
+          ViscondePrimaryCta(
+            onPressed: () => context.push('/stories/new'),
+            icon: Icons.auto_stories_outlined,
+            label: 'Criar nova história',
           ),
           const SizedBox(height: 12),
           if (_loading)
@@ -313,28 +342,33 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
               child: Text('Nenhuma saga encontrada com os filtros atuais.'),
             ),
           ..._collections.map(
-            (item) => Card(
-              child: ListTile(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: ViscondeStoryRowCard(
                 onTap: () => context.push('/vault/${item.id}'),
-                leading: CircleAvatar(
-                  child: Text(item.episodesCount.toString()),
+                title: item.title,
+                badgeLabel: item.virtue?.name ?? item.theme,
+                backgroundAsset: ViscondeArtRegistry.resolve(
+                  item.isFavorite
+                      ? ViscondeArtKey.heroCastle
+                      : ViscondeArtKey.heroForest,
                 ),
-                title: Text(item.title),
-                subtitle: Text(
-                  '${item.child.name} · ${item.theme}'
-                  '${item.virtue != null ? '\nVirtude: ${item.virtue!.name}' : ''}'
-                  '\nEpisodios: ${item.episodesCount} · Publicados: ${item.publishedCount} · Rascunhos: ${item.draftCount}'
-                  '${item.latestEpisode != null ? '\nUltimo: Ep ${item.latestEpisode!.episodeNumber} · ${_statusLabel(item.latestEpisode!.status)}' : ''}'
-                  '\nAtualizado em ${DateFormat('dd/MM HH:mm').format(item.lastReferenceAt)}',
-                ),
-                isThreeLine: true,
-                trailing: IconButton(
-                  onPressed: () => _toggleFavorite(item),
-                  icon: Icon(
-                    item.isFavorite ? Icons.star : Icons.star_border,
-                    color: item.isFavorite ? Colors.amber.shade700 : null,
+                trailing: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () => _toggleFavorite(item),
+                      icon: Icon(
+                        item.isFavorite ? Icons.star : Icons.star_border,
+                        color: item.isFavorite ? Colors.amber.shade700 : null,
+                      ),
+                      tooltip: item.isFavorite ? 'Desfavoritar' : 'Favoritar',
+                    ),
+                    Text(
+                      '${item.episodesCount} ep',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
                   ),
-                  tooltip: item.isFavorite ? 'Desfavoritar' : 'Favoritar',
                 ),
               ),
             ),

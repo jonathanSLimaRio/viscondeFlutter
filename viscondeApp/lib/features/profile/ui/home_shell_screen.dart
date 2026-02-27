@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../features/auth/auth_controller.dart';
 import '../../children/ui/children_tab.dart';
 import '../../gamification/ui/game_hub_screen.dart';
@@ -42,38 +43,44 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
         ],
       ),
       body: tabs[_index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (value) {
-          setState(() => _index = value);
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'Historias',
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(context.viscondeRadii.xl),
+          child: NavigationBar(
+            selectedIndex: _index,
+            onDestinationSelected: (value) {
+              setState(() => _index = value);
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.menu_book_outlined),
+                selectedIcon: Icon(Icons.menu_book),
+                label: 'Historias',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.videogame_asset_outlined),
+                selectedIcon: Icon(Icons.videogame_asset),
+                label: 'Game',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.child_care_outlined),
+                selectedIcon: Icon(Icons.child_care),
+                label: 'Criancas',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.account_circle_outlined),
+                selectedIcon: Icon(Icons.account_circle),
+                label: 'Perfil',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.lock_outline),
+                selectedIcon: Icon(Icons.lock),
+                label: 'Area adulta',
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.videogame_asset_outlined),
-            selectedIcon: Icon(Icons.videogame_asset),
-            label: 'Game',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.child_care_outlined),
-            selectedIcon: Icon(Icons.child_care),
-            label: 'Criancas',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.account_circle_outlined),
-            selectedIcon: Icon(Icons.account_circle),
-            label: 'Perfil',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.lock_outline),
-            selectedIcon: Icon(Icons.lock),
-            label: 'Area adulta',
-          ),
-        ],
+        ),
       ),
     );
   }

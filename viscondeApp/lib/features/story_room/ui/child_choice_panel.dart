@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../design_system/visconde.dart';
 import '../models/story_models.dart';
 
 class ChildChoicePanel extends StatelessWidget {
@@ -19,24 +20,17 @@ class ChildChoicePanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Escolha da crianca',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        const ViscondeSectionTitle(
+          title: 'Escolha da criança',
+          subtitle: 'Toque em uma opção para continuar',
         ),
         const SizedBox(height: 8),
         ...options.map(
           (option) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: FilledButton(
+            child: ViscondePrimaryCta(
               onPressed: enabled ? () => onSelect(option) : null,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(56),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              child: Text(option.label, textAlign: TextAlign.center),
+              label: option.label,
             ),
           ),
         ),

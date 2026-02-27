@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/loading_screen.dart';
 import '../auth_controller.dart';
 
@@ -95,50 +96,69 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Entrar')),
+      appBar: AppBar(title: const Text('Entrar no Visconde')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Aventuras entre pai e filho',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ViscondeHeroBanner(
+              title: 'Criando com o Papai!',
+              subtitle: 'Transforme tempo em memórias mágicas.',
+              assetPath: ViscondeArtRegistry.resolve(
+                ViscondeArtKey.heroTreasure,
+              ),
+              trailing: ViscondeAvatarBadge(
+                imageAsset: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.avatarParent,
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'E-mail'),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Informe seu e-mail';
-                      }
-                      if (!value.contains('@')) {
-                        return 'E-mail invalido';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'Senha'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Informe sua senha';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(onPressed: _submit, child: const Text('Entrar')),
-                ],
+            const SizedBox(height: 14),
+            ViscondeGlassCard(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    const ViscondeSectionTitle(
+                      title: 'Acessar conta',
+                      subtitle: 'Continue a próxima aventura.',
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(labelText: 'E-mail'),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Informe seu e-mail';
+                        }
+                        if (!value.contains('@')) {
+                          return 'E-mail invalido';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Senha'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Informe sua senha';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    ViscondePrimaryCta(
+                      onPressed: _submit,
+                      label: 'Entrar',
+                      icon: Icons.login,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -147,14 +167,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: const Text('Esqueci minha senha'),
             ),
             const Divider(height: 32),
-            OutlinedButton(
+            OutlinedButton.icon(
               onPressed: _googleLogin,
-              child: const Text('Continuar com Google'),
+              icon: const Icon(Icons.g_mobiledata),
+              label: const Text('Continuar com Google'),
             ),
             const SizedBox(height: 8),
-            OutlinedButton(
+            OutlinedButton.icon(
               onPressed: _appleLogin,
-              child: const Text('Continuar com Apple'),
+              icon: const Icon(Icons.apple),
+              label: const Text('Continuar com Apple'),
             ),
             const SizedBox(height: 16),
             TextButton(

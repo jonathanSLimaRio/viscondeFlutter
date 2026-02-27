@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../design_system/visconde.dart';
 import 'router.dart';
 
 class ViscondeApp extends ConsumerWidget {
@@ -13,8 +14,11 @@ class ViscondeApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Visconde App',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E7A3E)),
+      theme: ViscondeTheme.buildLightTheme(),
+      builder: (context, child) {
+        return ViscondeScaffoldBackground(
+          child: child ?? const SizedBox.shrink(),
+        );
       ),
       routerConfig: router,
     );
