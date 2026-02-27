@@ -101,12 +101,49 @@ enum MissionStatus {
   EXPIRED
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PromptKind {
+  IDEA_SYSTEM
+  IDEA_FALLBACK
+  NARRATOR_HINT
+}
+
+enum StoryTemplateNodeKind {
+  START
+  NARRATION
+  CHOICE
+  END
+}
+
+enum ModerationPolicy {
+  BLOCK
+  SANITIZE
+}
+
+enum ModerationScope {
+  USER_NAME
+  CHILD_NAME
+  STORY_TEXT
+  CHAT_TEXT
+  TEMPLATE_TEXT
+}
+
+enum ModerationAction {
+  BLOCK
+  SANITIZE
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String?
   email         String?  @unique
   emailVerified DateTime?
   image         String?
+  role          UserRole @default(USER)
 
   passwordHash String?
   imageUrl     String?
@@ -131,6 +168,11 @@ model User {
   auditEvents         AuditEvent[]
   remoteRoomsOwned    RemoteStoryRoom[]
   storyInteractions   StoryInteraction[]
+  createdStoryTemplates StoryTemplate[] @relation("StoryTemplateCreatedBy")
+  updatedStoryTemplates StoryTemplate[] @relation("StoryTemplateUpdatedBy")
+  createdModerationTerms ModerationTerm[] @relation("ModerationTermCreatedBy")
+  updatedModerationTerms ModerationTerm[] @relation("ModerationTermUpdatedBy")
+  moderationEvents      ModerationEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -403,6 +445,7 @@ model Story {
   userId           String
   childProfileId   String
   collectionId     String
+  sourceTemplateId String?
   episodeNumber    Int         @default(1)
   continuedFromStoryId String?
   sessionKind      StorySessionKind @default(PRESENTIAL)
@@ -429,6 +472,7 @@ model Story {
   user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   childProfile        ChildProfile     @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
   collection          StoryCollection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  sourceTemplate      StoryTemplate?   @relation("StorySourceTemplate", fields: [sourceTemplateId], references: [id], onDelete: SetNull)
   continuedFromStory  Story?           @relation("StoryContinuation", fields: [continuedFromStoryId], references: [id], onDelete: SetNull)
   continuedStories    Story[]          @relation("StoryContinuation")
   templatedCollections StoryCollection[] @relation("StoryCollectionTemplateSource")
@@ -442,8 +486,166 @@ model Story {
   @@index([userId, childProfileId, status])
   @@index([collectionId, status, publishedAt, updatedAt])
   @@index([childProfileId, virtueId, status])
+  @@index([sourceTemplateId])
   @@unique([collectionId, episodeNumber])
   @@index([updatedAt])
+}
+
+model StoryTheme {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  name             String
+  shortDescription String
+  iconKey          String
+  sortOrder        Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  prompts   ContentPrompt[]
+  templates StoryTemplate[]
+
+  @@index([isActive, sortOrder])
+}
+
+model ContentPrompt {
+  id        String     @id @default(cuid())
+  key       String     @unique
+  kind      PromptKind
+  title     String
+  text      String
+  themeId   String?
+  virtueId  String?
+  ageBand   AgeBand?
+  mode      StoryMode?
+  sortOrder Int        @default(0)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  theme  StoryTheme? @relation(fields: [themeId], references: [id], onDelete: SetNull)
+  virtue Virtue?     @relation(fields: [virtueId], references: [id], onDelete: SetNull)
+
+  @@index([kind, isActive, sortOrder])
+  @@index([themeId, virtueId, ageBand, mode])
+}
+
+model StoryTemplate {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  title            String
+  description      String
+  themeId          String?
+  virtueId         String?
+  ageBand          AgeBand?
+  defaultScenario  String
+  defaultObjective String
+  isActive         Boolean  @default(true)
+  isPublished      Boolean  @default(false)
+  version          Int      @default(1)
+  createdByUserId  String
+  updatedByUserId  String
+  publishedAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  theme      StoryTheme? @relation(fields: [themeId], references: [id], onDelete: SetNull)
+  virtue     Virtue?     @relation(fields: [virtueId], references: [id], onDelete: SetNull)
+  createdBy  User        @relation("StoryTemplateCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy  User        @relation("StoryTemplateUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+  stories    Story[]     @relation("StorySourceTemplate")
+  characters StoryTemplateCharacter[]
+  nodes      StoryTemplateNode[]
+
+  @@index([isPublished, isActive, updatedAt])
+  @@index([themeId, virtueId, ageBand])
+}
+
+model StoryTemplateCharacter {
+  id        String   @id @default(cuid())
+  templateId String
+  name      String
+  role      String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  template StoryTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId, sortOrder])
+}
+
+model StoryTemplateNode {
+  id          String               @id @default(cuid())
+  templateId  String
+  nodeKey     String
+  kind        StoryTemplateNodeKind
+  title       String
+  narratorText String?
+  promptHint  String?
+  sortOrder   Int                  @default(0)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  template       StoryTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  options        StoryTemplateOption[] @relation("StoryTemplateNodeOptions")
+  incomingOptions StoryTemplateOption[] @relation("StoryTemplateNodeNext")
+
+  @@unique([templateId, nodeKey])
+  @@index([templateId, sortOrder])
+}
+
+model StoryTemplateOption {
+  id        String   @id @default(cuid())
+  nodeId    String
+  optionKey String
+  label     String
+  nextNodeId String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  node     StoryTemplateNode @relation("StoryTemplateNodeOptions", fields: [nodeId], references: [id], onDelete: Cascade)
+  nextNode StoryTemplateNode @relation("StoryTemplateNodeNext", fields: [nextNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, optionKey])
+  @@index([nodeId, sortOrder])
+  @@index([nextNodeId])
+}
+
+model ModerationTerm {
+  id              String           @id @default(cuid())
+  termNormalized  String           @unique
+  displayTerm     String
+  policy          ModerationPolicy
+  replacement     String?
+  scope           ModerationScope
+  isActive        Boolean          @default(true)
+  createdByUserId String
+  updatedByUserId String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  createdBy User @relation("ModerationTermCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy User @relation("ModerationTermUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([scope, isActive])
+}
+
+model ModerationEvent {
+  id             String           @id @default(cuid())
+  userId         String?
+  scope          ModerationScope
+  field          String
+  originalPreview String
+  action         ModerationAction
+  matchedTerm    String
+  createdAt      DateTime         @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([scope, createdAt])
+  @@index([userId, createdAt])
 }
 
 model RemoteStoryRoom {
@@ -501,6 +703,7 @@ model Virtue {
   templates        VirtueTemplate[]
   stories          Story[]
   storyCollections StoryCollection[]
+  weeklyMissions   ChildWeeklyMission[]
 
   @@index([isActive, sortOrder])
 }

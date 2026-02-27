@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../gamification/models/gamification_models.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
 
@@ -56,10 +57,78 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       return;
     }
 
+    if (finalized.gamification != null) {
+      await _showGamificationModal(finalized.gamification!);
+    }
+
+    if (!mounted) {
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Historia publicada com sucesso.')),
     );
     context.go('/');
+  }
+
+  Future<void> _showGamificationModal(
+    PublishGamificationSummaryModel gamification,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Recompensas da aventura'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('+${gamification.deltaCoins} moedas'),
+                Text('+${gamification.deltaStars} estrelas'),
+                const SizedBox(height: 8),
+                Text(
+                  'Carteira: ${gamification.wallet.coins} moedas · ${gamification.wallet.stars} estrelas',
+                ),
+                const SizedBox(height: 8),
+                Text('Streak atual: ${gamification.streak.currentDays} dias'),
+                Text('Escudos: ${gamification.streak.shieldCount}'),
+                if (gamification.completedMissions.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Missões concluídas',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  ...gamification.completedMissions.map<Widget>(
+                    (mission) => Text('- ${mission.title}'),
+                  ),
+                ],
+                if (gamification.unlockedAchievements.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Conquistas desbloqueadas',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  ...gamification.unlockedAchievements.map<Widget>(
+                    (achievement) => Text('- ${achievement.title}'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Continuar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

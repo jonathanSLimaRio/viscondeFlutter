@@ -9,6 +9,7 @@
     "lint": "eslint",
     "seed": "node prisma/seed.mjs",
     "seed:admin": "node prisma/seed.mjs",
+    "gamification:backfill": "node prisma/gamification-backfill.mjs",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

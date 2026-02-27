@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/auth/auth_controller.dart';
 import '../../children/ui/children_tab.dart';
+import '../../gamification/ui/game_hub_screen.dart';
 import '../../security/ui/adult_gate_tab.dart';
 import '../../story_vault/ui/story_vault_screen.dart';
 import 'profile_tab.dart';
@@ -21,6 +22,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   Widget build(BuildContext context) {
     final tabs = const [
       StoryVaultScreen(),
+      GameHubScreen(),
       ChildrenTab(),
       ProfileTab(),
       AdultGateTab(),
@@ -50,6 +52,11 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
             icon: Icon(Icons.menu_book_outlined),
             selectedIcon: Icon(Icons.menu_book),
             label: 'Historias',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.videogame_asset_outlined),
+            selectedIcon: Icon(Icons.videogame_asset),
+            label: 'Game',
           ),
           NavigationDestination(
             icon: Icon(Icons.child_care_outlined),

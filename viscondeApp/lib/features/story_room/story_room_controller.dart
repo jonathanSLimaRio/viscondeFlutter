@@ -485,7 +485,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     }
   }
 
-  Future<StorySessionModel?> finalize({String? titleFinal}) async {
+  Future<StoryFinalizeResult?> finalize({String? titleFinal}) async {
     final token = _accessToken();
     final session = state.session;
 
@@ -503,7 +503,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
         titleFinal: titleFinal,
       );
 
-      state = state.copyWith(finalizing: false, session: finalized);
+      state = state.copyWith(finalizing: false, session: finalized.story);
       return finalized;
     } catch (error) {
       state = state.copyWith(finalizing: false, error: parseDioError(error));

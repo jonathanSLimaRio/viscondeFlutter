@@ -3,7 +3,14 @@ import type { ChildProfile, User } from "@prisma/client";
 export function toUserDTO(
   user: Pick<
     User,
-    "id" | "name" | "email" | "timezone" | "imageUrl" | "createdAt" | "updatedAt"
+    | "id"
+    | "name"
+    | "email"
+    | "timezone"
+    | "imageUrl"
+    | "role"
+    | "createdAt"
+    | "updatedAt"
   >
 ) {
   return {
@@ -12,6 +19,7 @@ export function toUserDTO(
     email: user.email,
     timezone: user.timezone,
     imageUrl: user.imageUrl,
+    role: user.role,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

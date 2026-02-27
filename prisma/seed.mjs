@@ -257,6 +257,110 @@ const virtueTemplates = {
   },
 };
 
+const achievementCatalog = [
+  {
+    key: "primeira_historia",
+    title: "Primeira Historia",
+    description: "Publicou o primeiro capitulo.",
+    iconKey: "first_story",
+    rewardCoins: 50,
+    rewardStars: 2,
+    sortOrder: 1,
+  },
+  {
+    key: "streak_7_dias",
+    title: "7 Dias Contando",
+    description: "Manteve o ritmo por 7 dias.",
+    iconKey: "streak_7",
+    rewardCoins: 80,
+    rewardStars: 3,
+    sortOrder: 2,
+  },
+];
+
+const gamificationCatalogItems = [
+  {
+    key: "scenario_floresta_luz",
+    type: "SCENARIO",
+    name: "Floresta de Luz",
+    description: "Cenario cosmético com atmosfera encantada.",
+    iconKey: "scenario_forest_light",
+    priceCoins: 120,
+    priceStars: 0,
+    sortOrder: 1,
+  },
+  {
+    key: "scenario_castelo_nuvens",
+    type: "SCENARIO",
+    name: "Castelo das Nuvens",
+    description: "Cenario cosmético em altura.",
+    iconKey: "scenario_cloud_castle",
+    priceCoins: 180,
+    priceStars: 1,
+    sortOrder: 2,
+  },
+  {
+    key: "character_gato_explorador",
+    type: "CHARACTER",
+    name: "Gato Explorador",
+    description: "Companheiro curioso para novas jornadas.",
+    iconKey: "character_cat_explorer",
+    priceCoins: 90,
+    priceStars: 0,
+    sortOrder: 3,
+  },
+  {
+    key: "character_robot_gentil",
+    type: "CHARACTER",
+    name: "Robo Gentil",
+    description: "Personagem de apoio com energia positiva.",
+    iconKey: "character_kind_robot",
+    priceCoins: 140,
+    priceStars: 1,
+    sortOrder: 4,
+  },
+  {
+    key: "skin_capa_coragem",
+    type: "SKIN",
+    name: "Capa da Coragem",
+    description: "Skin cosmética inspirada em bravura.",
+    iconKey: "skin_courage_cape",
+    priceCoins: 110,
+    priceStars: 0,
+    sortOrder: 5,
+  },
+  {
+    key: "skin_chapeu_mestre",
+    type: "SKIN",
+    name: "Chapeu do Mestre",
+    description: "Skin cosmética para narradores.",
+    iconKey: "skin_story_hat",
+    priceCoins: 160,
+    priceStars: 1,
+    sortOrder: 6,
+  },
+  {
+    key: "avatar_estrela_dourada",
+    type: "AVATAR",
+    name: "Estrela Dourada",
+    description: "Avatar brilhante para perfil infantil.",
+    iconKey: "avatar_gold_star",
+    priceCoins: 80,
+    priceStars: 0,
+    sortOrder: 7,
+  },
+  {
+    key: "avatar_livro_magico",
+    type: "AVATAR",
+    name: "Livro Magico",
+    description: "Avatar de conto para colecionadores.",
+    iconKey: "avatar_magic_book",
+    priceCoins: 130,
+    priceStars: 1,
+    sortOrder: 8,
+  },
+];
+
 async function main() {
   const passwordHash = await hash(adminPassword, HASH_OPTIONS);
 
@@ -346,7 +450,74 @@ async function main() {
     }
   }
 
+  const achievementsToUpsert = [
+    ...achievementCatalog,
+    ...virtuesCatalog.map((virtue, index) => ({
+      key: `virtude_${virtue.slug}`,
+      title: `Virtude: ${virtue.name}`,
+      description: `Trabalhou a virtude ${virtue.name} em uma aventura.`,
+      iconKey: `virtue_${virtue.slug}`,
+      rewardCoins: 25,
+      rewardStars: 1,
+      sortOrder: 10 + index,
+    })),
+  ];
+
+  for (const achievement of achievementsToUpsert) {
+    await prisma.achievement.upsert({
+      where: { key: achievement.key },
+      update: {
+        title: achievement.title,
+        description: achievement.description,
+        iconKey: achievement.iconKey,
+        rewardCoins: achievement.rewardCoins,
+        rewardStars: achievement.rewardStars,
+        sortOrder: achievement.sortOrder,
+        isActive: true,
+      },
+      create: {
+        key: achievement.key,
+        title: achievement.title,
+        description: achievement.description,
+        iconKey: achievement.iconKey,
+        rewardCoins: achievement.rewardCoins,
+        rewardStars: achievement.rewardStars,
+        sortOrder: achievement.sortOrder,
+        isActive: true,
+      },
+    });
+  }
+
+  for (const item of gamificationCatalogItems) {
+    await prisma.gamificationCatalogItem.upsert({
+      where: { key: item.key },
+      update: {
+        type: item.type,
+        name: item.name,
+        description: item.description,
+        iconKey: item.iconKey,
+        priceCoins: item.priceCoins,
+        priceStars: item.priceStars,
+        sortOrder: item.sortOrder,
+        isActive: true,
+      },
+      create: {
+        key: item.key,
+        type: item.type,
+        name: item.name,
+        description: item.description,
+        iconKey: item.iconKey,
+        priceCoins: item.priceCoins,
+        priceStars: item.priceStars,
+        sortOrder: item.sortOrder,
+        isActive: true,
+      },
+    });
+  }
+
   console.log(`Virtudes seedadas: ${virtuesCatalog.length}`);
+  console.log(`Conquistas seedadas: ${achievementsToUpsert.length}`);
+  console.log(`Itens de catalogo seedados: ${gamificationCatalogItems.length}`);
 }
 
 main()

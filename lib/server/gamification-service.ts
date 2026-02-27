@@ -1,7 +1,6 @@
 import type {
   CatalogItemType,
   MissionKind,
-  MissionStatus,
   Prisma,
   WalletReason,
 } from "@prisma/client";
@@ -602,7 +601,7 @@ async function progressWeeklyMissionsOnPublish(
       },
     });
 
-    if (!willComplete || mission.status === "COMPLETED") {
+    if (!willComplete) {
       continue;
     }
 
@@ -1317,7 +1316,8 @@ export async function runGamificationBackfill() {
   let skipped = 0;
 
   for (const story of stories) {
-    if (!story.publishedAt) {
+    const publishedAt = story.publishedAt;
+    if (!publishedAt) {
       continue;
     }
 
@@ -1329,7 +1329,7 @@ export async function runGamificationBackfill() {
         virtueId: story.virtueId,
         virtueSlug: story.virtue?.slug ?? null,
         continuedFromStoryId: story.continuedFromStoryId,
-        publishedAt: story.publishedAt,
+        publishedAt,
         timezone: resolveTimezone(story.user.timezone),
         source: "BACKFILL",
       });

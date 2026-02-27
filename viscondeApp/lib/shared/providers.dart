@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/api_client.dart';
 import '../features/children/children_api.dart';
+import '../features/gamification/gamification_api.dart';
 import '../features/profile/profile_api.dart';
 import '../features/security/security_api.dart';
 import '../features/story_room/story_api.dart';
@@ -17,6 +18,10 @@ final childrenApiProvider = Provider<ChildrenApi>((ref) {
 
 final securityApiProvider = Provider<SecurityApi>((ref) {
   return SecurityApi(ref.watch(dioProvider));
+});
+
+final gamificationApiProvider = Provider<GamificationApi>((ref) {
+  return GamificationApi(ref.watch(dioProvider));
 });
 
 final storyApiProvider = Provider<StoryApi>((ref) {

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
+import '../gamification/models/gamification_models.dart';
 import 'models/story_models.dart';
 
 class StoryStepSaveResult {
@@ -8,6 +9,13 @@ class StoryStepSaveResult {
 
   final StorySessionModel story;
   final bool idempotent;
+}
+
+class StoryFinalizeResult {
+  const StoryFinalizeResult({required this.story, this.gamification});
+
+  final StorySessionModel story;
+  final PublishGamificationSummaryModel? gamification;
 }
 
 class StoryApi {
@@ -134,7 +142,7 @@ class StoryApi {
     );
   }
 
-  Future<StorySessionModel> finalizeStory(
+  Future<StoryFinalizeResult> finalizeStory(
     String accessToken,
     String storyId, {
     String? titleFinal,
@@ -150,8 +158,15 @@ class StoryApi {
 
     final payload = response.data ?? <String, dynamic>{};
     final storyPayload = payload['story'] as Map<String, dynamic>?;
+    final gamificationPayload =
+        payload['gamification'] as Map<String, dynamic>?;
 
-    return StorySessionModel.fromJson(storyPayload ?? <String, dynamic>{});
+    return StoryFinalizeResult(
+      story: StorySessionModel.fromJson(storyPayload ?? <String, dynamic>{}),
+      gamification: gamificationPayload == null
+          ? null
+          : PublishGamificationSummaryModel.fromJson(gamificationPayload),
+    );
   }
 
   Future<List<StoryListItem>> listStories(
@@ -192,7 +207,8 @@ class StoryApi {
         if (dateFrom != null) 'dateFrom': _formatDateOnly(dateFrom),
         if (dateTo != null) 'dateTo': _formatDateOnly(dateTo),
         if (theme != null && theme.trim().isNotEmpty) 'theme': theme.trim(),
-        if (virtueId != null && virtueId.trim().isNotEmpty) 'virtueId': virtueId.trim(),
+        if (virtueId != null && virtueId.trim().isNotEmpty)
+          'virtueId': virtueId.trim(),
         if (favoriteOnly) 'favoriteOnly': 'true',
       },
       options: authOptions(accessToken),

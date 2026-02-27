@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/server/errors";
+import { moderateTextInput } from "@/lib/server/moderation-service";
 import { toChildDTO, toUserDTO } from "@/lib/server/user";
 import { uploadFileToWordPress } from "@/lib/server/wordpress";
 
@@ -12,6 +13,7 @@ export async function getMe(userId: string) {
       email: true,
       timezone: true,
       imageUrl: true,
+      role: true,
       createdAt: true,
       updatedAt: true,
       childProfiles: {
@@ -42,10 +44,20 @@ export async function updateMe(
     timezone?: string;
   }
 ) {
+  const normalizedName =
+    typeof input.name === "string" && input.name.trim().length > 0
+      ? await moderateTextInput({
+          value: input.name,
+          scope: "USER_NAME",
+          field: "name",
+          userId,
+        })
+      : input.name ?? undefined;
+
   const updated = await prisma.user.update({
     where: { id: userId },
     data: {
-      name: input.name ?? undefined,
+      name: normalizedName,
       timezone: input.timezone,
     },
     select: {
@@ -54,6 +66,7 @@ export async function updateMe(
       email: true,
       timezone: true,
       imageUrl: true,
+      role: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -84,6 +97,7 @@ export async function updateMePhoto(userId: string, file: File) {
       email: true,
       timezone: true,
       imageUrl: true,
+      role: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -118,10 +132,17 @@ export async function createChild(
     favoriteThemes: string[];
   }
 ) {
+  const normalizedName = await moderateTextInput({
+    value: input.name,
+    scope: "CHILD_NAME",
+    field: "name",
+    userId,
+  });
+
   const created = await prisma.childProfile.create({
     data: {
       userId,
-      name: input.name,
+      name: normalizedName,
       birthDate: input.birthDate,
       favoriteThemes: input.favoriteThemes,
     },
@@ -167,10 +188,20 @@ export async function updateChild(
     throw new ApiError("Perfil infantil nao encontrado.", 404, "CHILD_NOT_FOUND");
   }
 
+  const normalizedName =
+    input.name && input.name.trim().length > 0
+      ? await moderateTextInput({
+          value: input.name,
+          scope: "CHILD_NAME",
+          field: "name",
+          userId,
+        })
+      : undefined;
+
   const updated = await prisma.childProfile.update({
     where: { id: childId },
     data: {
-      name: input.name,
+      name: normalizedName,
       birthDate: input.birthDate,
       favoriteThemes: input.favoriteThemes,
       isArchived: input.isArchived,

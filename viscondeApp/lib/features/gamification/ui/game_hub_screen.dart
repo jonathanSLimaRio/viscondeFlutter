@@ -1,0 +1,489 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../../../core/models/child_profile.dart';
+import '../../../shared/api_error.dart';
+import '../../../shared/providers.dart';
+import '../../auth/auth_controller.dart';
+import '../../security/parental_gate_controller.dart';
+import '../models/gamification_models.dart';
+
+class GameHubScreen extends ConsumerStatefulWidget {
+  const GameHubScreen({super.key});
+
+  @override
+  ConsumerState<GameHubScreen> createState() => _GameHubScreenState();
+}
+
+class _GameHubScreenState extends ConsumerState<GameHubScreen> {
+  bool _loading = false;
+  WalletModel? _wallet;
+  List<AchievementModel> _achievements = const [];
+  List<ChildProfile> _children = const [];
+  ChildProgressionModel? _progression;
+  List<CatalogItemModel> _catalog = const [];
+  String? _selectedChildId;
+  CatalogItemType? _selectedCatalogType;
+
+  String? _accessToken() {
+    return ref.read(authControllerProvider).accessToken;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bootstrap();
+    });
+  }
+
+  Future<void> _bootstrap() async {
+    final token = _accessToken();
+    if (token == null) {
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final children = await ref.read(childrenApiProvider).listChildren(token);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _children = children;
+        _selectedChildId =
+            _selectedChildId ??
+            (children.isNotEmpty ? children.first.id : null);
+      });
+
+      await _loadData();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _loadData() async {
+    final token = _accessToken();
+    final childId = _selectedChildId;
+
+    if (token == null || childId == null) {
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final results = await Future.wait([
+        ref.read(gamificationApiProvider).fetchWallet(token),
+        ref.read(gamificationApiProvider).listAchievements(token),
+        ref
+            .read(gamificationApiProvider)
+            .fetchChildProgression(token, childId: childId),
+        ref
+            .read(gamificationApiProvider)
+            .listCatalog(
+              token,
+              childProfileId: childId,
+              type: _selectedCatalogType,
+            ),
+      ]);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _wallet = results[0] as WalletModel;
+        _achievements = results[1] as List<AchievementModel>;
+        _progression = results[2] as ChildProgressionModel;
+        _catalog = results[3] as List<CatalogItemModel>;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<String?> _resolveUnlockToken() async {
+    final gate = ref.read(parentalGateControllerProvider);
+    if (gate.isUnlocked && gate.unlockToken != null) {
+      return gate.unlockToken;
+    }
+
+    final pinController = TextEditingController();
+    final pin = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('PIN adulto'),
+          content: TextField(
+            controller: pinController,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Digite seu PIN'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(pinController.text.trim()),
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (pin == null || pin.length != 6) {
+      return null;
+    }
+
+    final token = _accessToken();
+    if (token == null) {
+      return null;
+    }
+
+    try {
+      final verified = await ref
+          .read(securityApiProvider)
+          .verifyPin(token, pin);
+      if (!verified.verified ||
+          verified.parentalUnlockToken == null ||
+          verified.parentalUnlockExpiresAt == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('PIN invalido.')));
+        }
+        return null;
+      }
+
+      ref
+          .read(parentalGateControllerProvider.notifier)
+          .setUnlocked(
+            token: verified.parentalUnlockToken!,
+            expiresAt: verified.parentalUnlockExpiresAt!,
+          );
+
+      return verified.parentalUnlockToken!;
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      }
+      return null;
+    }
+  }
+
+  Future<void> _unlockItem(CatalogItemModel item) async {
+    final token = _accessToken();
+    final childId = _selectedChildId;
+    if (token == null || childId == null) {
+      return;
+    }
+
+    final unlockToken = await _resolveUnlockToken();
+    if (unlockToken == null) {
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final result = await ref
+          .read(gamificationApiProvider)
+          .unlockItem(
+            token,
+            childId: childId,
+            itemId: item.id,
+            parentalUnlockToken: unlockToken,
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Item desbloqueado! -${result.spentCoins} moedas / -${result.spentStars} estrelas',
+          ),
+        ),
+      );
+
+      await _loadData();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _toggleEquip(CatalogItemModel item) async {
+    final token = _accessToken();
+    final childId = _selectedChildId;
+    if (token == null || childId == null) {
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      await ref
+          .read(gamificationApiProvider)
+          .equipItem(
+            token,
+            childId: childId,
+            itemId: item.id,
+            equipped: !item.equipped,
+          );
+      await _loadData();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  String _missionStatusLabel(WeeklyMissionStatus value) {
+    switch (value) {
+      case WeeklyMissionStatus.completed:
+        return 'Concluída';
+      case WeeklyMissionStatus.expired:
+        return 'Expirada';
+      case WeeklyMissionStatus.active:
+        return 'Ativa';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final wallet = _wallet;
+    final progression = _progression;
+    final dateFormat = DateFormat('dd/MM HH:mm');
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: LinearProgressIndicator(),
+            ),
+          if (_children.isNotEmpty)
+            DropdownButtonFormField<String>(
+              initialValue: _selectedChildId,
+              decoration: const InputDecoration(labelText: 'Criança'),
+              items: _children
+                  .map(
+                    (child) => DropdownMenuItem<String>(
+                      value: child.id,
+                      child: Text(child.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) async {
+                if (value == null) return;
+                setState(() => _selectedChildId = value);
+                await _loadData();
+              },
+            ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Carteira',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('Moedas: ${wallet?.coins ?? 0}'),
+                  Text('Estrelas: ${wallet?.stars ?? 0}'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Streak',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('Atual: ${progression?.streak.currentDays ?? 0} dias'),
+                  Text('Melhor: ${progression?.streak.bestDays ?? 0} dias'),
+                  Text('Escudos: ${progression?.streak.shieldCount ?? 0}'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Missões semanais',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 6),
+          ...?progression?.weeklyMissions.map(
+            (mission) => Card(
+              child: ListTile(
+                title: Text(mission.title),
+                subtitle: Text(
+                  '${mission.description}\n${mission.progressValue}/${mission.targetValue} · ${_missionStatusLabel(mission.status)}',
+                ),
+                trailing: Text(
+                  '+${mission.rewardCoins} / +${mission.rewardStars}⭐',
+                ),
+                isThreeLine: true,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Conquistas',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 6),
+          ..._achievements.map(
+            (achievement) => Card(
+              child: ListTile(
+                leading: Icon(
+                  achievement.unlocked
+                      ? Icons.emoji_events
+                      : Icons.lock_outline,
+                  color: achievement.unlocked ? Colors.amber.shade700 : null,
+                ),
+                title: Text(achievement.title),
+                subtitle: Text(
+                  '${achievement.description}\n+${achievement.rewardCoins} moedas / +${achievement.rewardStars}⭐'
+                  '${achievement.unlockedAt != null ? '\nDesbloqueada em ${dateFormat.format(achievement.unlockedAt!)}' : ''}',
+                ),
+                isThreeLine: true,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Loja e inventário',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Todos'),
+                selected: _selectedCatalogType == null,
+                onSelected: (_) async {
+                  setState(() => _selectedCatalogType = null);
+                  await _loadData();
+                },
+              ),
+              ...CatalogItemType.values.map(
+                (type) => ChoiceChip(
+                  label: Text(type.name.toUpperCase()),
+                  selected: _selectedCatalogType == type,
+                  onSelected: (_) async {
+                    setState(() => _selectedCatalogType = type);
+                    await _loadData();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ..._catalog.map(
+            (item) => Card(
+              child: ListTile(
+                title: Text(item.name),
+                subtitle: Text(
+                  '${item.description}\n${item.priceCoins} moedas / ${item.priceStars}⭐ · ${item.type.name.toUpperCase()}',
+                ),
+                trailing: item.unlocked
+                    ? OutlinedButton(
+                        onPressed: () => _toggleEquip(item),
+                        child: Text(item.equipped ? 'Desequipar' : 'Equipar'),
+                      )
+                    : FilledButton(
+                        onPressed: () => _unlockItem(item),
+                        child: const Text('Desbloquear'),
+                      ),
+                isThreeLine: true,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Itens equipados',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  if ((progression?.inventorySummary.equippedItems.length ??
+                          0) ==
+                      0)
+                    const Text('Nenhum item equipado.'),
+                  ...?progression?.inventorySummary.equippedItems.map(
+                    (item) => Text('- ${item.name} (${item.type.name})'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

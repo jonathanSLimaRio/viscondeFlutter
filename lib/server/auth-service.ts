@@ -7,6 +7,7 @@ import { env } from "@/lib/server/env";
 import { sendPasswordResetEmail } from "@/lib/server/email";
 import { ApiError } from "@/lib/server/errors";
 import { hashLookupToken, hashSecret, verifySecret } from "@/lib/server/hash";
+import { moderateTextInput } from "@/lib/server/moderation-service";
 import {
   signAccessToken,
   signRefreshToken,
@@ -20,7 +21,7 @@ import { toUserDTO } from "@/lib/server/user";
 
 type AuthUser = Pick<
   User,
-  "id" | "name" | "email" | "timezone" | "imageUrl" | "createdAt" | "updatedAt"
+  "id" | "name" | "email" | "timezone" | "imageUrl" | "role" | "createdAt" | "updatedAt"
 >;
 
 type SocialIdentity = {
@@ -96,6 +97,7 @@ async function getSafeUserById(userId: string): Promise<AuthUser> {
       email: true,
       timezone: true,
       imageUrl: true,
+      role: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -156,10 +158,18 @@ export async function signUpWithEmail(
     throw new ApiError("E-mail ja cadastrado.", 409, "EMAIL_ALREADY_USED");
   }
 
+  const normalizedName = input.name
+    ? await moderateTextInput({
+        value: input.name,
+        scope: "USER_NAME",
+        field: "name",
+      })
+    : null;
+
   const user = await prisma.user.create({
     data: {
       email: input.email,
-      name: input.name ?? null,
+      name: normalizedName,
       timezone: input.timezone ?? "UTC",
       passwordHash: await hashSecret(input.password),
     },
