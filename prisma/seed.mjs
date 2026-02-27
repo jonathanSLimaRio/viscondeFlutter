@@ -441,6 +441,302 @@ const moderationSeedTerms = [
   "suicidio",
 ];
 
+const demoPin = "123456";
+
+const demoUsersCatalog = [
+  {
+    key: "admin",
+    email: adminEmail,
+    password: adminPassword,
+    name: "admin",
+    role: "ADMIN",
+  },
+  {
+    key: "demo",
+    email: "demo@visconde.app",
+    password: "demo123",
+    name: "demo",
+    role: "USER",
+  },
+];
+
+const demoChildrenCatalog = [
+  {
+    key: "lucas",
+    name: "Lucas",
+    birthDate: new Date("2018-03-15T00:00:00.000Z"),
+    favoriteThemes: ["Misterio", "Fantasia", "Aventura"],
+  },
+  {
+    key: "sofia",
+    name: "Sofia",
+    birthDate: new Date("2020-08-20T00:00:00.000Z"),
+    favoriteThemes: ["Amizade", "Familia", "Fantasia"],
+  },
+];
+
+const demoCollectionsBlueprint = [
+  {
+    key: "misterio_floresta",
+    title: "Misterio na Floresta",
+    theme: "Misterio",
+    virtueSlug: "coragem",
+    childKey: "lucas",
+    isFavorite: true,
+    stories: [
+      {
+        key: "misterio_ep1",
+        episodeNumber: 1,
+        status: "PUBLISHED",
+        title: "Misterio na Floresta",
+        theme: "Misterio",
+        scenario: "Floresta luminosa com trilhas secretas",
+        objective: "Encontrar o cristal da vila antes do anoitecer",
+        virtueSlug: "coragem",
+        ageBand: "AGE_6_8",
+        ageSnapshotYears: 8,
+        sourceTemplate: true,
+        continuedFromStoryKey: null,
+        currentMode: "CHILD_CHOOSER",
+        currentStepIndex: 4,
+        startedAt: new Date("2025-11-10T18:00:00.000Z"),
+        publishedAt: new Date("2025-11-10T18:20:00.000Z"),
+        completedAt: new Date("2025-11-10T18:20:00.000Z"),
+        referenceAt: new Date("2025-11-10T18:20:00.000Z"),
+        characters: [
+          { key: "luna", name: "Luna", role: "exploradora" },
+          { key: "teo", name: "Teo", role: "guarda da trilha" },
+        ],
+        steps: [
+          {
+            stepIndex: 1,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "Lucas e Luna chegam a uma floresta cheia de sinais brilhantes.",
+          },
+          {
+            stepIndex: 2,
+            kind: "CHILD_CHOICE",
+            modeUsed: "CHILD_CHOOSER",
+            selectedOptionId: "seguir_luz",
+            selectedOptionLabel: "Seguir a trilha de luz",
+            childOptions: [
+              { id: "investigar_pegadas", label: "Investigar as pegadas" },
+              { id: "seguir_luz", label: "Seguir a trilha de luz" },
+              { id: "chamar_coruja", label: "Chamar a coruja guardia" },
+            ],
+          },
+          {
+            stepIndex: 3,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "A trilha leva ate uma ponte antiga com vento forte, mas cheia de estrelas.",
+          },
+          {
+            stepIndex: 4,
+            kind: "CHILD_CHOICE",
+            modeUsed: "CHILD_CHOOSER",
+            selectedOptionId: "atravessar_ponte",
+            selectedOptionLabel: "Atravessar a ponte com calma",
+            childOptions: [
+              {
+                id: "atravessar_ponte",
+                label: "Atravessar a ponte com calma",
+              },
+              { id: "fazer_jangada", label: "Construir uma jangada" },
+              { id: "voltar_base", label: "Voltar para pedir apoio" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "viagem_espaco",
+    title: "Viagem ao Espaco",
+    theme: "Fantasia",
+    virtueSlug: "gratidao",
+    childKey: "lucas",
+    isFavorite: false,
+    stories: [
+      {
+        key: "viagem_espaco_ep1",
+        episodeNumber: 1,
+        status: "PUBLISHED",
+        title: "Viagem ao Espaco - Episodio 1",
+        theme: "Fantasia",
+        scenario: "Base lunar da turma",
+        objective: "Agradecer quem ajudou na decolagem",
+        virtueSlug: "gratidao",
+        ageBand: "AGE_6_8",
+        ageSnapshotYears: 8,
+        sourceTemplate: false,
+        continuedFromStoryKey: null,
+        currentMode: "CHILD_CHOOSER",
+        currentStepIndex: 3,
+        startedAt: new Date("2025-12-02T19:00:00.000Z"),
+        publishedAt: new Date("2025-12-02T19:20:00.000Z"),
+        completedAt: new Date("2025-12-02T19:20:00.000Z"),
+        referenceAt: new Date("2025-12-02T19:20:00.000Z"),
+        characters: [
+          { key: "maya", name: "Maya", role: "pilota aprendiz" },
+          { key: "astro", name: "Astro", role: "robo ajudante" },
+        ],
+        steps: [
+          {
+            stepIndex: 1,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "A equipe chega a base lunar depois de uma decolagem segura.",
+          },
+          {
+            stepIndex: 2,
+            kind: "CHILD_CHOICE",
+            modeUsed: "CHILD_CHOOSER",
+            selectedOptionId: "agradecer_time",
+            selectedOptionLabel: "Agradecer o time da torre",
+            childOptions: [
+              {
+                id: "agradecer_time",
+                label: "Agradecer o time da torre",
+              },
+              {
+                id: "mandar_recado",
+                label: "Mandar um recado para a comunidade",
+              },
+              { id: "celebrar_silencio", label: "Fazer uma celebracao calma" },
+            ],
+          },
+          {
+            stepIndex: 3,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "Com gratidao, a base inteira responde com luzes coloridas no ceu.",
+          },
+        ],
+      },
+      {
+        key: "viagem_espaco_ep2",
+        episodeNumber: 2,
+        status: "PUBLISHED",
+        title: "Viagem ao Espaco - Episodio 2",
+        theme: "Fantasia",
+        scenario: "Jardim estelar com sementes raras",
+        objective: "Salvar um jardim estelar ajudando outra tripulacao",
+        virtueSlug: "empatia",
+        ageBand: "AGE_6_8",
+        ageSnapshotYears: 8,
+        sourceTemplate: false,
+        continuedFromStoryKey: "viagem_espaco_ep1",
+        currentMode: "CHILD_CHOOSER",
+        currentStepIndex: 3,
+        startedAt: new Date("2025-12-09T19:00:00.000Z"),
+        publishedAt: new Date("2025-12-09T19:24:00.000Z"),
+        completedAt: new Date("2025-12-09T19:24:00.000Z"),
+        referenceAt: new Date("2025-12-09T19:24:00.000Z"),
+        characters: [
+          { key: "maya", name: "Maya", role: "pilota aprendiz" },
+          { key: "nina", name: "Nina", role: "amiga viajante" },
+        ],
+        steps: [
+          {
+            stepIndex: 1,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "Uma tripulacao vizinha pede ajuda para recuperar sementes perdidas.",
+          },
+          {
+            stepIndex: 2,
+            kind: "CHILD_CHOICE",
+            modeUsed: "CHILD_CHOOSER",
+            selectedOptionId: "escutar_equipe",
+            selectedOptionLabel: "Escutar primeiro o que cada um sentiu",
+            childOptions: [
+              {
+                id: "escutar_equipe",
+                label: "Escutar primeiro o que cada um sentiu",
+              },
+              { id: "agir_rapido", label: "Agir rapido sem conversar" },
+              { id: "chamar_reforco", label: "Chamar reforco com calma" },
+            ],
+          },
+          {
+            stepIndex: 3,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "A equipe encontra o melhor caminho e salva o jardim com cooperacao.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "castelo_encantado",
+    title: "Castelo Encantado",
+    theme: "Fantasia",
+    virtueSlug: "empatia",
+    childKey: "sofia",
+    isFavorite: false,
+    stories: [
+      {
+        key: "castelo_ep1",
+        episodeNumber: 1,
+        status: "DRAFT",
+        title: "Castelo Encantado",
+        theme: "Fantasia",
+        scenario: "Castelo com saloes coloridos",
+        objective: "Ajudar um novo amigo a se sentir em casa",
+        virtueSlug: "empatia",
+        ageBand: "AGE_4_5",
+        ageSnapshotYears: 6,
+        sourceTemplate: false,
+        continuedFromStoryKey: null,
+        currentMode: "PARENT_NARRATOR",
+        currentStepIndex: 2,
+        startedAt: new Date("2026-02-14T17:00:00.000Z"),
+        publishedAt: null,
+        completedAt: null,
+        referenceAt: new Date("2026-02-14T17:18:00.000Z"),
+        characters: [
+          { key: "sofia", name: "Sofia", role: "heroina" },
+          { key: "nico", name: "Nico", role: "amigo novo" },
+        ],
+        steps: [
+          {
+            stepIndex: 1,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "Sofia encontra Nico no castelo, ainda timido com o novo lugar.",
+          },
+          {
+            stepIndex: 2,
+            kind: "CHILD_CHOICE",
+            modeUsed: "CHILD_CHOOSER",
+            selectedOptionId: "mostrar_castelo",
+            selectedOptionLabel: "Mostrar o castelo com calma",
+            childOptions: [
+              { id: "mostrar_castelo", label: "Mostrar o castelo com calma" },
+              { id: "brincar_juntos", label: "Convidar para brincar juntos" },
+              { id: "buscar_ajuda", label: "Buscar ajuda de um guardiao" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+function seedId(...parts) {
+  return `seed_${parts.join("_")}`;
+}
+
 function normalizeTerm(value) {
   return value
     .normalize("NFD")
@@ -450,34 +746,104 @@ function normalizeTerm(value) {
     .replace(/\s+/g, " ");
 }
 
-async function main() {
-  const passwordHash = await hash(adminPassword, HASH_OPTIONS);
+function getVirtueTemplatePayload(virtueSlug, ageBand) {
+  const byVirtue = virtueTemplates[virtueSlug];
+  if (!byVirtue) {
+    throw new Error(`Template de virtude nao encontrado para slug=${virtueSlug}`);
+  }
 
-  const user = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {
-      name: "admin",
-      timezone: "UTC",
-      passwordHash,
-      role: "ADMIN",
-    },
-    create: {
-      email: adminEmail,
-      name: "admin",
-      timezone: "UTC",
-      passwordHash,
-      role: "ADMIN",
-    },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-    },
-  });
+  const payload = byVirtue[ageBand];
+  if (!payload) {
+    throw new Error(
+      `Template de virtude nao encontrado para slug=${virtueSlug} ageBand=${ageBand}`
+    );
+  }
 
-  console.log("Admin seed concluido.");
-  console.log(`id=${user.id} email=${user.email} nome=${user.name}`);
+  return payload;
+}
 
+function getStoryReferenceDate(story) {
+  if (story.status === "PUBLISHED" && story.publishedAt) {
+    return story.publishedAt;
+  }
+
+  return story.referenceAt ?? story.startedAt ?? new Date();
+}
+
+async function ensureDemoUsersAndProfiles() {
+  const pinHash = await hash(demoPin, HASH_OPTIONS);
+  const usersByKey = new Map();
+
+  for (const account of demoUsersCatalog) {
+    const passwordHash = await hash(account.password, HASH_OPTIONS);
+
+    const user = await prisma.user.upsert({
+      where: { email: account.email },
+      update: {
+        name: account.name,
+        timezone: "UTC",
+        passwordHash,
+        pinHash,
+        pinUpdatedAt: new Date(),
+        role: account.role,
+      },
+      create: {
+        email: account.email,
+        name: account.name,
+        timezone: "UTC",
+        passwordHash,
+        pinHash,
+        pinUpdatedAt: new Date(),
+        role: account.role,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    });
+
+    const childrenByKey = new Map();
+    for (const child of demoChildrenCatalog) {
+      const childId = seedId(account.key, "child", child.key);
+      const savedChild = await prisma.childProfile.upsert({
+        where: { id: childId },
+        update: {
+          userId: user.id,
+          name: child.name,
+          birthDate: child.birthDate,
+          favoriteThemes: child.favoriteThemes,
+          isArchived: false,
+        },
+        create: {
+          id: childId,
+          userId: user.id,
+          name: child.name,
+          birthDate: child.birthDate,
+          favoriteThemes: child.favoriteThemes,
+          isArchived: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          birthDate: true,
+        },
+      });
+      childrenByKey.set(child.key, savedChild);
+    }
+
+    usersByKey.set(account.key, {
+      key: account.key,
+      role: account.role,
+      user,
+      childrenByKey,
+    });
+  }
+
+  return usersByKey;
+}
+
+async function ensureCoreCatalogData(adminUserId) {
   const virtuesBySlug = new Map();
 
   for (const virtue of virtuesCatalog) {
@@ -607,7 +973,7 @@ async function main() {
       defaultScenario: "Floresta encantada com trilhas brilhantes",
       defaultObjective: "Ajudar um amigo a encontrar o mapa perdido",
       isActive: true,
-      updatedByUserId: user.id,
+      updatedByUserId: adminUserId,
     },
     create: {
       slug: "aventura-floresta-encantada",
@@ -622,8 +988,8 @@ async function main() {
       isPublished: true,
       publishedAt: new Date(),
       version: 1,
-      createdByUserId: user.id,
-      updatedByUserId: user.id,
+      createdByUserId: adminUserId,
+      updatedByUserId: adminUserId,
     },
     select: {
       id: true,
@@ -745,7 +1111,7 @@ async function main() {
         replacement: null,
         scope: "TEMPLATE_TEXT",
         isActive: true,
-        updatedByUserId: user.id,
+        updatedByUserId: adminUserId,
       },
       create: {
         termNormalized: normalized,
@@ -754,8 +1120,8 @@ async function main() {
         replacement: null,
         scope: "TEMPLATE_TEXT",
         isActive: true,
-        createdByUserId: user.id,
-        updatedByUserId: user.id,
+        createdByUserId: adminUserId,
+        updatedByUserId: adminUserId,
       },
     });
   }
@@ -825,17 +1191,301 @@ async function main() {
     });
   }
 
+  return {
+    virtuesBySlug,
+    themesBySlug,
+    sampleTemplateId: sampleTemplate.id,
+    achievementsCount: achievementsToUpsert.length,
+  };
+}
+
+async function applyDemoForUser(accountState, coreRefs) {
+  const collectionIdsByKey = new Map();
+  let storiesCount = 0;
+
+  for (const collection of demoCollectionsBlueprint) {
+    const child = accountState.childrenByKey.get(collection.childKey);
+    if (!child) {
+      throw new Error(
+        `Crianca demo nao encontrada para account=${accountState.key} child=${collection.childKey}`
+      );
+    }
+
+    const collectionVirtueId = coreRefs.virtuesBySlug.get(collection.virtueSlug) ?? null;
+    const collectionId = seedId(accountState.key, "collection", collection.key);
+    const lastReferenceAt = new Date(
+      Math.max(...collection.stories.map((story) => getStoryReferenceDate(story).getTime()))
+    );
+
+    await prisma.storyCollection.upsert({
+      where: { id: collectionId },
+      update: {
+        userId: accountState.user.id,
+        childProfileId: child.id,
+        title: collection.title,
+        theme: collection.theme,
+        virtueId: collectionVirtueId,
+        isFavorite: collection.isFavorite,
+        templateFromStoryId: null,
+        lastReferenceAt,
+      },
+      create: {
+        id: collectionId,
+        userId: accountState.user.id,
+        childProfileId: child.id,
+        title: collection.title,
+        theme: collection.theme,
+        virtueId: collectionVirtueId,
+        isFavorite: collection.isFavorite,
+        templateFromStoryId: null,
+        lastReferenceAt,
+      },
+      select: { id: true },
+    });
+
+    collectionIdsByKey.set(collection.key, collectionId);
+  }
+
+  for (const collection of demoCollectionsBlueprint) {
+    const child = accountState.childrenByKey.get(collection.childKey);
+    const collectionId = collectionIdsByKey.get(collection.key);
+    if (!child || !collectionId) {
+      continue;
+    }
+
+    for (const story of collection.stories) {
+      const storyId = seedId(accountState.key, "story", story.key);
+      const continuedFromStoryId = story.continuedFromStoryKey
+        ? seedId(accountState.key, "story", story.continuedFromStoryKey)
+        : null;
+      const virtueId = coreRefs.virtuesBySlug.get(story.virtueSlug) ?? null;
+      const templatePayload = getVirtueTemplatePayload(story.virtueSlug, story.ageBand);
+      const storyPrefix = seedId(accountState.key, "story", story.key);
+
+      await prisma.story.upsert({
+        where: { id: storyId },
+        update: {
+          userId: accountState.user.id,
+          childProfileId: child.id,
+          collectionId,
+          sourceTemplateId: story.sourceTemplate ? coreRefs.sampleTemplateId : null,
+          episodeNumber: story.episodeNumber,
+          continuedFromStoryId,
+          sessionKind: "PRESENTIAL",
+          virtueId,
+          titleDraft: story.title,
+          titleFinal: story.status === "PUBLISHED" ? story.title : null,
+          theme: story.theme,
+          scenario: story.scenario,
+          objective: story.objective,
+          ageBand: story.ageBand,
+          virtueSource: "MANUAL",
+          dilemmaText: templatePayload.dilemmaText,
+          endQuestionText: templatePayload.endQuestionText,
+          status: story.status,
+          currentMode: story.currentMode,
+          currentStepIndex: story.currentStepIndex,
+          ageSnapshotYears: story.ageSnapshotYears,
+          startedAt: story.startedAt,
+          publishedAt: story.publishedAt,
+          completedAt: story.completedAt,
+        },
+        create: {
+          id: storyId,
+          userId: accountState.user.id,
+          childProfileId: child.id,
+          collectionId,
+          sourceTemplateId: story.sourceTemplate ? coreRefs.sampleTemplateId : null,
+          episodeNumber: story.episodeNumber,
+          continuedFromStoryId,
+          sessionKind: "PRESENTIAL",
+          virtueId,
+          titleDraft: story.title,
+          titleFinal: story.status === "PUBLISHED" ? story.title : null,
+          theme: story.theme,
+          scenario: story.scenario,
+          objective: story.objective,
+          ageBand: story.ageBand,
+          virtueSource: "MANUAL",
+          dilemmaText: templatePayload.dilemmaText,
+          endQuestionText: templatePayload.endQuestionText,
+          status: story.status,
+          currentMode: story.currentMode,
+          currentStepIndex: story.currentStepIndex,
+          ageSnapshotYears: story.ageSnapshotYears,
+          startedAt: story.startedAt,
+          publishedAt: story.publishedAt,
+          completedAt: story.completedAt,
+        },
+      });
+
+      const characterIds = [];
+      for (const [index, character] of story.characters.entries()) {
+        const characterId = seedId(
+          accountState.key,
+          "story",
+          story.key,
+          "char",
+          character.key
+        );
+        characterIds.push(characterId);
+        await prisma.storyCharacter.upsert({
+          where: { id: characterId },
+          update: {
+            storyId,
+            name: character.name,
+            role: character.role ?? null,
+          },
+          create: {
+            id: characterId,
+            storyId,
+            name: character.name,
+            role: character.role ?? null,
+          },
+        });
+      }
+
+      await prisma.storyCharacter.deleteMany({
+        where: {
+          storyId,
+          id: {
+            startsWith: `${storyPrefix}_char_`,
+            notIn: characterIds,
+          },
+        },
+      });
+
+      const stepIndexes = [];
+      for (const step of story.steps) {
+        const localEventId = `seed_evt_${accountState.key}_${story.key}_${step.stepIndex}`;
+        stepIndexes.push(step.stepIndex);
+        await prisma.storyStep.upsert({
+          where: {
+            storyId_stepIndex: {
+              storyId,
+              stepIndex: step.stepIndex,
+            },
+          },
+          update: {
+            kind: step.kind,
+            modeUsed: step.modeUsed,
+            localEventId,
+            narratorPrompt: null,
+            childOptionsJson: step.childOptions ?? null,
+            selectedOptionId: step.selectedOptionId ?? null,
+            selectedOptionLabel: step.selectedOptionLabel ?? null,
+            narratorText: step.narratorText ?? null,
+            autoSavedAt: story.referenceAt,
+          },
+          create: {
+            id: seedId(
+              accountState.key,
+              "story",
+              story.key,
+              "step",
+              String(step.stepIndex)
+            ),
+            storyId,
+            stepIndex: step.stepIndex,
+            kind: step.kind,
+            modeUsed: step.modeUsed,
+            localEventId,
+            narratorPrompt: null,
+            childOptionsJson: step.childOptions ?? null,
+            selectedOptionId: step.selectedOptionId ?? null,
+            selectedOptionLabel: step.selectedOptionLabel ?? null,
+            narratorText: step.narratorText ?? null,
+            autoSavedAt: story.referenceAt,
+            createdAt: story.startedAt,
+          },
+        });
+      }
+
+      await prisma.storyStep.deleteMany({
+        where: {
+          storyId,
+          localEventId: {
+            startsWith: `seed_evt_${accountState.key}_${story.key}_`,
+          },
+          stepIndex: {
+            notIn: stepIndexes,
+          },
+        },
+      });
+
+      storiesCount += 1;
+    }
+  }
+
+  return {
+    collectionsCount: demoCollectionsBlueprint.length,
+    storiesCount,
+    childrenCount: demoChildrenCatalog.length,
+  };
+}
+
+async function ensureDemoStoryVaultData(coreRefs, usersByKey) {
+  const summary = {
+    usersCount: 0,
+    childrenCount: 0,
+    collectionsCount: 0,
+    storiesCount: 0,
+  };
+
+  for (const account of demoUsersCatalog) {
+    const accountState = usersByKey.get(account.key);
+    if (!accountState) {
+      continue;
+    }
+
+    const applied = await applyDemoForUser(accountState, coreRefs);
+    summary.usersCount += 1;
+    summary.childrenCount += applied.childrenCount;
+    summary.collectionsCount += applied.collectionsCount;
+    summary.storiesCount += applied.storiesCount;
+  }
+
+  return summary;
+}
+
+async function main() {
+  const usersByKey = await ensureDemoUsersAndProfiles();
+  const adminState = usersByKey.get("admin");
+
+  if (!adminState) {
+    throw new Error("Conta admin nao foi criada durante o seed.");
+  }
+
+  console.log("Contas demo seedadas:");
+  for (const account of demoUsersCatalog) {
+    const state = usersByKey.get(account.key);
+    if (!state) {
+      continue;
+    }
+    console.log(
+      `- key=${account.key} id=${state.user.id} email=${state.user.email} nome=${state.user.name}`
+    );
+  }
+
+  const coreRefs = await ensureCoreCatalogData(adminState.user.id);
+  const vaultSummary = await ensureDemoStoryVaultData(coreRefs, usersByKey);
+
   console.log(`Virtudes seedadas: ${virtuesCatalog.length}`);
   console.log(`Temas seedados: ${storyThemesCatalog.length}`);
   console.log(`Prompts seedados: ${contentPromptsCatalog.length}`);
   console.log(`Termos de moderacao seedados: ${moderationSeedTerms.length}`);
-  console.log(`Conquistas seedadas: ${achievementsToUpsert.length}`);
+  console.log(`Conquistas seedadas: ${coreRefs.achievementsCount}`);
   console.log(`Itens de catalogo seedados: ${gamificationCatalogItems.length}`);
+  console.log(`Contas demo seedadas: ${vaultSummary.usersCount}`);
+  console.log(`Criancas demo seedadas: ${vaultSummary.childrenCount}`);
+  console.log(`Colecoes demo seedadas: ${vaultSummary.collectionsCount}`);
+  console.log(`Historias demo seedadas: ${vaultSummary.storiesCount}`);
+  console.log(`PIN demo configurado para contas seedadas: ${demoPin}`);
 }
 
 main()
   .catch((error) => {
-    console.error("Falha ao executar seed de admin:", error);
+    console.error("Falha ao executar seed de conteudo demo:", error);
     process.exitCode = 1;
   })
   .finally(async () => {
