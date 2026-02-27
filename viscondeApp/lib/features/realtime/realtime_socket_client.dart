@@ -74,14 +74,11 @@ class RealtimeSocketClient {
       cancelOnError: false,
     );
 
-    send(
-      'auth.join',
-      {
-        'participantToken': participantToken,
-        if (clientId != null && clientId.trim().isNotEmpty)
-          'clientId': clientId.trim(),
-      },
-    );
+    send('auth.join', {
+      'participantToken': participantToken,
+      if (clientId != null && clientId.trim().isNotEmpty)
+        'clientId': clientId.trim(),
+    });
 
     _pingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       send('presence.ping', {'ts': DateTime.now().millisecondsSinceEpoch});
@@ -94,12 +91,7 @@ class RealtimeSocketClient {
       return;
     }
 
-    channel.sink.add(
-      jsonEncode({
-        'event': event,
-        'payload': payload,
-      }),
-    );
+    channel.sink.add(jsonEncode({'event': event, 'payload': payload}));
   }
 
   Future<void> disconnect() async {

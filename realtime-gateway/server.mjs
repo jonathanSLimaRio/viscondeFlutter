@@ -84,6 +84,17 @@ function publishToRoom(roomId, event, payload) {
   }
 }
 
+function closeRoomSockets(roomId, code, reason) {
+  const sockets = roomSockets(roomId);
+  for (const socket of sockets) {
+    try {
+      socket.close(code, reason);
+    } catch {
+      // no-op
+    }
+  }
+}
+
 function publishPresence(roomId) {
   const sockets = roomSockets(roomId);
   const participants = sockets
@@ -199,8 +210,11 @@ const server = createServer(async (req, res) => {
       }
 
       publishToRoom(roomId, event, payload);
+      if (event === "remote.closed") {
+        closeRoomSockets(roomId, 1000, "remote.closed");
+      }
       json(res, 200, { ok: true, delivered: roomSockets(roomId).length });
-    } catch (error) {
+    } catch {
       json(res, 400, { error: "invalid body" });
     }
     return;

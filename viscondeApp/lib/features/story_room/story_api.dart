@@ -15,6 +15,13 @@ class StoryApi {
 
   final Dio _dio;
 
+  String _formatDateOnly(DateTime value) {
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
   Future<StorySessionModel> createStorySession(
     String accessToken, {
     required String childProfileId,
@@ -168,6 +175,103 @@ class StoryApi {
         .toList();
   }
 
+  Future<List<StoryVaultCollectionItem>> listStoryVaultCollections(
+    String accessToken, {
+    String? childProfileId,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+    String? theme,
+    String? virtueId,
+    bool favoriteOnly = false,
+  }) async {
+    final response = await _dio.get<List<dynamic>>(
+      '/story-vault/collections',
+      queryParameters: {
+        if (childProfileId != null && childProfileId.trim().isNotEmpty)
+          'childProfileId': childProfileId.trim(),
+        if (dateFrom != null) 'dateFrom': _formatDateOnly(dateFrom),
+        if (dateTo != null) 'dateTo': _formatDateOnly(dateTo),
+        if (theme != null && theme.trim().isNotEmpty) 'theme': theme.trim(),
+        if (virtueId != null && virtueId.trim().isNotEmpty) 'virtueId': virtueId.trim(),
+        if (favoriteOnly) 'favoriteOnly': 'true',
+      },
+      options: authOptions(accessToken),
+    );
+
+    return (response.data ?? <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(StoryVaultCollectionItem.fromJson)
+        .toList();
+  }
+
+  Future<StoryVaultCollectionDetail> getStoryVaultCollection(
+    String accessToken,
+    String collectionId,
+  ) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/story-vault/collections/$collectionId',
+      options: authOptions(accessToken),
+    );
+
+    return StoryVaultCollectionDetail.fromJson(
+      response.data ?? <String, dynamic>{},
+    );
+  }
+
+  Future<bool> setStoryVaultFavorite(
+    String accessToken,
+    String collectionId, {
+    required bool isFavorite,
+  }) async {
+    final response = await _dio.patch<Map<String, dynamic>>(
+      '/story-vault/collections/$collectionId/favorite',
+      data: {'isFavorite': isFavorite},
+      options: authOptions(accessToken),
+    );
+
+    return (response.data?['isFavorite'] as bool?) ?? isFavorite;
+  }
+
+  Future<StorySessionModel> continueStory(
+    String accessToken,
+    String storyId, {
+    String? titleDraft,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/stories/$storyId/continue',
+      data: {
+        if (titleDraft != null && titleDraft.trim().isNotEmpty)
+          'titleDraft': titleDraft.trim(),
+      },
+      options: authOptions(accessToken),
+    );
+
+    final payload = response.data ?? <String, dynamic>{};
+    return StorySessionModel.fromJson(
+      (payload['story'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+    );
+  }
+
+  Future<StorySessionModel> duplicateStoryAsTemplate(
+    String accessToken,
+    String storyId, {
+    String? childProfileId,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/stories/$storyId/duplicate-template',
+      data: {
+        if (childProfileId != null && childProfileId.trim().isNotEmpty)
+          'childProfileId': childProfileId.trim(),
+      },
+      options: authOptions(accessToken),
+    );
+
+    final payload = response.data ?? <String, dynamic>{};
+    return StorySessionModel.fromJson(
+      (payload['story'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+    );
+  }
+
   Future<StorySessionModel> getStory(String accessToken, String storyId) async {
     final response = await _dio.get<Map<String, dynamic>>(
       '/stories/$storyId',
@@ -306,10 +410,7 @@ class StoryApi {
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/story-sessions/remote/join',
-      data: {
-        'code': code,
-        'displayName': displayName,
-      },
+      data: {'code': code, 'displayName': displayName},
     );
 
     return RemoteJoinResult.fromJson(response.data ?? <String, dynamic>{});

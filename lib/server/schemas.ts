@@ -153,6 +153,44 @@ export const listStoriesQuerySchema = z.object({
   status: storyStatusSchema.optional(),
 });
 
+const dateYyyyMmDdSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const optionalBooleanQuerySchema = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+
+  return value;
+}, z.boolean().optional());
+
+export const listStoryVaultCollectionsQuerySchema = z.object({
+  childProfileId: z.string().trim().min(1).max(120).optional(),
+  dateFrom: dateYyyyMmDdSchema.optional(),
+  dateTo: dateYyyyMmDdSchema.optional(),
+  theme: z.string().trim().min(1).max(120).optional(),
+  virtueId: z.string().trim().min(1).max(120).optional(),
+  favoriteOnly: optionalBooleanQuerySchema,
+});
+
+export const setStoryCollectionFavoriteSchema = z.object({
+  isFavorite: z.boolean(),
+});
+
+export const continueStorySchema = z.object({
+  titleDraft: z.string().trim().min(1).max(140).optional(),
+});
+
+export const duplicateStoryTemplateSchema = z.object({
+  childProfileId: z.string().trim().min(1).max(120).optional(),
+});
+
 export const virtueSuggestQuerySchema = z.object({
   childProfileId: z.string().trim().min(1).max(120),
 });

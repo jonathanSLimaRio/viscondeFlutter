@@ -128,6 +128,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen> {
                 title: Text(story.title),
                 subtitle: Text(
                   '${story.childName} · ${_statusLabel(story.status)} · ${story.stepsCount} etapas'
+                  '\nSessao: ${story.sessionKind == StorySessionKind.remote ? 'Remota' : 'Presencial'}'
                   '${story.virtue != null ? '\nVirtude: ${story.virtue!.name}' : ''}'
                   '\nAtualizado em ${DateFormat('dd/MM HH:mm').format(story.updatedAt)}',
                 ),

@@ -86,6 +86,7 @@ model User {
   sessions            Session[]
   mobileSessions      MobileSession[]
   childProfiles       ChildProfile[]
+  storyCollections    StoryCollection[]
   stories             Story[]
   passwordResetTokens PasswordResetToken[]
   auditEvents         AuditEvent[]
@@ -165,7 +166,8 @@ model ChildProfile {
   isArchived     Boolean  @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stories Story[]
+  stories          Story[]
+  storyCollections StoryCollection[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -173,10 +175,37 @@ model ChildProfile {
   @@index([userId, isArchived])
 }
 
+model StoryCollection {
+  id                  String   @id @default(cuid())
+  userId              String
+  childProfileId      String
+  title               String
+  theme               String
+  virtueId            String?
+  isFavorite          Boolean  @default(false)
+  templateFromStoryId String?
+  lastReferenceAt     DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  childProfile      ChildProfile @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  virtue            Virtue?      @relation(fields: [virtueId], references: [id], onDelete: SetNull)
+  templateFromStory Story?       @relation("StoryCollectionTemplateSource", fields: [templateFromStoryId], references: [id], onDelete: SetNull)
+  stories           Story[]
+
+  @@index([userId, childProfileId, lastReferenceAt])
+  @@index([userId, isFavorite, lastReferenceAt])
+  @@index([userId, virtueId, lastReferenceAt])
+}
+
 model Story {
   id               String      @id @default(cuid())
   userId           String
   childProfileId   String
+  collectionId     String
+  episodeNumber    Int         @default(1)
+  continuedFromStoryId String?
   sessionKind      StorySessionKind @default(PRESENTIAL)
   virtueId         String?
   titleDraft       String
@@ -198,9 +227,13 @@ model Story {
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  childProfile ChildProfile @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
-  virtue       Virtue?       @relation(fields: [virtueId], references: [id], onDelete: SetNull)
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  childProfile        ChildProfile     @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  collection          StoryCollection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  continuedFromStory  Story?           @relation("StoryContinuation", fields: [continuedFromStoryId], references: [id], onDelete: SetNull)
+  continuedStories    Story[]          @relation("StoryContinuation")
+  templatedCollections StoryCollection[] @relation("StoryCollectionTemplateSource")
+  virtue              Virtue?          @relation(fields: [virtueId], references: [id], onDelete: SetNull)
   characters StoryCharacter[]
   steps      StoryStep[]
   ideaLogs   StoryIdeaLog[]
@@ -208,7 +241,9 @@ model Story {
   interactions StoryInteraction[]
 
   @@index([userId, childProfileId, status])
+  @@index([collectionId, status, publishedAt, updatedAt])
   @@index([childProfileId, virtueId, status])
+  @@unique([collectionId, episodeNumber])
   @@index([updatedAt])
 }
 
@@ -264,8 +299,9 @@ model Virtue {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  templates VirtueTemplate[]
-  stories   Story[]
+  templates        VirtueTemplate[]
+  stories          Story[]
+  storyCollections StoryCollection[]
 
   @@index([isActive, sortOrder])
 }

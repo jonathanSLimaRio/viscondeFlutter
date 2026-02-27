@@ -43,6 +43,8 @@ dependencies:
   connectivity_plus: ^7.0.0
   sqflite: ^2.4.2
   path: ^1.9.1
+  web_socket_channel: ^3.0.3
+  flutter_webrtc: ^1.2.0
 
 dev_dependencies:
   flutter_test:

@@ -276,6 +276,14 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
           icon: const Icon(Icons.insights_outlined),
           label: const Text('Relatorio de virtudes'),
         ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _isUnlocked
+              ? () => context.push('/adult/interactions')
+              : null,
+          icon: const Icon(Icons.forum_outlined),
+          label: const Text('Interacoes remotas'),
+        ),
       ],
     );
   }

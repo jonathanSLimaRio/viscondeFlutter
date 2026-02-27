@@ -84,6 +84,11 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
             tooltip: 'Sincronizar pendentes',
           ),
           IconButton(
+            onPressed: () => context.push('/stories/${story.id}/remote'),
+            icon: const Icon(Icons.video_call_outlined),
+            tooltip: 'Sala remota',
+          ),
+          IconButton(
             onPressed: () => context.push('/stories/${story.id}/summary'),
             icon: const Icon(Icons.checklist_outlined),
             tooltip: 'Resumo e publicacao',

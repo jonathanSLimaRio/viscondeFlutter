@@ -441,6 +441,9 @@ class StorySessionModel {
   const StorySessionModel({
     required this.id,
     required this.childProfileId,
+    required this.collectionId,
+    required this.episodeNumber,
+    this.continuedFromStoryId,
     required this.sessionKind,
     required this.titleDraft,
     this.titleFinal,
@@ -465,6 +468,9 @@ class StorySessionModel {
 
   final String id;
   final String childProfileId;
+  final String collectionId;
+  final int episodeNumber;
+  final String? continuedFromStoryId;
   final StorySessionKind sessionKind;
   final String titleDraft;
   final String? titleFinal;
@@ -490,6 +496,9 @@ class StorySessionModel {
     return StorySessionModel(
       id: (json['id'] as String?) ?? '',
       childProfileId: (json['childProfileId'] as String?) ?? '',
+      collectionId: (json['collectionId'] as String?) ?? '',
+      episodeNumber: (json['episodeNumber'] as num?)?.toInt() ?? 1,
+      continuedFromStoryId: json['continuedFromStoryId'] as String?,
       sessionKind: storySessionKindFromApi(json['sessionKind'] as String?),
       titleDraft: (json['titleDraft'] as String?) ?? '',
       titleFinal: json['titleFinal'] as String?,
@@ -529,6 +538,9 @@ class StorySessionModel {
   }
 
   StorySessionModel copyWith({
+    String? collectionId,
+    int? episodeNumber,
+    String? continuedFromStoryId,
     String? titleDraft,
     String? titleFinal,
     String? title,
@@ -547,6 +559,9 @@ class StorySessionModel {
     return StorySessionModel(
       id: id,
       childProfileId: childProfileId,
+      collectionId: collectionId ?? this.collectionId,
+      episodeNumber: episodeNumber ?? this.episodeNumber,
+      continuedFromStoryId: continuedFromStoryId ?? this.continuedFromStoryId,
       sessionKind: sessionKind,
       titleDraft: titleDraft ?? this.titleDraft,
       titleFinal: titleFinal ?? this.titleFinal,
@@ -574,6 +589,9 @@ class StorySessionModel {
 class StoryListItem {
   const StoryListItem({
     required this.id,
+    required this.collectionId,
+    required this.episodeNumber,
+    this.continuedFromStoryId,
     required this.title,
     required this.status,
     required this.sessionKind,
@@ -589,6 +607,9 @@ class StoryListItem {
   });
 
   final String id;
+  final String collectionId;
+  final int episodeNumber;
+  final String? continuedFromStoryId;
   final String title;
   final StoryStatus status;
   final StorySessionKind sessionKind;
@@ -605,6 +626,9 @@ class StoryListItem {
   factory StoryListItem.fromJson(Map<String, dynamic> json) {
     return StoryListItem(
       id: (json['id'] as String?) ?? '',
+      collectionId: (json['collectionId'] as String?) ?? '',
+      episodeNumber: (json['episodeNumber'] as num?)?.toInt() ?? 1,
+      continuedFromStoryId: json['continuedFromStoryId'] as String?,
       title: (json['title'] as String?) ?? '',
       status: storyStatusFromApi((json['status'] as String?) ?? 'DRAFT'),
       sessionKind: storySessionKindFromApi(json['sessionKind'] as String?),
@@ -796,7 +820,8 @@ class RemoteOpenResult {
       joinLink: (json['joinLink'] as String?) ?? '',
       participantToken: (json['hostParticipantToken'] as String?) ?? '',
       signalingWsUrl: (json['signalingWsUrl'] as String?) ?? '',
-      rtcConfig: (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+      rtcConfig:
+          (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
       expiresAt:
           DateTime.tryParse(json['expiresAt'] as String? ?? '') ??
           DateTime.now(),
@@ -832,7 +857,8 @@ class RemoteRoomStateResult {
       ),
       participantToken: (json['hostParticipantToken'] as String?) ?? '',
       signalingWsUrl: (json['signalingWsUrl'] as String?) ?? '',
-      rtcConfig: (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+      rtcConfig:
+          (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
     );
   }
 }
@@ -862,7 +888,8 @@ class RemoteJoinResult {
         (json['storySnapshot'] as Map<String, dynamic>?) ?? <String, dynamic>{},
       ),
       signalingWsUrl: (json['signalingWsUrl'] as String?) ?? '',
-      rtcConfig: (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+      rtcConfig:
+          (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
     );
   }
 }
@@ -937,7 +964,8 @@ class StoryInteractionsResult {
   final List<StoryInteractionModel> interactions;
 
   factory StoryInteractionsResult.fromJson(Map<String, dynamic> json) {
-    final story = (json['story'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    final story =
+        (json['story'] as Map<String, dynamic>?) ?? <String, dynamic>{};
     return StoryInteractionsResult(
       storyId: (story['id'] as String?) ?? '',
       storyTitle: (story['title'] as String?) ?? '',
@@ -945,6 +973,226 @@ class StoryInteractionsResult {
       interactions: ((json['interactions'] as List<dynamic>?) ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .map(StoryInteractionModel.fromJson)
+          .toList(),
+    );
+  }
+}
+
+class StoryVaultChild {
+  const StoryVaultChild({required this.id, required this.name, this.avatarUrl});
+
+  final String id;
+  final String name;
+  final String? avatarUrl;
+
+  factory StoryVaultChild.fromJson(Map<String, dynamic> json) {
+    return StoryVaultChild(
+      id: (json['id'] as String?) ?? '',
+      name: (json['name'] as String?) ?? '-',
+      avatarUrl: json['avatarUrl'] as String?,
+    );
+  }
+}
+
+class StoryVaultLatestEpisode {
+  const StoryVaultLatestEpisode({
+    required this.storyId,
+    required this.episodeNumber,
+    required this.title,
+    required this.status,
+    this.publishedAt,
+    required this.updatedAt,
+    required this.currentStepIndex,
+  });
+
+  final String storyId;
+  final int episodeNumber;
+  final String title;
+  final StoryStatus status;
+  final DateTime? publishedAt;
+  final DateTime updatedAt;
+  final int currentStepIndex;
+
+  factory StoryVaultLatestEpisode.fromJson(Map<String, dynamic> json) {
+    return StoryVaultLatestEpisode(
+      storyId: (json['storyId'] as String?) ?? '',
+      episodeNumber: (json['episodeNumber'] as num?)?.toInt() ?? 1,
+      title: (json['title'] as String?) ?? '',
+      status: storyStatusFromApi((json['status'] as String?) ?? 'DRAFT'),
+      publishedAt: DateTime.tryParse(json['publishedAt'] as String? ?? ''),
+      updatedAt:
+          DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      currentStepIndex: (json['currentStepIndex'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class StoryVaultCollectionItem {
+  const StoryVaultCollectionItem({
+    required this.id,
+    required this.title,
+    required this.theme,
+    this.virtue,
+    required this.isFavorite,
+    required this.child,
+    required this.episodesCount,
+    required this.publishedCount,
+    required this.draftCount,
+    required this.lastReferenceAt,
+    this.latestEpisode,
+  });
+
+  final String id;
+  final String title;
+  final String theme;
+  final VirtueModel? virtue;
+  final bool isFavorite;
+  final StoryVaultChild child;
+  final int episodesCount;
+  final int publishedCount;
+  final int draftCount;
+  final DateTime lastReferenceAt;
+  final StoryVaultLatestEpisode? latestEpisode;
+
+  factory StoryVaultCollectionItem.fromJson(Map<String, dynamic> json) {
+    final latestEpisodeRaw = json['latestEpisode'] as Map<String, dynamic>?;
+
+    return StoryVaultCollectionItem(
+      id: (json['id'] as String?) ?? '',
+      title: (json['title'] as String?) ?? '',
+      theme: (json['theme'] as String?) ?? '',
+      virtue: (json['virtue'] as Map<String, dynamic>?) == null
+          ? null
+          : VirtueModel.fromJson(json['virtue'] as Map<String, dynamic>),
+      isFavorite: (json['isFavorite'] as bool?) ?? false,
+      child: StoryVaultChild.fromJson(
+        (json['child'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+      ),
+      episodesCount: (json['episodesCount'] as num?)?.toInt() ?? 0,
+      publishedCount: (json['publishedCount'] as num?)?.toInt() ?? 0,
+      draftCount: (json['draftCount'] as num?)?.toInt() ?? 0,
+      lastReferenceAt:
+          DateTime.tryParse(json['lastReferenceAt'] as String? ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      latestEpisode: latestEpisodeRaw == null
+          ? null
+          : StoryVaultLatestEpisode.fromJson(latestEpisodeRaw),
+    );
+  }
+}
+
+class StoryVaultEpisodeDetail {
+  const StoryVaultEpisodeDetail({
+    required this.storyId,
+    required this.episodeNumber,
+    required this.title,
+    required this.titleDraft,
+    this.titleFinal,
+    required this.status,
+    this.publishedAt,
+    required this.updatedAt,
+    required this.currentStepIndex,
+    required this.scenario,
+    required this.objective,
+    required this.characters,
+    required this.steps,
+  });
+
+  final String storyId;
+  final int episodeNumber;
+  final String title;
+  final String titleDraft;
+  final String? titleFinal;
+  final StoryStatus status;
+  final DateTime? publishedAt;
+  final DateTime updatedAt;
+  final int currentStepIndex;
+  final String scenario;
+  final String objective;
+  final List<StoryCharacterModel> characters;
+  final List<StoryStepModel> steps;
+
+  factory StoryVaultEpisodeDetail.fromJson(Map<String, dynamic> json) {
+    return StoryVaultEpisodeDetail(
+      storyId: (json['storyId'] as String?) ?? '',
+      episodeNumber: (json['episodeNumber'] as num?)?.toInt() ?? 1,
+      title: (json['title'] as String?) ?? '',
+      titleDraft: (json['titleDraft'] as String?) ?? '',
+      titleFinal: json['titleFinal'] as String?,
+      status: storyStatusFromApi((json['status'] as String?) ?? 'DRAFT'),
+      publishedAt: DateTime.tryParse(json['publishedAt'] as String? ?? ''),
+      updatedAt:
+          DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      currentStepIndex: (json['currentStepIndex'] as num?)?.toInt() ?? 0,
+      scenario: (json['scenario'] as String?) ?? '',
+      objective: (json['objective'] as String?) ?? '',
+      characters: ((json['characters'] as List<dynamic>?) ?? <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(StoryCharacterModel.fromJson)
+          .toList(),
+      steps: ((json['steps'] as List<dynamic>?) ?? <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(StoryStepModel.fromJson)
+          .toList(),
+    );
+  }
+}
+
+class StoryVaultCollectionDetail {
+  const StoryVaultCollectionDetail({
+    required this.id,
+    required this.title,
+    required this.theme,
+    this.virtue,
+    required this.isFavorite,
+    this.templateFromStoryId,
+    required this.lastReferenceAt,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.child,
+    required this.episodes,
+  });
+
+  final String id;
+  final String title;
+  final String theme;
+  final VirtueModel? virtue;
+  final bool isFavorite;
+  final String? templateFromStoryId;
+  final DateTime lastReferenceAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final StoryVaultChild child;
+  final List<StoryVaultEpisodeDetail> episodes;
+
+  factory StoryVaultCollectionDetail.fromJson(Map<String, dynamic> json) {
+    final collection = (json['collection'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    return StoryVaultCollectionDetail(
+      id: (collection['id'] as String?) ?? '',
+      title: (collection['title'] as String?) ?? '',
+      theme: (collection['theme'] as String?) ?? '',
+      virtue: (collection['virtue'] as Map<String, dynamic>?) == null
+          ? null
+          : VirtueModel.fromJson(collection['virtue'] as Map<String, dynamic>),
+      isFavorite: (collection['isFavorite'] as bool?) ?? false,
+      templateFromStoryId: collection['templateFromStoryId'] as String?,
+      lastReferenceAt:
+          DateTime.tryParse(collection['lastReferenceAt'] as String? ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      createdAt:
+          DateTime.tryParse(collection['createdAt'] as String? ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt:
+          DateTime.tryParse(collection['updatedAt'] as String? ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      child: StoryVaultChild.fromJson(
+        (collection['child'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+      ),
+      episodes: ((json['episodes'] as List<dynamic>?) ?? <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(StoryVaultEpisodeDetail.fromJson)
           .toList(),
     );
   }

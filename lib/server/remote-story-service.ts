@@ -18,9 +18,6 @@ import {
   getRealtimePublicWsUrl,
   publishRealtimeRoomEvent,
 } from "@/lib/server/realtime-gateway";
-import {
-  publishStoryStepCreatedEvent,
-} from "@/lib/server/remote-realtime-events";
 import { createStoryStep, getStorySession } from "@/lib/server/story-service";
 import {
   type ParticipantAccessContext,
@@ -857,17 +854,6 @@ export async function createRemoteStepByParticipant(
     selectedOptionId: input.selectedOptionId,
     selectedOptionLabel: input.selectedOptionLabel,
     localEventId: input.localEventId,
-  });
-
-  await publishRealtimeRoomEvent({
-    remoteRoomId: row.remoteRoom.id,
-    event: "story.step.created",
-    payload: {
-      storyId,
-      step: result.step,
-      story: result.story,
-      idempotent: result.idempotent,
-    },
   });
 
   return result;

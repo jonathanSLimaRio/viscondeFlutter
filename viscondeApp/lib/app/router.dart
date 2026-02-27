@@ -6,8 +6,12 @@ import '../features/auth/ui/forgot_password_screen.dart';
 import '../features/auth/ui/login_screen.dart';
 import '../features/auth/ui/signup_screen.dart';
 import '../features/profile/ui/home_shell_screen.dart';
+import '../features/remote_room/ui/remote_join_screen.dart';
+import '../features/remote_room/ui/remote_room_screen.dart';
+import '../features/security/ui/story_interactions_adult_screen.dart';
 import '../features/security/ui/virtue_reports_screen.dart';
 import '../features/story_creation/ui/create_story_screen.dart';
+import '../features/story_room/models/story_models.dart';
 import '../features/story_room/ui/story_room_screen.dart';
 import '../features/story_room/ui/story_summary_screen.dart';
 import '../shared/loading_screen.dart';
@@ -34,8 +38,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const VirtueReportsScreen(),
       ),
       GoRoute(
+        path: '/adult/interactions',
+        builder: (context, state) => const StoryInteractionsAdultScreen(),
+      ),
+      GoRoute(
+        path: '/remote/join',
+        builder: (context, state) =>
+            RemoteJoinScreen(prefilledCode: state.uri.queryParameters['code']),
+      ),
+      GoRoute(
+        path: '/remote/room',
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is RemoteJoinBundle) {
+            return RemoteRoomScreen.guest(joinBundle: extra);
+          }
+          return const RemoteJoinScreen();
+        },
+      ),
+      GoRoute(
         path: '/stories/new',
         builder: (context, state) => const CreateStoryScreen(),
+      ),
+      GoRoute(
+        path: '/stories/:id/remote',
+        builder: (context, state) {
+          final storyId = state.pathParameters['id'] ?? '';
+          return RemoteRoomScreen.host(storyId: storyId);
+        },
       ),
       GoRoute(
         path: '/stories/:id/room',
@@ -61,13 +91,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           location == '/login' ||
           location == '/signup' ||
           location == '/forgot-password';
+      final isRemotePublicRoute =
+          location == '/remote/join' || location == '/remote/room';
 
       if (auth.status == AuthStatus.loading) {
         return location == '/loading' ? null : '/loading';
       }
 
       if (auth.status == AuthStatus.unauthenticated) {
-        return isAuthRoute ? null : '/login';
+        return (isAuthRoute || isRemotePublicRoute) ? null : '/login';
       }
 
       if (auth.status == AuthStatus.authenticated) {

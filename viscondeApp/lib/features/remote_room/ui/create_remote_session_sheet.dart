@@ -66,10 +66,7 @@ class CreateRemoteSessionSheet extends StatelessWidget {
                       ],
                       if (joinLink != null && joinLink!.isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text(
-                          joinLink!,
-                          style: const TextStyle(fontSize: 12),
-                        ),
+                        Text(joinLink!, style: const TextStyle(fontSize: 12)),
                       ],
                     ],
                   ),

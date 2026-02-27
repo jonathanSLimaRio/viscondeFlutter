@@ -214,6 +214,9 @@ function toStorySessionDTO(story: {
   id: string;
   userId: string;
   childProfileId: string;
+  collectionId: string;
+  episodeNumber: number;
+  continuedFromStoryId: string | null;
   sessionKind: StorySessionKind;
   virtueId: string | null;
   titleDraft: string;
@@ -286,6 +289,9 @@ function toStorySessionDTO(story: {
     id: story.id,
     userId: story.userId,
     childProfileId: story.childProfileId,
+    collectionId: story.collectionId,
+    episodeNumber: story.episodeNumber,
+    continuedFromStoryId: story.continuedFromStoryId,
     sessionKind: story.sessionKind,
     titleDraft: story.titleDraft,
     titleFinal: story.titleFinal,
@@ -457,32 +463,53 @@ export async function createStorySession(
     ageBand: resolvedVirtue.ageBand,
   });
 
-  const created = await prisma.story.create({
-    data: {
-      userId,
-      childProfileId: child.id,
-      virtueId: resolvedVirtue.virtue.id,
-      titleDraft: input.titleDraft,
-      theme: input.theme,
-      scenario: input.scenario,
-      objective: input.objective,
-      ageBand: resolvedVirtue.ageBand,
-      virtueSource: resolvedVirtue.virtueSource,
-      dilemmaText: template.dilemmaText,
-      endQuestionText: template.endQuestionText,
-      status: "DRAFT",
-      sessionKind: "PRESENTIAL",
-      currentMode: input.startMode,
-      ageSnapshotYears: calculateAgeYears(child.birthDate),
-      startedAt: new Date(),
-      characters: {
-        create: input.characters.map((character) => ({
-          name: character.name,
-          role: character.role,
-        })),
+  const now = new Date();
+
+  const created = await prisma.$transaction(async (tx) => {
+    const collection = await tx.storyCollection.create({
+      data: {
+        userId,
+        childProfileId: child.id,
+        title: input.titleDraft,
+        theme: input.theme,
+        virtueId: resolvedVirtue.virtue.id,
+        isFavorite: false,
+        lastReferenceAt: now,
       },
-    },
-    include: storySessionInclude,
+      select: {
+        id: true,
+      },
+    });
+
+    return tx.story.create({
+      data: {
+        userId,
+        childProfileId: child.id,
+        collectionId: collection.id,
+        episodeNumber: 1,
+        virtueId: resolvedVirtue.virtue.id,
+        titleDraft: input.titleDraft,
+        theme: input.theme,
+        scenario: input.scenario,
+        objective: input.objective,
+        ageBand: resolvedVirtue.ageBand,
+        virtueSource: resolvedVirtue.virtueSource,
+        dilemmaText: template.dilemmaText,
+        endQuestionText: template.endQuestionText,
+        status: "DRAFT",
+        sessionKind: "PRESENTIAL",
+        currentMode: input.startMode,
+        ageSnapshotYears: calculateAgeYears(child.birthDate),
+        startedAt: now,
+        characters: {
+          create: input.characters.map((character) => ({
+            name: character.name,
+            role: character.role,
+          })),
+        },
+      },
+      include: storySessionInclude,
+    });
   });
 
   return toStorySessionDTO(created);
@@ -551,6 +578,7 @@ export async function createStoryStep(
     },
     select: {
       id: true,
+      collectionId: true,
       status: true,
       currentMode: true,
       currentStepIndex: true,
@@ -637,6 +665,8 @@ export async function createStoryStep(
         })
       : null;
 
+  const now = new Date();
+
   const created = await prisma.$transaction(async (tx) => {
     const step = await tx.storyStep.create({
       data: {
@@ -650,7 +680,7 @@ export async function createStoryStep(
         selectedOptionId: input.selectedOptionId,
         selectedOptionLabel: input.selectedOptionLabel,
         narratorText: input.narratorText,
-        autoSavedAt: new Date(),
+        autoSavedAt: now,
       },
     });
 
@@ -663,6 +693,15 @@ export async function createStoryStep(
           input.stepIndex > story.currentStepIndex
             ? input.stepIndex
             : story.currentStepIndex,
+      },
+    });
+
+    await tx.storyCollection.update({
+      where: {
+        id: story.collectionId,
+      },
+      data: {
+        lastReferenceAt: now,
       },
     });
 
@@ -819,6 +858,15 @@ export async function finalizeStorySession(
     },
   });
 
+  await prisma.storyCollection.update({
+    where: {
+      id: story.collectionId,
+    },
+    data: {
+      lastReferenceAt: now,
+    },
+  });
+
   return {
     status: "PUBLISHED" as const,
     story: await getStoryById(userId, storyId),
@@ -873,6 +921,9 @@ export async function listStories(
   return stories.map((story) => ({
     id: story.id,
     childProfileId: story.childProfileId,
+    collectionId: story.collectionId,
+    episodeNumber: story.episodeNumber,
+    continuedFromStoryId: story.continuedFromStoryId,
     sessionKind: story.sessionKind,
     childName: story.childProfile.name,
     titleDraft: story.titleDraft,
