@@ -13,6 +13,7 @@ enum ViscondeArtKey {
   iconGratitude,
   iconStory,
   iconLibrary,
+  logoVisconde,
 }
 
 class ViscondeArtRegistry {
@@ -33,6 +34,7 @@ class ViscondeArtRegistry {
     ViscondeArtKey.iconGratitude: 'assets/design/icons/gratitude.png',
     ViscondeArtKey.iconStory: 'assets/design/icons/story.png',
     ViscondeArtKey.iconLibrary: 'assets/design/icons/library.png',
+    ViscondeArtKey.logoVisconde: 'assets/design/logos/logo_visconde.png',
   };
 
   static String resolve(ViscondeArtKey key) {

@@ -96,12 +96,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Entrar no Visconde')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    'Entrar no ',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: context.viscondeColors.textStrong,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Image.asset(
+                  ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
+                  height: 40,
+                  width: 120, // Add constraint to image to help layout
+                  fit: BoxFit.contain, // ensure it scales correctly
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 40,
+                      width: 120,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: context.viscondeColors.primary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Visconde',
+                        style: TextStyle(
+                          color: context.viscondeColors.primaryDark,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
             ViscondeHeroBanner(
               title: 'Criando com o Papai!',
               subtitle: 'Transforme tempo em memórias mágicas.',
@@ -128,7 +168,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: 'E-mail'),
+                      decoration: InputDecoration(
+                        labelText: 'E-mail',
+                        prefixIcon: Icon(Icons.email_outlined, color: context.viscondeColors.primary),
+                      ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Informe seu e-mail';
@@ -143,7 +186,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Senha'),
+                      decoration: InputDecoration(
+                        labelText: 'Senha',
+                        prefixIcon: Icon(Icons.lock_outline, color: context.viscondeColors.primary),
+                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Informe sua senha';
@@ -164,19 +210,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.push('/forgot-password'),
+              style: TextButton.styleFrom(
+                foregroundColor: context.viscondeColors.primaryDark,
+              ),
               child: const Text('Esqueci minha senha'),
             ),
-            const Divider(height: 32),
-            OutlinedButton.icon(
-              onPressed: _googleLogin,
-              icon: const Icon(Icons.g_mobiledata),
-              label: const Text('Continuar com Google'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: Divider(color: context.viscondeColors.borderSoft)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'ou',
+                    style: TextStyle(color: context.viscondeColors.textMuted),
+                  ),
+                ),
+                Expanded(child: Divider(color: context.viscondeColors.borderSoft)),
+              ],
             ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _googleLogin,
+              icon: const Icon(Icons.g_mobiledata, size: 28),
+              label: const Text('Continuar com Google'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: context.viscondeColors.textStrong,
+                elevation: 1,
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
               onPressed: _appleLogin,
-              icon: const Icon(Icons.apple),
+              icon: const Icon(Icons.apple, size: 24),
               label: const Text('Continuar com Apple'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: context.viscondeColors.textStrong,
+                elevation: 1,
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
             const SizedBox(height: 16),
             TextButton(
