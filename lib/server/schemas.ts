@@ -10,6 +10,7 @@ const storyModeSchema = z.enum(["PARENT_NARRATOR", "CHILD_CHOOSER"]);
 const storyStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const storyStepKindSchema = z.enum(["NARRATION", "CHILD_CHOICE", "SYSTEM"]);
 const callModeSchema = z.enum(["NONE", "AUDIO", "VIDEO"]);
+const catalogItemTypeSchema = z.enum(["SCENARIO", "CHARACTER", "SKIN", "AVATAR"]);
 
 const optionalString = z
   .string()
@@ -189,6 +190,20 @@ export const continueStorySchema = z.object({
 
 export const duplicateStoryTemplateSchema = z.object({
   childProfileId: z.string().trim().min(1).max(120).optional(),
+});
+
+export const listGamificationCatalogQuerySchema = z.object({
+  childProfileId: z.string().trim().min(1).max(120),
+  type: catalogItemTypeSchema.optional(),
+});
+
+export const unlockCatalogItemSchema = z.object({
+  itemId: z.string().trim().min(1).max(120),
+});
+
+export const equipCatalogItemSchema = z.object({
+  itemId: z.string().trim().min(1).max(120),
+  equipped: z.boolean(),
 });
 
 export const virtueSuggestQuerySchema = z.object({

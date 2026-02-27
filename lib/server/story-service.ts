@@ -11,6 +11,7 @@ import type {
 
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/server/errors";
+import { processStoryPublished } from "@/lib/server/gamification-service";
 import { generateStoryIdeas } from "@/lib/server/story-idea-service";
 import { assertSafeContext } from "@/lib/server/story-safety";
 import { resolveVirtueForStoryCreation } from "@/lib/server/virtue-service";
@@ -812,6 +813,16 @@ export async function finalizeStorySession(
       userId,
     },
     include: {
+      user: {
+        select: {
+          timezone: true,
+        },
+      },
+      virtue: {
+        select: {
+          slug: true,
+        },
+      },
       _count: {
         select: {
           steps: true,
@@ -845,31 +856,45 @@ export async function finalizeStorySession(
   }
 
   const now = new Date();
+  const gamification = await prisma.$transaction(async (tx) => {
+    await tx.story.update({
+      where: {
+        id: story.id,
+      },
+      data: {
+        status: "PUBLISHED",
+        titleFinal: input.titleFinal ?? story.titleDraft,
+        publishedAt: now,
+        completedAt: now,
+      },
+    });
 
-  await prisma.story.update({
-    where: {
-      id: story.id,
-    },
-    data: {
-      status: "PUBLISHED",
-      titleFinal: input.titleFinal ?? story.titleDraft,
+    await tx.storyCollection.update({
+      where: {
+        id: story.collectionId,
+      },
+      data: {
+        lastReferenceAt: now,
+      },
+    });
+
+    return processStoryPublished(tx, {
+      userId,
+      storyId: story.id,
+      childProfileId: story.childProfileId,
+      virtueId: story.virtueId,
+      virtueSlug: story.virtue?.slug ?? null,
+      continuedFromStoryId: story.continuedFromStoryId,
       publishedAt: now,
-      completedAt: now,
-    },
-  });
-
-  await prisma.storyCollection.update({
-    where: {
-      id: story.collectionId,
-    },
-    data: {
-      lastReferenceAt: now,
-    },
+      timezone: story.user.timezone,
+      source: "LIVE",
+    });
   });
 
   return {
     status: "PUBLISHED" as const,
     story: await getStoryById(userId, storyId),
+    gamification,
   };
 }
 

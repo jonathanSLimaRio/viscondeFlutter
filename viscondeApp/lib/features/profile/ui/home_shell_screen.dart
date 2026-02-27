@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/auth/auth_controller.dart';
 import '../../children/ui/children_tab.dart';
 import '../../security/ui/adult_gate_tab.dart';
-import '../../story_library/ui/story_library_screen.dart';
+import '../../story_vault/ui/story_vault_screen.dart';
 import 'profile_tab.dart';
 
 class HomeShellScreen extends ConsumerStatefulWidget {
@@ -20,7 +20,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   @override
   Widget build(BuildContext context) {
     final tabs = const [
-      StoryLibraryScreen(),
+      StoryVaultScreen(),
       ChildrenTab(),
       ProfileTab(),
       AdultGateTab(),

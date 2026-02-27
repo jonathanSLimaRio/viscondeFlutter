@@ -68,6 +68,39 @@ enum VirtueSource {
   AUTO
 }
 
+enum CurrencyType {
+  COIN
+  STAR
+}
+
+enum CatalogItemType {
+  SCENARIO
+  CHARACTER
+  SKIN
+  AVATAR
+}
+
+enum WalletReason {
+  STORY_PUBLISHED
+  MISSION_COMPLETED
+  ACHIEVEMENT_UNLOCK
+  PURCHASE_REFUND
+  PURCHASE_SPEND
+  BACKFILL
+}
+
+enum MissionKind {
+  PUBLISH_COUNT
+  PUBLISH_WITH_VIRTUE
+  CONTINUE_EPISODE
+}
+
+enum MissionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String?
@@ -88,6 +121,12 @@ model User {
   childProfiles       ChildProfile[]
   storyCollections    StoryCollection[]
   stories             Story[]
+  wallet              Wallet?
+  walletTransactions  WalletTransaction[]
+  userAchievements    UserAchievement[]
+  childStreaks        ChildStreak[]
+  weeklyMissions      ChildWeeklyMission[]
+  gamificationEvents  GamificationEvent[]
   passwordResetTokens PasswordResetToken[]
   auditEvents         AuditEvent[]
   remoteRoomsOwned    RemoteStoryRoom[]
@@ -168,11 +207,171 @@ model ChildProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   stories          Story[]
   storyCollections StoryCollection[]
+  inventoryItems   ChildInventoryItem[]
+  streak           ChildStreak?
+  weeklyMissions   ChildWeeklyMission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId, isArchived])
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  coins     Int      @default(0)
+  stars     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id           String       @id @default(cuid())
+  walletId     String
+  userId       String
+  currencyType CurrencyType
+  amount       Int
+  reason       WalletReason
+  referenceType String?
+  referenceId   String?
+  balanceAfter Int
+  createdAt    DateTime     @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  title       String
+  description String
+  iconKey     String
+  rewardCoins Int      @default(0)
+  rewardStars Int      @default(0)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userAchievements UserAchievement[]
+
+  @@index([isActive, sortOrder])
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+  progressValue Int      @default(0)
+  metaJson      Json?
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId, unlockedAt])
+}
+
+model GamificationCatalogItem {
+  id          String          @id @default(cuid())
+  key         String          @unique
+  type        CatalogItemType
+  name        String
+  description String
+  iconKey     String
+  priceCoins  Int             @default(0)
+  priceStars  Int             @default(0)
+  isActive    Boolean         @default(true)
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  inventoryItems ChildInventoryItem[]
+
+  @@index([type, isActive, sortOrder])
+}
+
+model ChildInventoryItem {
+  id            String   @id @default(cuid())
+  childProfileId String
+  itemId        String
+  unlockedAt    DateTime @default(now())
+  equipped      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  childProfile ChildProfile          @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  item         GamificationCatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([childProfileId, itemId])
+  @@index([childProfileId, equipped])
+}
+
+model ChildStreak {
+  id                   String   @id @default(cuid())
+  userId               String
+  childProfileId       String   @unique
+  currentDays          Int      @default(0)
+  bestDays             Int      @default(0)
+  lastCountedDate      DateTime?
+  shieldCount          Int      @default(0)
+  lastShieldGrantWeekKey String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  childProfile ChildProfile @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+}
+
+model ChildWeeklyMission {
+  id            String       @id @default(cuid())
+  userId        String
+  childProfileId String
+  weekKey       String
+  kind          MissionKind
+  title         String
+  description   String
+  targetValue   Int
+  progressValue Int          @default(0)
+  status        MissionStatus @default(ACTIVE)
+  virtueId      String?
+  rewardCoins   Int          @default(0)
+  rewardStars   Int          @default(0)
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  childProfile ChildProfile @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  virtue       Virtue?     @relation(fields: [virtueId], references: [id], onDelete: SetNull)
+
+  @@index([childProfileId, weekKey, status])
+  @@unique([childProfileId, weekKey, kind, virtueId])
+}
+
+model GamificationEvent {
+  id            String   @id @default(cuid())
+  eventKey      String   @unique
+  userId        String
+  storyId       String?
+  childProfileId String?
+  processedAt   DateTime @default(now())
+  metaJson      Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, processedAt])
+  @@index([storyId, processedAt])
 }
 
 model StoryCollection {

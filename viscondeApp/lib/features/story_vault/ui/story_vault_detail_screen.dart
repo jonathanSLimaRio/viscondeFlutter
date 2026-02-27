@@ -15,10 +15,12 @@ class StoryVaultDetailScreen extends ConsumerStatefulWidget {
   final String collectionId;
 
   @override
-  ConsumerState<StoryVaultDetailScreen> createState() => _StoryVaultDetailScreenState();
+  ConsumerState<StoryVaultDetailScreen> createState() =>
+      _StoryVaultDetailScreenState();
 }
 
-class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen> {
+class _StoryVaultDetailScreenState
+    extends ConsumerState<StoryVaultDetailScreen> {
   StoryVaultCollectionDetail? _detail;
   List<ChildProfile> _children = const [];
   bool _loading = false;
@@ -37,10 +39,7 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
   }
 
   Future<void> _bootstrap() async {
-    await Future.wait([
-      _loadDetail(),
-      _loadChildren(),
-    ]);
+    await Future.wait([_loadDetail(), _loadChildren()]);
   }
 
   Future<void> _loadChildren() async {
@@ -116,7 +115,9 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
 
     setState(() => _working = true);
     try {
-      await ref.read(storyApiProvider).setStoryVaultFavorite(
+      await ref
+          .read(storyApiProvider)
+          .setStoryVaultFavorite(
             token,
             detail.id,
             isFavorite: !detail.isFavorite,
@@ -142,7 +143,9 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
     if (token == null || sourceEpisode == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('E necessario ao menos um episodio publicado para continuar a aventura.'),
+          content: Text(
+            'E necessario ao menos um episodio publicado para continuar a aventura.',
+          ),
         ),
       );
       return;
@@ -172,6 +175,17 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
   }
 
   Future<String?> _askTargetChildId(String defaultChildId) async {
+    final childOptions = _children.isNotEmpty
+        ? _children
+        : <ChildProfile>[
+            ChildProfile(
+              id: defaultChildId,
+              name: 'Crianca atual',
+              birthDate: DateTime(2018, 1, 1),
+              favoriteThemes: const [],
+              isArchived: false,
+            ),
+          ];
     String selected = defaultChildId;
     return showDialog<String>(
       context: context,
@@ -181,7 +195,7 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
           content: DropdownButtonFormField<String>(
             initialValue: selected,
             decoration: const InputDecoration(labelText: 'Crianca destino'),
-            items: _children
+            items: childOptions
                 .map(
                   (child) => DropdownMenuItem<String>(
                     value: child.id,
@@ -225,7 +239,9 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
 
     setState(() => _working = true);
     try {
-      final story = await ref.read(storyApiProvider).duplicateStoryAsTemplate(
+      final story = await ref
+          .read(storyApiProvider)
+          .duplicateStoryAsTemplate(
             token,
             sourceEpisode.storyId,
             childProfileId: targetChildId,
@@ -307,7 +323,9 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
                     if (detail.virtue != null)
                       Text('Virtude: ${detail.virtue!.name}'),
                     Text('Episodios: ${detail.episodes.length}'),
-                    Text('Ultima referencia: ${dateFormat.format(detail.lastReferenceAt)}'),
+                    Text(
+                      'Ultima referencia: ${dateFormat.format(detail.lastReferenceAt)}',
+                    ),
                   ],
                 ),
               ),
@@ -351,7 +369,8 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.chevron_right),
-                    onPressed: () => context.push('/stories/${episode.storyId}/room'),
+                    onPressed: () =>
+                        context.push('/stories/${episode.storyId}/room'),
                   ),
                   childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                   children: [
@@ -373,7 +392,8 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
                           .map(
                             (character) => Chip(
                               label: Text(
-                                character.role == null || character.role!.isEmpty
+                                character.role == null ||
+                                        character.role!.isEmpty
                                     ? character.name
                                     : '${character.name} (${character.role})',
                               ),
@@ -406,7 +426,9 @@ class _StoryVaultDetailScreenState extends ConsumerState<StoryVaultDetailScreen>
                           radius: 14,
                           child: Text(step.stepIndex.toString()),
                         ),
-                        title: Text(step.selectedOptionLabel ?? step.narratorText ?? '-'),
+                        title: Text(
+                          step.selectedOptionLabel ?? step.narratorText ?? '-',
+                        ),
                         subtitle: Text(step.kind.name),
                       ),
                     ),

@@ -14,6 +14,7 @@ import '../features/story_creation/ui/create_story_screen.dart';
 import '../features/story_room/models/story_models.dart';
 import '../features/story_room/ui/story_room_screen.dart';
 import '../features/story_room/ui/story_summary_screen.dart';
+import '../features/story_vault/ui/story_vault_detail_screen.dart';
 import '../shared/loading_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -54,6 +55,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             return RemoteRoomScreen.guest(joinBundle: extra);
           }
           return const RemoteJoinScreen();
+        },
+      ),
+      GoRoute(
+        path: '/vault/:id',
+        builder: (context, state) {
+          final collectionId = state.pathParameters['id'] ?? '';
+          return StoryVaultDetailScreen(collectionId: collectionId);
         },
       ),
       GoRoute(
