@@ -107,9 +107,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // ── Logo ──────────────────────────────────────────────────────
+                Center(
+                  child: Image.asset(
+                    ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
+                    height: 120,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox(height: 80),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
                 // ── Title ────────────────────────────────────────────────────
                 _buildTitle(context),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // ── Hero Banner ──────────────────────────────────────────────
                 ViscondeHeroBanner(
@@ -123,13 +135,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ViscondeArtKey.avatarParent,
                     ),
                   ),
-                  height: 180,
+                  height: 160,
                 ),
                 const SizedBox(height: 16),
 
                 // ── Login Card ───────────────────────────────────────────────
                 ViscondeGlassCard(
-                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -140,7 +152,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           title: 'Acessar conta',
                           subtitle: 'Continue a próxima aventura.',
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
 
                         // Email field
                         _buildEmailField(context),
@@ -160,7 +172,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 20),
 
                 // ── Forgot password ──────────────────────────────────────────
                 TextButton(
@@ -169,13 +181,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     foregroundColor: context.viscondeColors.primaryDark,
                     textStyle: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   child: const Text('Esqueci minha senha'),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
 
                 // ── Divider "ou" ─────────────────────────────────────────────
                 _buildOrDivider(context),
@@ -195,7 +207,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 _buildSocialButton(
                   context: context,
                   onPressed: _appleLogin,
-                  icon: const Icon(Icons.apple, size: 22, color: Colors.black87),
+                  icon: const Icon(
+                    Icons.apple,
+                    size: 22,
+                    color: Colors.black87,
+                  ),
                   label: 'Continuar com Apple',
                 ),
 
@@ -231,23 +247,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Text(
           'Entrar no ',
           style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w500,
-            color: colors.textStrong,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: colors.textStrong.withOpacity(0.8),
             letterSpacing: -0.3,
           ),
         ),
-        Image.asset(
-          ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
-          height: 56,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => Text(
-            'Visconde',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              color: colors.textStrong,
-            ),
+        Text(
+          'Visconde',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: colors.textStrong,
+            letterSpacing: -0.2,
           ),
         ),
       ],
@@ -265,19 +277,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         hintStyle: TextStyle(color: colors.textMuted, fontSize: 15),
         prefixIcon: Padding(
           padding: const EdgeInsets.only(left: 14, right: 10),
-          child: Icon(Icons.mail_outline_rounded, color: colors.primary, size: 22),
+          child: Icon(
+            Icons.mail_outline_rounded,
+            color: colors.primary,
+            size: 22,
+          ),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.78),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        fillColor: const Color(0xFFFBF7F0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.borderSoft, width: 1),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.borderSoft.withOpacity(0.6), width: 1),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
@@ -315,19 +334,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         hintStyle: TextStyle(color: colors.textMuted, fontSize: 15),
         prefixIcon: Padding(
           padding: const EdgeInsets.only(left: 14, right: 10),
-          child: Icon(Icons.lock_outline_rounded, color: colors.primary, size: 22),
+          child: Icon(
+            Icons.lock_outline_rounded,
+            color: colors.primary,
+            size: 22,
+          ),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.78),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        fillColor: const Color(0xFFFBF7F0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.borderSoft, width: 1),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.borderSoft.withOpacity(0.6), width: 1),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
@@ -392,24 +418,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        backgroundColor: Colors.white.withOpacity(0.82),
+        backgroundColor: const Color(0xFFFBF7F0),
         foregroundColor: colors.textStrong,
-        side: BorderSide(color: colors.borderSoft.withOpacity(0.5), width: 1),
+        side: BorderSide.none,
         shape: const StadiumBorder(),
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        textStyle: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         elevation: 0,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          icon,
-          const SizedBox(width: 8),
-          Text(label),
-        ],
+        children: [icon, const SizedBox(width: 8), Text(label)],
       ),
     );
   }
@@ -421,10 +440,7 @@ class _GoogleIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(22, 22),
-      painter: _GoogleLogoPainter(),
-    );
+    return CustomPaint(size: const Size(22, 22), painter: _GoogleLogoPainter());
   }
 }
 
@@ -438,7 +454,9 @@ class _GoogleLogoPainter extends CustomPainter {
     final paint = Paint()..style = PaintingStyle.fill;
 
     // Draw circular clip
-    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: Offset(cx, cy), radius: r)));
+    canvas.clipPath(
+      Path()..addOval(Rect.fromCircle(center: Offset(cx, cy), radius: r)),
+    );
 
     // White background circle
     paint.color = Colors.white;
@@ -501,10 +519,7 @@ class _GoogleLogoPainter extends CustomPainter {
     paint.color = const Color(0xFF4285F4);
     final barTop = cy - r * 0.11;
     final barBottom = cy + r * 0.11;
-    canvas.drawRect(
-      Rect.fromLTRB(cx, barTop, cx + r * 0.72, barBottom),
-      paint,
-    );
+    canvas.drawRect(Rect.fromLTRB(cx, barTop, cx + r * 0.72, barBottom), paint);
 
     // Redraw white donut to clean up
     paint.color = Colors.white;

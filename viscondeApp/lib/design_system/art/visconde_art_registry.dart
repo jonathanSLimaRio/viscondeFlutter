@@ -34,7 +34,7 @@ class ViscondeArtRegistry {
     ViscondeArtKey.iconGratitude: 'assets/design/icons/gratitude.png',
     ViscondeArtKey.iconStory: 'assets/design/icons/story.png',
     ViscondeArtKey.iconLibrary: 'assets/design/icons/library.png',
-    ViscondeArtKey.logoVisconde: 'assets/design/logos/logo_visconde.png',
+    ViscondeArtKey.logoVisconde: 'assets/design/logos/viscondeLogo.png',
   };
 
   static String resolve(ViscondeArtKey key) {

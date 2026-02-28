@@ -11,18 +11,34 @@ class LoadingScreen extends StatelessWidget {
       body: Center(
         child: ViscondeGlassCard(
           margin: const EdgeInsets.symmetric(horizontal: 24),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Row(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 12),
-                Flexible(
-                  child: Text(
-                    'Preparando sua aventura...',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Image.asset(
+                  ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
+                  height: 60,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 24),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 16),
+                    Flexible(
+                      child: Text(
+                        'Preparando sua aventura...',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

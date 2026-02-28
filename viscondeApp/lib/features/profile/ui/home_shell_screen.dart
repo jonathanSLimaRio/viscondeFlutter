@@ -31,7 +31,11 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Visconde App'),
+        title: Image.asset(
+          ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
+          height: 36,
+          fit: BoxFit.contain,
+        ),
         actions: [
           IconButton(
             onPressed: () async {
