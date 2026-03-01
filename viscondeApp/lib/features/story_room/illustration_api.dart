@@ -79,13 +79,11 @@ final storyIllustrationProvider =
           arg.storyId,
           arg.stepIndex,
         );
-        if (illustration == null) {
-          illustration = await api.requestStoryIllustration(
-            token,
-            arg.storyId,
-            arg.stepIndex,
-          );
-        }
+        illustration ??= await api.requestStoryIllustration(
+          token,
+          arg.storyId,
+          arg.stepIndex,
+        );
         return illustration;
       } catch (_) {
         return null;
