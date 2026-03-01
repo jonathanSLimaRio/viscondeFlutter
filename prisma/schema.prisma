@@ -157,6 +157,21 @@ enum IllustrationStatus {
   FAILED
 }
 
+enum BookProjectStatus {
+  DRAFT
+  GENERATING
+  READY
+  FAILED
+}
+
+enum PrintOrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELED
+}
+
 enum RarityLevel {
   COMMON
   RARE
@@ -207,6 +222,7 @@ model User {
   updatedModerationTerms ModerationTerm[] @relation("ModerationTermUpdatedBy")
   moderationEvents      ModerationEvent[]
   voiceProfiles         VoiceProfile[]
+  bookProjects          BookProject[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -289,6 +305,7 @@ model ChildProfile {
   avatar           ChildAvatar?
   childInventories ChildInventory[]
   storyMemories    StoryMemory[]
+  bookProjects     BookProject[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1002,4 +1019,38 @@ model StoryMemory {
   childProfile   ChildProfile  @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
 
   @@unique([storyId, childProfileId])
+}
+
+model BookProject {
+  id             String            @id @default(cuid())
+  userId         String
+  childProfileId String
+  month          String
+  title          String
+  status         BookProjectStatus @default(DRAFT)
+  pdfUrl         String?
+  includedStories String[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  childProfile   ChildProfile      @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  printOrders    PrintOrder[]
+
+  @@unique([childProfileId, month])
+}
+
+model PrintOrder {
+  id              String            @id @default(cuid())
+  bookProjectId   String
+  provider        String?
+  status          PrintOrderStatus  @default(PENDING)
+  trackingCode    String?
+  addressSnapshot Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  bookProject     BookProject       @relation(fields: [bookProjectId], references: [id], onDelete: Cascade)
+
+  @@index([bookProjectId, status])
 }

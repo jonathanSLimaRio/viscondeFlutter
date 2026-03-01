@@ -9,6 +9,7 @@ import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
 import '../../story_room/models/story_models.dart';
+import 'story_pdf_exporter.dart';
 
 class StoryVaultScreen extends ConsumerStatefulWidget {
   const StoryVaultScreen({super.key});
@@ -151,6 +152,40 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+    }
+  }
+
+  Future<void> _generateMonthlyBook() async {
+    final token = _accessToken();
+    if (token == null || _selectedChildId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecione uma crianca nos filtros primeiro.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final now = DateTime.now();
+      final monthStr = "\${now.year}-\${now.month.toString().padLeft(2, '0')}";
+      final book = await ref
+          .read(bookApiProvider)
+          .createMonthlyBook(_selectedChildId!, monthStr, token);
+
+      await StoryPdfExporter.exportBookProject(book);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nenhuma historia concluida neste mes para gerar o livro.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -325,6 +360,14 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             icon: Icons.auto_stories_outlined,
             label: 'Criar nova história',
           ),
+          if (_selectedChildId != null) ...[
+            const SizedBox(height: 12),
+            ViscondePrimaryCta(
+              onPressed: _generateMonthlyBook,
+              icon: Icons.picture_as_pdf,
+              label: 'Gerar Livro do Mês',
+            ),
+          ],
           const SizedBox(height: 12),
           if (_loading)
             const Padding(

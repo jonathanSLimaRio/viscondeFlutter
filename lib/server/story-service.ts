@@ -27,7 +27,7 @@ import {
 const MAX_STORY_STEPS = 12;
 const MIN_STORY_STEPS_TO_PUBLISH = 3;
 
-type StorySessionInclude = {
+export type StorySessionInclude = {
   childProfile: {
     select: {
       id: true;
@@ -83,7 +83,7 @@ type StorySessionInclude = {
   };
 };
 
-const storySessionInclude: StorySessionInclude = {
+export const storySessionInclude: StorySessionInclude = {
   childProfile: {
     select: {
       id: true,
@@ -214,7 +214,7 @@ function toStoryStepDTO(step: {
   };
 }
 
-function toStorySessionDTO(story: {
+export function toStorySessionDTO(story: {
   id: string;
   userId: string;
   childProfileId: string;

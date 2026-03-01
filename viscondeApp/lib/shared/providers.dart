@@ -11,6 +11,7 @@ import '../features/security/voice_api.dart';
 import '../features/story_room/illustration_api.dart';
 import '../features/story_room/story_api.dart';
 import '../features/story_sync/story_sync_queue.dart';
+import '../features/story_vault/book_api.dart';
 
 final profileApiProvider = Provider<ProfileApi>((ref) {
   return ProfileApi(ref.watch(dioProvider));
@@ -42,6 +43,10 @@ final inventoryApiProvider = Provider<InventoryApi>((ref) {
 
 final storyApiProvider = Provider<StoryApi>((ref) {
   return StoryApi(ref.watch(dioProvider));
+});
+
+final bookApiProvider = Provider<BookApi>((ref) {
+  return BookApi(ref.watch(dioProvider));
 });
 
 final adminApiProvider = Provider<AdminApi>((ref) {
