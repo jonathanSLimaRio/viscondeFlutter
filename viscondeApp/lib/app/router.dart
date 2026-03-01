@@ -17,6 +17,7 @@ import '../features/remote_room/ui/remote_join_screen.dart';
 import '../features/remote_room/ui/remote_room_screen.dart';
 import '../features/security/ui/story_interactions_adult_screen.dart';
 import '../features/security/ui/virtue_reports_screen.dart';
+import '../features/security/ui/voice_profiles_screen.dart';
 import '../features/story_creation/ui/create_story_screen.dart';
 import '../features/story_room/models/story_models.dart';
 import '../features/story_room/ui/story_room_screen.dart';
@@ -48,6 +49,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/adult/interactions',
         builder: (context, state) => const StoryInteractionsAdultScreen(),
+      ),
+      GoRoute(
+        path: '/adult/voices',
+        builder: (context, state) => const VoiceProfilesScreen(),
       ),
       GoRoute(
         path: '/adult/admin/denied',

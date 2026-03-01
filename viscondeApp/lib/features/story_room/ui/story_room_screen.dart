@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../design_system/visconde.dart';
+import '../../../shared/api_error.dart';
+import '../../../shared/providers.dart';
+import '../../auth/auth_controller.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
 import 'child_choice_panel.dart';
@@ -44,6 +47,104 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
         step.narratorText ??
         step.narratorPrompt ??
         '-';
+  }
+
+  Future<void> _showNarrateDialog(StoryStepModel step) async {
+    final token = ref.read(authControllerProvider).accessToken;
+    if (token == null) return;
+
+    try {
+      final profiles = await ref.read(voiceApiProvider).listProfiles(token);
+      if (!mounted) return;
+
+      final readyProfiles = profiles.where((p) => p.status == 'READY').toList();
+
+      if (readyProfiles.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Nenhuma voz pronta encontrada. Acesse a area adulta e treine uma voz primeiro.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (context) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Narrar com a Voz Inesquecivel',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                ...readyProfiles.map(
+                  (p) => ListTile(
+                    title: Text(p.name),
+                    subtitle: Text(p.relationship ?? ''),
+                    trailing: const Icon(
+                      Icons.play_circle_fill,
+                      color: Colors.green,
+                    ),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      try {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Gerando narracao...')),
+                        );
+                        final job = await ref
+                            .read(voiceApiProvider)
+                            .requestNarration(
+                              token,
+                              widget.storyId,
+                              step.stepIndex,
+                              p.id,
+                            );
+                        if (!mounted) return;
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Audio gerado!'),
+                            content: Text(
+                              'O seu audio artificial (MVP) foi criado com sucesso:\n\n${job.outputUrl}',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                child: const Text(
+                                  'Fechar',
+                                  style: TextStyle(color: Colors.green),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(e))),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(parseDioError(e))));
+    }
   }
 
   @override
@@ -202,6 +303,13 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                   leading: CircleAvatar(child: Text(step.stepIndex.toString())),
                   title: Text(_stepTitle(step)),
                   subtitle: Text(_stepText(step)),
+                  trailing: step.kind == StoryStepKind.narration
+                      ? IconButton(
+                          icon: const Icon(Icons.record_voice_over),
+                          tooltip: 'Narrar com Voz da Familia',
+                          onPressed: () => _showNarrateDialog(step),
+                        )
+                      : null,
                 ),
               ),
             ),

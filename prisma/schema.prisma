@@ -137,6 +137,19 @@ enum ModerationAction {
   SANITIZE
 }
 
+enum VoiceProfileStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+enum NarrationJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String?
@@ -173,6 +186,7 @@ model User {
   createdModerationTerms ModerationTerm[] @relation("ModerationTermCreatedBy")
   updatedModerationTerms ModerationTerm[] @relation("ModerationTermUpdatedBy")
   moderationEvents      ModerationEvent[]
+  voiceProfiles         VoiceProfile[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -482,6 +496,7 @@ model Story {
   ideaLogs   StoryIdeaLog[]
   remoteRoom RemoteStoryRoom?
   interactions StoryInteraction[]
+  narrationJobs NarrationJob[]
 
   @@index([userId, childProfileId, status])
   @@index([collectionId, status, publishedAt, updatedAt])
@@ -828,4 +843,54 @@ model AuditEvent {
 
   @@index([userId, action])
   @@index([createdAt])
+}
+
+model VoiceProfile {
+  id           String             @id @default(cuid())
+  userId       String
+  name         String
+  relationship String?
+  status       VoiceProfileStatus @default(PENDING)
+  provider     String?
+  metadataJson Json?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  samples      VoiceSample[]
+  jobs         NarrationJob[]
+
+  @@index([userId, status])
+}
+
+model VoiceSample {
+  id             String       @id @default(cuid())
+  voiceProfileId String
+  storageUrl     String
+  duration       Float?
+  transcript     String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  profile        VoiceProfile @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+
+  @@index([voiceProfileId])
+}
+
+model NarrationJob {
+  id             String             @id @default(cuid())
+  storyId        String
+  stepIndex      Int?
+  voiceProfileId String
+  status         NarrationJobStatus @default(PENDING)
+  outputUrl      String?
+  metadataJson   Json?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  story          Story              @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  voiceProfile   VoiceProfile       @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+
+  @@index([storyId, status])
+  @@index([voiceProfileId, status])
 }

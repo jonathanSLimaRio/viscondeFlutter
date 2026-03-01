@@ -286,6 +286,12 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
           icon: const Icon(Icons.forum_outlined),
           label: const Text('Interacoes remotas'),
         ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: _isUnlocked ? () => context.push('/adult/voices') : null,
+          icon: const Icon(Icons.record_voice_over_outlined),
+          label: const Text('Voz inesquecivel'),
+        ),
         if (auth.user?.isAdmin ?? false) ...[
           const SizedBox(height: 8),
           FilledButton.icon(
