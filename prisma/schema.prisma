@@ -50,6 +50,7 @@ enum CallMode {
   NONE
   AUDIO
   VIDEO
+  COOP
 }
 
 enum InteractionType {
@@ -744,6 +745,7 @@ model RemoteStoryParticipant {
 
   remoteRoom    RemoteStoryRoom          @relation(fields: [remoteRoomId], references: [id], onDelete: Cascade)
   interactions  StoryInteraction[]
+  votes         StoryVote[]
 
   @@unique([remoteRoomId, role])
   @@index([remoteRoomId, status])
@@ -835,6 +837,22 @@ model StoryIdeaLog {
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
 
   @@index([storyId, createdAt])
+}
+
+model StoryVote {
+  id             String                 @id @default(cuid())
+  storyId        String
+  stepIndex      Int
+  participantId  String
+  optionId       String
+  optionLabel    String
+  createdAt      DateTime               @default(now())
+
+  story       Story                  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  participant RemoteStoryParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, stepIndex, participantId])
+  @@index([storyId, stepIndex])
 }
 
 model StoryInteraction {

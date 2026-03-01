@@ -1008,3 +1008,134 @@ export async function touchParticipantHeartbeat(participant: ParticipantAccessCo
     },
   });
 }
+
+export async function createCoopVoteByParticipant(
+  participant: ParticipantAccessContext,
+  storyId: string,
+  input: {
+    stepIndex: number;
+    optionId: string;
+    optionLabel: string;
+  }
+) {
+  if (participant.role !== "GUEST_CHILD") {
+    throw new ApiError("Somente convidado infantil pode votar.", 403, "REMOTE_FORBIDDEN");
+  }
+
+  const row = await ensureParticipantInRoom({
+    participant,
+    storyId,
+  });
+
+  if (row.remoteRoom.story.currentMode !== "CHILD_CHOOSER") {
+    throw new ApiError(
+      "A historia nao esta em modo de escolha.",
+      409,
+      "REMOTE_CHILD_MODE_REQUIRED"
+    );
+  }
+
+  // 1. Record the vote
+  const vote = await prisma.storyVote.upsert({
+    where: {
+      storyId_stepIndex_participantId: {
+        storyId,
+        stepIndex: input.stepIndex,
+        participantId: participant.participantId,
+      },
+    },
+    update: {
+      optionId: input.optionId,
+      optionLabel: input.optionLabel,
+    },
+    create: {
+      storyId,
+      stepIndex: input.stepIndex,
+      participantId: participant.participantId,
+      optionId: input.optionId,
+      optionLabel: input.optionLabel,
+    },
+  });
+
+  // 2. Publish vote registered event
+  await publishRealtimeRoomEvent({
+    remoteRoomId: row.remoteRoom.id,
+    event: "vote.registered",
+    payload: {
+      participantId: participant.participantId,
+      displayName: row.displayName,
+      stepIndex: input.stepIndex,
+      optionId: input.optionId,
+    },
+  });
+
+  // 3. Check if all connected guest children have voted
+  const connectedGuests = await prisma.remoteStoryParticipant.count({
+    where: {
+      remoteRoomId: row.remoteRoom.id,
+      role: "GUEST_CHILD",
+      status: "CONNECTED",
+    },
+  });
+
+  const votesAtStep = await prisma.storyVote.findMany({
+    where: {
+      storyId,
+      stepIndex: input.stepIndex,
+    },
+  });
+
+  if (votesAtStep.length >= connectedGuests && connectedGuests > 0) {
+    // Everyone voted! Compute winner.
+    const counts: Record<string, { label: string; count: number }> = {};
+    for (const v of votesAtStep) {
+      if (!counts[v.optionId]) {
+        counts[v.optionId] = { label: v.optionLabel, count: 0 };
+      }
+      counts[v.optionId].count += 1;
+    }
+
+    let winnerId = votesAtStep[0].optionId;
+    let winnerLabel = votesAtStep[0].optionLabel;
+    let maxVotes = 0;
+
+    for (const [id, data] of Object.entries(counts)) {
+      if (data.count > maxVotes) {
+        maxVotes = data.count;
+        winnerId = id;
+        winnerLabel = data.label;
+      } else if (data.count === maxVotes) {
+        // Simple tie-breaker: random 50/50
+        if (Math.random() > 0.5) {
+          winnerId = id;
+          winnerLabel = data.label;
+        }
+      }
+    }
+
+    // Attempt to create the step. If it fails, another node might have done it.
+    try {
+      const stepResult = await createStoryStep(row.remoteRoom.story.userId, storyId, {
+        kind: "CHILD_CHOICE",
+        stepIndex: input.stepIndex,
+        selectedOptionId: winnerId,
+        selectedOptionLabel: winnerLabel,
+        localEventId: `coop-vote-${input.stepIndex}-${winnerId}`,
+      });
+
+      return {
+        isVoteLogged: true,
+        allVoted: true,
+        stepResult,
+      };
+    } catch (e) {
+      // Ignore if step already generated
+      console.warn("Failed to generate step after coop vote:", e);
+    }
+  }
+
+  return {
+    isVoteLogged: true,
+    allVoted: false,
+  };
+}

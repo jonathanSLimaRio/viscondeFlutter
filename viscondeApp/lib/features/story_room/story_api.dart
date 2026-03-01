@@ -11,6 +11,38 @@ class StoryStepSaveResult {
   final bool idempotent;
 }
 
+class StoryCoopVoteResult {
+  const StoryCoopVoteResult({
+    required this.isVoteLogged,
+    required this.allVoted,
+    this.stepResult,
+  });
+
+  final bool isVoteLogged;
+  final bool allVoted;
+  final StoryStepSaveResult? stepResult;
+
+  factory StoryCoopVoteResult.fromJson(Map<String, dynamic> json) {
+    StoryStepSaveResult? stepResult;
+    if (json['stepResult'] != null) {
+      final payload = json['stepResult'] as Map<String, dynamic>;
+      final storyPayload = payload['story'] as Map<String, dynamic>?;
+      if (storyPayload != null) {
+        stepResult = StoryStepSaveResult(
+          story: StorySessionModel.fromJson(storyPayload),
+          idempotent: (payload['idempotent'] as bool?) ?? false,
+        );
+      }
+    }
+
+    return StoryCoopVoteResult(
+      isVoteLogged: (json['isVoteLogged'] as bool?) ?? false,
+      allVoted: (json['allVoted'] as bool?) ?? false,
+      stepResult: stepResult,
+    );
+  }
+}
+
 class StoryFinalizeResult {
   const StoryFinalizeResult({required this.story, this.gamification});
 
@@ -494,6 +526,26 @@ class StoryApi {
       story: StorySessionModel.fromJson(storyPayload ?? <String, dynamic>{}),
       idempotent: (payload['idempotent'] as bool?) ?? false,
     );
+  }
+
+  Future<StoryCoopVoteResult> createCoopVote(
+    String participantToken,
+    String storyId, {
+    required int stepIndex,
+    required String selectedOptionLabel,
+    required String selectedOptionId,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/story-sessions/$storyId/remote/votes',
+      data: {
+        'stepIndex': stepIndex,
+        'optionId': selectedOptionId.trim(),
+        'optionLabel': selectedOptionLabel,
+      },
+      options: authOptions(participantToken),
+    );
+
+    return StoryCoopVoteResult.fromJson(response.data ?? <String, dynamic>{});
   }
 
   Future<StoryInteractionModel> createRemoteChat(

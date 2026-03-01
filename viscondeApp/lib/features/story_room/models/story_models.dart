@@ -14,7 +14,7 @@ enum RemoteRoomStatus { open, active, closed, expired }
 
 enum RemoteParticipantRole { hostParent, guestChild }
 
-enum RemoteCallMode { none, audio, video }
+enum RemoteCallMode { none, audio, video, coop }
 
 StoryMode storyModeFromApi(String value) {
   switch (value) {
@@ -121,6 +121,8 @@ RemoteCallMode remoteCallModeFromApi(String? value) {
       return RemoteCallMode.none;
     case 'VIDEO':
       return RemoteCallMode.video;
+    case 'COOP':
+      return RemoteCallMode.coop;
     case 'AUDIO':
     default:
       return RemoteCallMode.audio;
@@ -135,6 +137,8 @@ String remoteCallModeToApi(RemoteCallMode value) {
       return 'VIDEO';
     case RemoteCallMode.audio:
       return 'AUDIO';
+    case RemoteCallMode.coop:
+      return 'COOP';
   }
 }
 

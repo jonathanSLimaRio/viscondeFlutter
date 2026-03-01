@@ -177,6 +177,7 @@ class RemoteCallController extends ChangeNotifier {
           _videoEnabled = false;
           break;
         case RemoteCallMode.audio:
+        case RemoteCallMode.coop:
           for (final track
               in _audioStream?.getAudioTracks() ?? const <MediaStreamTrack>[]) {
             track.enabled = true;
