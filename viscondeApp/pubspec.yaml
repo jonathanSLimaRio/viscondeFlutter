@@ -1,5 +1,5 @@
 name: visconde_app
-description: "A new Flutter project."
+description: 'A new Flutter project.'
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -44,7 +44,9 @@ dependencies:
   sqflite: ^2.4.2
   path: ^1.9.1
   web_socket_channel: ^3.0.3
-  flutter_webrtc: ^1.2.0
+  lucide_icons_flutter: ^0.12.0
+  pdf: ^3.11.1
+  printing: ^5.13.3
 
 dev_dependencies:
   flutter_test:
@@ -57,7 +59,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

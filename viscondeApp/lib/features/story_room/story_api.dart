@@ -41,6 +41,7 @@ class StoryApi {
     required StoryMode startMode,
     String? virtueId,
     String? sourceTemplateId,
+    String? artStyleId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/story-sessions',
@@ -56,6 +57,8 @@ class StoryApi {
           'virtueId': virtueId.trim(),
         if (sourceTemplateId != null && sourceTemplateId.trim().isNotEmpty)
           'sourceTemplateId': sourceTemplateId.trim(),
+        if (artStyleId != null && artStyleId.trim().isNotEmpty)
+          'artStyleId': artStyleId.trim(),
       },
       options: authOptions(accessToken),
     );

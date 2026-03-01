@@ -150,6 +150,13 @@ enum NarrationJobStatus {
   FAILED
 }
 
+enum IllustrationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String?
@@ -266,6 +273,7 @@ model ChildProfile {
   inventoryItems   ChildInventoryItem[]
   streak           ChildStreak?
   weeklyMissions   ChildWeeklyMission[]
+  avatar           ChildAvatar?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -460,6 +468,7 @@ model Story {
   childProfileId   String
   collectionId     String
   sourceTemplateId String?
+  artStyleId       String?
   episodeNumber    Int         @default(1)
   continuedFromStoryId String?
   sessionKind      StorySessionKind @default(PRESENTIAL)
@@ -497,6 +506,9 @@ model Story {
   remoteRoom RemoteStoryRoom?
   interactions StoryInteraction[]
   narrationJobs NarrationJob[]
+  artStyle            ArtStyle?        @relation(fields: [artStyleId], references: [id], onDelete: SetNull)
+  illustrations       StoryIllustration[]
+
 
   @@index([userId, childProfileId, status])
   @@index([collectionId, status, publishedAt, updatedAt])
@@ -894,3 +906,42 @@ model NarrationJob {
   @@index([storyId, status])
   @@index([voiceProfileId, status])
 }
+
+model ArtStyle {
+  id             String    @id @default(cuid())
+  name           String
+  promptTemplate String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  stories Story[]
+}
+
+model ChildAvatar {
+  id             String       @id @default(cuid())
+  childProfileId String       @unique
+  status         String?
+  photoUrl       String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  childProfile ChildProfile @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+}
+
+model StoryIllustration {
+  id         String             @id @default(cuid())
+  storyId    String
+  stepIndex  Int
+  status     IllustrationStatus @default(PENDING)
+  promptUsed String?
+  imageUrl   String?
+  provider   String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, stepIndex])
+}
+

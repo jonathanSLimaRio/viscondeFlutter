@@ -6,6 +6,7 @@ import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
+import '../illustration_api.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
 import 'child_choice_panel.dart';
@@ -173,6 +174,12 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
     }
 
     final options = controller.currentChoiceOptions();
+    final illustrationAsync = ref.watch(
+      storyIllustrationProvider((
+        storyId: story.id,
+        stepIndex: story.currentStepIndex == 0 ? 1 : story.currentStepIndex,
+      )),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -213,6 +220,83 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                   ViscondeArtKey.avatarChild,
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            illustrationAsync.when(
+              data: (illustration) {
+                if (illustration == null) return const SizedBox.shrink();
+
+                return Card(
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Stack(
+                    children: [
+                      if (illustration.imageUrl != null)
+                        Image.network(
+                          illustration.imageUrl!,
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (ctx, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              height: 200,
+                              width: double.infinity,
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          },
+                        )
+                      else
+                        Container(
+                          height: 200,
+                          width: double.infinity,
+                          color: Colors.grey[200],
+                        ),
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            illustration.status == 'COMPLETED'
+                                ? 'Ilustrando Cena ${illustration.stepIndex}'
+                                : 'Criando Ilustracao...',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => Card(
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Container(
+                  height: 200,
+                  width: double.infinity,
+                  color: Colors.grey[200],
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (err, stack) => const SizedBox.shrink(),
             ),
             const SizedBox(height: 12),
             ViscondeGlassCard(

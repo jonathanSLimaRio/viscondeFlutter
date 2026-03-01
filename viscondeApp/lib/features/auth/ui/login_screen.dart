@@ -119,10 +119,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // ── Title ────────────────────────────────────────────────────
-                _buildTitle(context),
-                const SizedBox(height: 24),
-
                 // ── Hero Banner ──────────────────────────────────────────────
                 ViscondeHeroBanner(
                   title: 'Criando com o Papai!',
@@ -190,7 +186,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 8),
 
                 // ── Divider "ou" ─────────────────────────────────────────────
-                _buildOrDivider(context),
+                Text(
+                  'Bem-vindo ao\nVisconde App',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black87,
+                  ),
+                ),
 
                 const SizedBox(height: 16),
 
@@ -237,35 +240,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
-
-  Widget _buildTitle(BuildContext context) {
-    final colors = context.viscondeColors;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          'Entrar no ',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: colors.textStrong.withOpacity(0.8),
-            letterSpacing: -0.3,
-          ),
-        ),
-        Text(
-          'Visconde',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: colors.textStrong,
-            letterSpacing: -0.2,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildEmailField(BuildContext context) {
     final colors = context.viscondeColors;
     return TextFormField(
@@ -374,37 +348,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
         return null;
       },
-    );
-  }
-
-  Widget _buildOrDivider(BuildContext context) {
-    final colors = context.viscondeColors;
-    return Row(
-      children: [
-        Expanded(
-          child: Divider(
-            color: colors.textMuted.withOpacity(0.25),
-            thickness: 1,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text(
-            'ou',
-            style: TextStyle(
-              color: colors.textMuted,
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Divider(
-            color: colors.textMuted.withOpacity(0.25),
-            thickness: 1,
-          ),
-        ),
-      ],
     );
   }
 

@@ -7,6 +7,7 @@ import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
+import '../../story_room/models/illustration_models.dart';
 import '../../story_room/models/story_models.dart';
 import '../../story_room/story_room_controller.dart';
 
@@ -27,14 +28,17 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   List<ChildProfile> _children = const [];
   List<VirtueModel> _virtues = const [];
   List<ContentStoryTemplateModel> _templates = const [];
+  List<ArtStyleModel> _artStyles = const [];
   String? _selectedChildId;
   String? _selectedVirtueId;
   String? _selectedTemplateId;
+  String? _selectedArtStyleId;
   String? _suggestionReason;
   StoryMode _mode = StoryMode.parentNarrator;
   bool _loadingChildren = false;
   bool _loadingVirtues = false;
   bool _loadingTemplates = false;
+  bool _loadingArtStyles = false;
   bool _applyingTemplate = false;
   bool _suggestingVirtue = false;
   bool _submitting = false;
@@ -46,6 +50,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
       _loadChildren();
       _loadVirtues();
       _loadTemplates();
+      _loadArtStyles();
     });
   }
 
@@ -154,6 +159,25 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
       if (mounted) {
         setState(() => _loadingTemplates = false);
       }
+    }
+  }
+
+  Future<void> _loadArtStyles() async {
+    final token = ref.read(authControllerProvider).accessToken;
+    if (token == null) return;
+    setState(() => _loadingArtStyles = true);
+    try {
+      final styles = await ref
+          .read(illustrationApiProvider)
+          .listArtStyles(token);
+      if (!mounted) return;
+      setState(() {
+        _artStyles = styles;
+        _selectedArtStyleId = styles.isNotEmpty ? styles.first.id : null;
+      });
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loadingArtStyles = false);
     }
   }
 
@@ -326,6 +350,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
           startMode: _mode,
           virtueId: _selectedVirtueId,
           sourceTemplateId: _selectedTemplateId,
+          artStyleId: _selectedArtStyleId,
         );
 
     if (!mounted) {
@@ -503,6 +528,29 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                             _suggestionReason!,
                             style: const TextStyle(fontSize: 12),
                           ),
+                        ),
+                      const SizedBox(height: 12),
+                      if (_loadingArtStyles)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 12),
+                          child: LinearProgressIndicator(),
+                        ),
+                      if (_artStyles.isNotEmpty)
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedArtStyleId,
+                          decoration: const InputDecoration(
+                            labelText: 'Estilo de Ilustracao (Nova Aventura)',
+                          ),
+                          items: _artStyles
+                              .map(
+                                (s) => DropdownMenuItem(
+                                  value: s.id,
+                                  child: Text(s.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) =>
+                              setState(() => _selectedArtStyleId = val),
                         ),
                       const SizedBox(height: 12),
                       SegmentedButton<StoryMode>(

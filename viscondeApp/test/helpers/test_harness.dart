@@ -104,6 +104,7 @@ class FakeStoryApi extends StoryApi {
     required StoryMode startMode,
     String? virtueId,
     String? sourceTemplateId,
+    String? artStyleId,
   }) async {
     return session ?? _sampleSession('story-test');
   }

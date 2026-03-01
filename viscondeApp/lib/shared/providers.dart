@@ -7,6 +7,7 @@ import '../features/gamification/gamification_api.dart';
 import '../features/profile/profile_api.dart';
 import '../features/security/security_api.dart';
 import '../features/security/voice_api.dart';
+import '../features/story_room/illustration_api.dart';
 import '../features/story_room/story_api.dart';
 import '../features/story_sync/story_sync_queue.dart';
 
@@ -24,6 +25,10 @@ final securityApiProvider = Provider<SecurityApi>((ref) {
 
 final voiceApiProvider = Provider<VoiceApi>((ref) {
   return VoiceApi(ref.watch(dioProvider));
+});
+
+final illustrationApiProvider = Provider<IllustrationApi>((ref) {
+  return IllustrationApi(ref.watch(dioProvider));
 });
 
 final gamificationApiProvider = Provider<GamificationApi>((ref) {

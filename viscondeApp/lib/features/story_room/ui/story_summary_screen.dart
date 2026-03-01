@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../design_system/visconde.dart';
 import '../../gamification/models/gamification_models.dart';
+import '../../story_vault/story_pdf_exporter.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
 
@@ -153,7 +154,16 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Resumo e Publicacao')),
+      appBar: AppBar(
+        title: const Text('Resumo e Publicacao'),
+        actions: [
+          IconButton(
+            onPressed: () => StoryPdfExporter.exportAndShare(story),
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Exportar Histório como PDF',
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
