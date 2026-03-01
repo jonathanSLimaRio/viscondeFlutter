@@ -22,6 +22,9 @@ export type StoryIdeaContext = {
   currentMode: "PARENT_NARRATOR" | "CHILD_CHOOSER";
   contextHint?: string;
   lastNarrative?: string;
+  inventoryItems?: string[];
+  activeCompanion?: string;
+  lastMemory?: string;
 };
 
 const templateIdeasByTheme: Record<string, string[]> = {
@@ -120,6 +123,8 @@ async function generateIdeasFromOpenAI(context: StoryIdeaContext) {
     "Mantenha tom acolhedor e ludico.",
     "Retorne apenas JSON valido no formato: {\"ideas\":[\"...\",\"...\",\"...\"]}.",
     "Gere entre 3 e 4 ideias curtas, objetivas e acionaveis para o pai narrador.",
+    "OBSERVAÇÂO: A criança pode ter equipamentos ou companheiros no inventario e memorias passadas.",
+    "Se fizer sentido, SUGIRA o uso de pelo menos UM dos itens do inventario ou mencione o companheiro em UMA das ideias.",
   ].join(" ");
 
   const prompt = {
@@ -131,6 +136,9 @@ async function generateIdeasFromOpenAI(context: StoryIdeaContext) {
     mode: context.currentMode,
     contextHint: context.contextHint ?? null,
     lastNarrative: context.lastNarrative ?? null,
+    inventoryItems: context.inventoryItems ?? [],
+    activeCompanion: context.activeCompanion ?? null,
+    lastMemory: context.lastMemory ?? null,
   };
 
   const response = await fetch(`${env.openaiBaseUrl}/responses`, {

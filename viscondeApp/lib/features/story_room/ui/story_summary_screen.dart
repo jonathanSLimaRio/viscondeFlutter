@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../design_system/visconde.dart';
 import '../../gamification/models/gamification_models.dart';
+import '../../gamification/inventory_models.dart';
+import '../../auth/auth_controller.dart';
 import '../../story_vault/story_pdf_exporter.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
+import '../../../shared/providers.dart';
 
 class StorySummaryScreen extends ConsumerStatefulWidget {
   const StorySummaryScreen({super.key, required this.storyId});
@@ -59,8 +62,18 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       return;
     }
 
+    ChildInventoryModel? reward;
+    try {
+      final token = ref.read(authControllerProvider).accessToken;
+      if (token != null) {
+        reward = await ref
+            .read(inventoryApiProvider)
+            .rewardRandomItem(widget.storyId, token);
+      }
+    } catch (_) {}
+
     if (finalized.gamification != null) {
-      await _showGamificationModal(finalized.gamification!);
+      await _showGamificationModal(finalized.gamification!, reward: reward);
     }
 
     if (!mounted) {
@@ -74,8 +87,9 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
   }
 
   Future<void> _showGamificationModal(
-    PublishGamificationSummaryModel gamification,
-  ) async {
+    PublishGamificationSummaryModel gamification, {
+    ChildInventoryModel? reward,
+  }) async {
     if (!mounted) {
       return;
     }
@@ -99,6 +113,21 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
                 const SizedBox(height: 8),
                 Text('Streak atual: ${gamification.streak.currentDays} dias'),
                 Text('Escudos: ${gamification.streak.shieldCount}'),
+                if (reward != null && reward.item != null) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Item Encontrado',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.amber,
+                    ),
+                  ),
+                  Text('Você achou: ${reward.item!.name} ${reward.item!.icon}'),
+                  Text(
+                    '${reward.item!.rarity} - ${reward.item!.description}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
                 if (gamification.completedMissions.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   const Text(

@@ -9,6 +9,7 @@ import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
 import '../../security/parental_gate_controller.dart';
 import '../models/gamification_models.dart';
+import '../inventory_models.dart';
 
 class GameHubScreen extends ConsumerStatefulWidget {
   const GameHubScreen({super.key});
@@ -24,6 +25,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
   List<ChildProfile> _children = const [];
   ChildProgressionModel? _progression;
   List<CatalogItemModel> _catalog = const [];
+  List<ChildInventoryModel> _childInventory = const [];
   String? _selectedChildId;
   CatalogItemType? _selectedCatalogType;
 
@@ -98,6 +100,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
               childProfileId: childId,
               type: _selectedCatalogType,
             ),
+        ref.read(inventoryApiProvider).getChildInventory(childId, token),
       ]);
 
       if (!mounted) {
@@ -109,6 +112,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         _achievements = results[1] as List<AchievementModel>;
         _progression = results[2] as ChildProgressionModel;
         _catalog = results[3] as List<CatalogItemModel>;
+        _childInventory = results[4] as List<ChildInventoryModel>;
       });
     } catch (error) {
       if (!mounted) {
@@ -423,6 +427,72 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          const ViscondeSectionTitle(
+            title: 'O Colecionador',
+            subtitle: 'Seus itens e companheiros de aventura.',
+          ),
+          const SizedBox(height: 6),
+          if (_childInventory.isEmpty)
+            const ViscondeGlassCard(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Você ainda não encontrou nenhum item. Continue lendo histórias!',
+                ),
+              ),
+            ),
+          if (_childInventory.isNotEmpty)
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _childInventory.length,
+                itemBuilder: (context, index) {
+                  final inv = _childInventory[index];
+                  final item = inv.item;
+                  if (item == null) return const SizedBox.shrink();
+
+                  return Container(
+                    width: 120,
+                    margin: const EdgeInsets.only(right: 8),
+                    child: ViscondeGlassCard(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              item.icon,
+                              style: const TextStyle(fontSize: 32),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              item.name,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${item.rarity} · Qtd: ${inv.qty}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           const SizedBox(height: 12),
           const ViscondeSectionTitle(
             title: 'Loja e Inventário',

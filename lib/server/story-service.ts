@@ -15,6 +15,7 @@ import { ApiError } from "@/lib/server/errors";
 import { processStoryPublished } from "@/lib/server/gamification-service";
 import { moderateTextInput } from "@/lib/server/moderation-service";
 import { generateStoryIdeas } from "@/lib/server/story-idea-service";
+import { getChildInventory, getLatestStoryMemory } from "@/lib/server/inventory-service";
 import { assertSafeContext } from "@/lib/server/story-safety";
 import { resolveVirtueForStoryCreation } from "@/lib/server/virtue-service";
 import { selectVirtueTemplateOrThrow } from "@/lib/server/virtue-template-service";
@@ -855,6 +856,11 @@ export async function requestStoryIdeas(
     .filter((item): item is string => Boolean(item))
     .at(0);
 
+  const inventory = await getChildInventory(story.childProfileId);
+  const memory = await getLatestStoryMemory(story.childProfileId);
+  const inventoryItems = inventory.filter((i: any) => i.item.category === 'ITEM').map((i: any) => i.item.name);
+  const companions = inventory.filter((i: any) => i.item.category === 'COMPANION').map((i: any) => i.item.name);
+
   const ideaResult = await generateStoryIdeas({
     theme: story.virtue?.name ? `${story.theme} (${story.virtue.name})` : story.theme,
     scenario: story.scenario,
@@ -864,6 +870,9 @@ export async function requestStoryIdeas(
     currentMode: story.currentMode,
     contextHint: moderatedContextHint,
     lastNarrative,
+    inventoryItems,
+    activeCompanion: companions.length > 0 ? companions[0] : undefined,
+    lastMemory: memory?.summary ?? undefined,
   });
 
   await prisma.storyIdeaLog.create({

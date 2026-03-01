@@ -157,6 +157,19 @@ enum IllustrationStatus {
   FAILED
 }
 
+enum RarityLevel {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum ItemCategory {
+  ITEM
+  COMPANION
+  BADGE
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String?
@@ -274,6 +287,8 @@ model ChildProfile {
   streak           ChildStreak?
   weeklyMissions   ChildWeeklyMission[]
   avatar           ChildAvatar?
+  childInventories ChildInventory[]
+  storyMemories    StoryMemory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -508,6 +523,7 @@ model Story {
   narrationJobs NarrationJob[]
   artStyle            ArtStyle?        @relation(fields: [artStyleId], references: [id], onDelete: SetNull)
   illustrations       StoryIllustration[]
+  storyMemories       StoryMemory[]
 
 
   @@index([userId, childProfileId, status])
@@ -945,3 +961,45 @@ model StoryIllustration {
   @@unique([storyId, stepIndex])
 }
 
+model InventoryItem {
+  id          String       @id @default(cuid())
+  key         String       @unique
+  name        String
+  description String
+  rarity      RarityLevel  @default(COMMON)
+  category    ItemCategory @default(ITEM)
+  icon        String
+  tags        String[]
+
+  childInventories ChildInventory[]
+}
+
+model ChildInventory {
+  id             String   @id @default(cuid())
+  childProfileId String
+  itemId         String
+  qty            Int      @default(1)
+  acquiredAt     DateTime @default(now())
+  lastUsedAt     DateTime?
+
+  childProfile ChildProfile  @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+  item         InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([childProfileId, itemId])
+}
+
+model StoryMemory {
+  id             String   @id @default(cuid())
+  storyId        String
+  childProfileId String
+  summary        String
+  usedItems      String[]
+  virtueLearned  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  story          Story         @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  childProfile   ChildProfile  @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, childProfileId])
+}

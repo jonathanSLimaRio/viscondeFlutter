@@ -4,6 +4,7 @@ import '../core/network/api_client.dart';
 import '../features/admin/admin_api.dart';
 import '../features/children/children_api.dart';
 import '../features/gamification/gamification_api.dart';
+import '../features/gamification/inventory_api.dart';
 import '../features/profile/profile_api.dart';
 import '../features/security/security_api.dart';
 import '../features/security/voice_api.dart';
@@ -33,6 +34,10 @@ final illustrationApiProvider = Provider<IllustrationApi>((ref) {
 
 final gamificationApiProvider = Provider<GamificationApi>((ref) {
   return GamificationApi(ref.watch(dioProvider));
+});
+
+final inventoryApiProvider = Provider<InventoryApi>((ref) {
+  return InventoryApi(ref.watch(dioProvider));
 });
 
 final storyApiProvider = Provider<StoryApi>((ref) {
