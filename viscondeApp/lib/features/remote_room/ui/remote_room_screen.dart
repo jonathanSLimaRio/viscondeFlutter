@@ -13,6 +13,7 @@ import '../../call/remote_call_controller.dart';
 import '../../realtime/realtime_socket_client.dart';
 import '../../security/parental_gate_controller.dart';
 import '../../story_room/models/story_models.dart';
+import '../../story_room/story_room_controller.dart';
 import '../../story_room/ui/child_choice_panel.dart';
 import 'create_remote_session_sheet.dart';
 
@@ -123,6 +124,10 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         _rtcConfig = bundle.rtcConfig;
       });
 
+      ref
+          .read(storyRoomControllerProvider.notifier)
+          .setParticipantToken(bundle.participantToken);
+
       await _connectRealtime();
       return;
     }
@@ -166,6 +171,11 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
           _signalingWsUrl = state.signalingWsUrl;
           _rtcConfig = state.rtcConfig;
         });
+
+        ref
+            .read(storyRoomControllerProvider.notifier)
+            .setParticipantToken(state.participantToken);
+
         await _connectRealtime();
       }
     } catch (error) {
@@ -405,6 +415,10 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         _story = refreshed;
       });
 
+      ref
+          .read(storyRoomControllerProvider.notifier)
+          .setParticipantToken(opened.participantToken);
+
       await _connectRealtime();
     } catch (error) {
       if (!mounted) {
@@ -462,6 +476,10 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         _remoteRoom = regenerated.remoteRoom;
       });
 
+      ref
+          .read(storyRoomControllerProvider.notifier)
+          .setParticipantToken(regenerated.participantToken);
+
       await _connectRealtime();
     } catch (error) {
       if (!mounted) {
@@ -507,6 +525,8 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         _joinExpiresAt = null;
         _story = refreshed;
       });
+
+      ref.read(storyRoomControllerProvider.notifier).setParticipantToken(null);
     } catch (error) {
       if (!mounted) {
         return;

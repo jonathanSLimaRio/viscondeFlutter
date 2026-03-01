@@ -152,6 +152,10 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     return error.response == null;
   }
 
+  void setParticipantToken(String? token) {
+    state = state.copyWith(participantToken: token);
+  }
+
   StorySyncStatus _deriveSyncStatus(
     int pendingCount, {
     bool reconnecting = false,
@@ -350,9 +354,8 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     String? selectedOptionId,
   }) async {
     final session = state.session;
-    final token = _accessToken();
     final remoteToken = state.session?.remote?.isOpen == true
-        ? _participantToken()
+        ? state.participantToken
         : null;
 
     if (session?.remote?.callMode == RemoteCallMode.coop &&
