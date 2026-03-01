@@ -47,6 +47,8 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
   RemoteCallController? _callController;
 
   String? _participantToken;
+  Map<String, String> _participantVotes = {}; // participantId -> optionId
+  String? _myVoteOptionId;
   String? _signalingWsUrl;
   Map<String, dynamic>? _rtcConfig;
   String? _joinCode;
@@ -238,6 +240,17 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         if (storyRaw is Map<String, dynamic>) {
           setState(() {
             _story = StorySessionModel.fromJson(storyRaw);
+            _participantVotes = {};
+            _myVoteOptionId = null;
+          });
+        }
+        break;
+      case 'vote.registered':
+        final participantId = event.payload['participantId'] as String?;
+        final optionId = event.payload['optionId'] as String?;
+        if (participantId != null && optionId != null) {
+          setState(() {
+            _participantVotes[participantId] = optionId;
           });
         }
         break;
@@ -612,6 +625,30 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
     }
 
     try {
+      if (_remoteRoom?.callMode == RemoteCallMode.coop) {
+        final result = await ref
+            .read(storyApiProvider)
+            .createCoopVote(
+              participantToken,
+              story.id,
+              stepIndex: story.currentStepIndex + 1,
+              selectedOptionLabel: option.label,
+              selectedOptionId: option.id,
+            );
+        setState(() {
+          _myVoteOptionId = option.id;
+          if (result.stepResult?.story != null) {
+            _story = result.stepResult!.story;
+            _participantVotes = {};
+            _myVoteOptionId = null;
+          } else {
+            // Vote registered locally for feedback
+            _participantVotes[result.participantId ?? 'me'] = option.id;
+          }
+        });
+        return;
+      }
+
       final result = await ref
           .read(storyApiProvider)
           .createRemoteGuestStep(
@@ -711,6 +748,14 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
       StoryChoiceOption(id: 'opt-2', label: 'Pedir ajuda a um amigo'),
       StoryChoiceOption(id: 'opt-3', label: 'Tentar um plano criativo'),
     ];
+  }
+
+  Map<String, List<String>> _getVotesByOption() {
+    final result = <String, List<String>>{};
+    _participantVotes.forEach((pid, oid) {
+      result.putIfAbsent(oid, () => []).add(pid);
+    });
+    return result;
   }
 
   Future<void> _showCreateRemoteSheet() async {
@@ -875,6 +920,11 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                           selected: room?.callMode == RemoteCallMode.video,
                           onSelected: (_) => _setCallMode(RemoteCallMode.video),
                         ),
+                        ChoiceChip(
+                          label: const Text('Co-op / Votação'),
+                          selected: room?.callMode == RemoteCallMode.coop,
+                          onSelected: (_) => _setCallMode(RemoteCallMode.coop),
+                        ),
                       ],
                     ),
                     if (call != null) ...[
@@ -968,9 +1018,12 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
             const SizedBox(height: 12),
             if (widget.isGuest && story.currentMode == StoryMode.childChooser)
               ChildChoicePanel(
-                enabled: true,
+                enabled: _myVoteOptionId == null,
                 options: options,
                 onSelect: _sendGuestChoice,
+                selectedOptionId: _myVoteOptionId,
+                participants: room?.participants ?? [],
+                votesByOption: _getVotesByOption(),
               )
             else
               ViscondeGlassCard(

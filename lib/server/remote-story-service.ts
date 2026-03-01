@@ -1126,6 +1126,7 @@ export async function createCoopVoteByParticipant(
       return {
         isVoteLogged: true,
         allVoted: true,
+        participantId: participant.participantId,
         stepResult,
       };
     } catch (e) {
@@ -1137,5 +1138,6 @@ export async function createCoopVoteByParticipant(
   return {
     isVoteLogged: true,
     allVoted: false,
+    participantId: participant.participantId,
   };
 }

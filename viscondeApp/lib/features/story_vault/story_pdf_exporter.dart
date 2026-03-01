@@ -135,10 +135,11 @@ class StoryPdfExporter {
                     textAlign: pw.TextAlign.center,
                   ),
                   pw.SizedBox(height: 20),
-                  pw.Text(
-                    'Virtude: ${story.virtue.name}',
-                    style: const pw.TextStyle(fontSize: 20),
-                  ),
+                  if (story.virtue != null)
+                    pw.Text(
+                      'Virtude: ${story.virtue!.name}',
+                      style: const pw.TextStyle(fontSize: 20),
+                    ),
                 ],
               ),
             );

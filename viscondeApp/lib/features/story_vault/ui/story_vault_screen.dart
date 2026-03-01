@@ -9,7 +9,7 @@ import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
 import '../../story_room/models/story_models.dart';
-import 'story_pdf_exporter.dart';
+import '../story_pdf_exporter.dart';
 
 class StoryVaultScreen extends ConsumerStatefulWidget {
   const StoryVaultScreen({super.key});

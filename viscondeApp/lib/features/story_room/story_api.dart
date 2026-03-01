@@ -16,11 +16,13 @@ class StoryCoopVoteResult {
     required this.isVoteLogged,
     required this.allVoted,
     this.stepResult,
+    this.participantId,
   });
 
   final bool isVoteLogged;
   final bool allVoted;
   final StoryStepSaveResult? stepResult;
+  final String? participantId;
 
   factory StoryCoopVoteResult.fromJson(Map<String, dynamic> json) {
     StoryStepSaveResult? stepResult;
@@ -38,6 +40,7 @@ class StoryCoopVoteResult {
     return StoryCoopVoteResult(
       isVoteLogged: (json['isVoteLogged'] as bool?) ?? false,
       allVoted: (json['allVoted'] as bool?) ?? false,
+      participantId: json['participantId'] as String?,
       stepResult: stepResult,
     );
   }

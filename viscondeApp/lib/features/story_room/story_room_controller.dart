@@ -25,6 +25,7 @@ class StoryRoomState {
     this.ideasSafetyAdjusted = false,
     this.pendingCount = 0,
     this.syncStatus = StorySyncStatus.synced,
+    this.participantToken,
     this.error,
   });
 
@@ -37,6 +38,7 @@ class StoryRoomState {
   final bool ideasSafetyAdjusted;
   final int pendingCount;
   final StorySyncStatus syncStatus;
+  final String? participantToken;
   final String? error;
 
   StoryRoomState copyWith({
@@ -49,6 +51,7 @@ class StoryRoomState {
     bool? ideasSafetyAdjusted,
     int? pendingCount,
     StorySyncStatus? syncStatus,
+    String? participantToken,
     String? error,
     bool clearError = false,
     bool clearIdeas = false,
@@ -63,6 +66,7 @@ class StoryRoomState {
       ideasSafetyAdjusted: ideasSafetyAdjusted ?? this.ideasSafetyAdjusted,
       pendingCount: pendingCount ?? this.pendingCount,
       syncStatus: syncStatus ?? this.syncStatus,
+      participantToken: participantToken ?? this.participantToken,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -344,7 +348,43 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
   Future<void> addChildChoiceStep({
     required String selectedOptionLabel,
     String? selectedOptionId,
-  }) {
+  }) async {
+    final session = state.session;
+    final token = _accessToken();
+    final remoteToken = state.session?.remote?.isOpen == true
+        ? _participantToken()
+        : null;
+
+    if (session?.remote?.callMode == RemoteCallMode.coop &&
+        remoteToken != null) {
+      state = state.copyWith(submittingStep: true, clearError: true);
+      try {
+        final result = await _api.createCoopVote(
+          remoteToken,
+          session!.id,
+          stepIndex: session.currentStepIndex + 1,
+          selectedOptionLabel: selectedOptionLabel,
+          selectedOptionId: selectedOptionId ?? '',
+        );
+
+        if (result.stepResult?.story != null) {
+          state = state.copyWith(
+            submittingStep: false,
+            session: result.stepResult!.story,
+          );
+        } else {
+          state = state.copyWith(submittingStep: false);
+          // Voto registrado. Poderiamos mostrar feedback local.
+        }
+      } catch (error) {
+        state = state.copyWith(
+          submittingStep: false,
+          error: parseDioError(error),
+        );
+      }
+      return;
+    }
+
     return _submitStep(
       kind: StoryStepKind.childChoice,
       selectedOptionLabel: selectedOptionLabel,
