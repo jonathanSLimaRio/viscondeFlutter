@@ -1,5 +1,3 @@
-// ignore_for_file: use_null_aware_elements
-
 import 'package:flutter/material.dart';
 
 class ViscondeSectionTitle extends StatelessWidget {
@@ -24,18 +22,18 @@ class ViscondeSectionTitle extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: Theme.of(context).textTheme.headlineSmall),
-              if (subtitle != null && subtitle!.isNotEmpty)
+              if (subtitle case final text? when text.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(
-                    subtitle!,
+                    text,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
             ],
           ),
         ),
-        if (trailing != null) trailing!,
+        ...?(trailing == null ? null : <Widget>[trailing!]),
       ],
     );
   }

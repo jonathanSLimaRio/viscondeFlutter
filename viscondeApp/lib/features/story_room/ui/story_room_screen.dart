@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
-import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ui/app_feedback.dart';
 import '../../auth/auth_controller.dart';
 import '../illustration_api.dart';
 import '../models/story_models.dart';
@@ -55,18 +56,14 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
     if (token == null) return;
 
     try {
-      final profiles = await ref.read(voiceApiProvider).listProfiles(token);
+      final profiles = await ref.read(voiceApiProvider).listProfiles();
       if (!mounted) return;
 
       final readyProfiles = profiles.where((p) => p.status == 'READY').toList();
 
       if (readyProfiles.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Nenhuma voz pronta encontrada. Acesse a area adulta e treine uma voz primeiro.',
-            ),
-          ),
+        context.showMessage(
+          'Nenhuma voz pronta encontrada. Acesse a area adulta e treine uma voz primeiro.',
         );
         return;
       }
@@ -96,13 +93,10 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                     onTap: () async {
                       Navigator.of(context).pop();
                       try {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Gerando narracao...')),
-                        );
+                        context.showMessage('Gerando narracao...');
                         final job = await ref
                             .read(voiceApiProvider)
                             .requestNarration(
-                              token,
                               widget.storyId,
                               step.stepIndex,
                               p.id,
@@ -128,9 +122,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                         );
                       } catch (e) {
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(parseDioError(e))),
-                        );
+                        context.showError(e);
                       }
                     },
                   ),
@@ -142,9 +134,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(e))));
+      context.showError(e);
     }
   }
 
@@ -193,12 +183,12 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
             tooltip: 'Sincronizar pendentes',
           ),
           IconButton(
-            onPressed: () => context.push('/stories/${story.id}/remote'),
+            onPressed: () => context.push(AppRoute.storyRemote(story.id)),
             icon: const Icon(Icons.video_call_outlined),
             tooltip: 'Sala remota',
           ),
           IconButton(
-            onPressed: () => context.push('/stories/${story.id}/summary'),
+            onPressed: () => context.push(AppRoute.storySummary(story.id)),
             icon: const Icon(Icons.checklist_outlined),
             tooltip: 'Resumo e publicacao',
           ),
@@ -401,7 +391,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
             ),
             const SizedBox(height: 8),
             ViscondePrimaryCta(
-              onPressed: () => context.push('/stories/${story.id}/summary'),
+              onPressed: () => context.push(AppRoute.storySummary(story.id)),
               icon: Icons.publish_outlined,
               label: 'Revisar e publicar capitulo',
             ),

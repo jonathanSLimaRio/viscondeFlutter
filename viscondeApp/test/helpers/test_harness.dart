@@ -146,6 +146,40 @@ class FakeStorySyncQueue extends StorySyncQueue {
   final List<StorySyncEvent> _events = <StorySyncEvent>[];
   int _nextId = 1;
 
+  StorySyncEvent _copyEvent(
+    StorySyncEvent source, {
+    StorySyncEventStatus? status,
+    int? retryCount,
+    String? lastError,
+    bool clearLastError = false,
+    int? lastHttpStatus,
+    DateTime? nextRetryAt,
+    bool clearNextRetry = false,
+    DateTime? lastAttemptAt,
+    DateTime? updatedAt,
+  }) {
+    return StorySyncEvent(
+      id: source.id,
+      storyId: source.storyId,
+      payload: source.payload,
+      status: status ?? source.status,
+      retryCount: retryCount ?? source.retryCount,
+      lastError: clearLastError ? null : (lastError ?? source.lastError),
+      lastHttpStatus: lastHttpStatus ?? source.lastHttpStatus,
+      nextRetryAt: clearNextRetry ? null : (nextRetryAt ?? source.nextRetryAt),
+      lastAttemptAt: lastAttemptAt ?? source.lastAttemptAt,
+      createdAt: source.createdAt,
+      updatedAt: updatedAt ?? source.updatedAt,
+    );
+  }
+
+  void _replaceEvent(int id, StorySyncEvent next) {
+    final index = _events.indexWhere((event) => event.id == id);
+    if (index >= 0) {
+      _events[index] = next;
+    }
+  }
+
   @override
   Future<void> clearStory(String storyId) async {
     _events.removeWhere((event) => event.storyId == storyId);
@@ -160,12 +194,16 @@ class FakeStorySyncQueue extends StorySyncQueue {
     required Map<String, dynamic> payload,
     DateTime? createdAt,
   }) async {
+    final now = createdAt ?? DateTime.now();
     _events.add(
       StorySyncEvent(
         id: _nextId++,
         storyId: storyId,
         payload: Map<String, dynamic>.from(payload),
-        createdAt: createdAt ?? DateTime.now(),
+        status: StorySyncEventStatus.pending,
+        retryCount: 0,
+        createdAt: now,
+        updatedAt: now,
       ),
     );
   }
@@ -175,7 +213,10 @@ class FakeStorySyncQueue extends StorySyncQueue {
     final list = storyId == null
         ? _events
         : _events.where((event) => event.storyId == storyId).toList();
-    return list.toList()..sort((a, b) {
+    final filtered = list
+        .where((event) => event.status != StorySyncEventStatus.synced)
+        .toList();
+    return filtered.toList()..sort((a, b) {
       final createdCompare = a.createdAt.compareTo(b.createdAt);
       if (createdCompare != 0) {
         return createdCompare;
@@ -185,16 +226,161 @@ class FakeStorySyncQueue extends StorySyncQueue {
   }
 
   @override
-  Future<int> pendingCount({String? storyId}) async {
-    if (storyId == null) {
-      return _events.length;
+  Future<List<StorySyncEvent>> listRetryable({String? storyId}) async {
+    final now = DateTime.now();
+    final list = await listPending(storyId: storyId);
+    return list.where((event) {
+      if (event.status == StorySyncEventStatus.conflict) {
+        return false;
+      }
+      if (event.nextRetryAt == null) {
+        return true;
+      }
+      return !event.nextRetryAt!.isAfter(now);
+    }).toList()..sort((a, b) {
+      final createdCompare = a.createdAt.compareTo(b.createdAt);
+      if (createdCompare != 0) {
+        return createdCompare;
+      }
+      return a.id.compareTo(b.id);
+    });
+  }
+
+  @override
+  Future<StorySyncQueueStatusCounts> statusCounts({String? storyId}) async {
+    final source = storyId == null
+        ? _events
+        : _events.where((event) => event.storyId == storyId).toList();
+
+    int countFor(StorySyncEventStatus status) {
+      return source.where((event) => event.status == status).length;
     }
-    return _events.where((event) => event.storyId == storyId).length;
+
+    return StorySyncQueueStatusCounts(
+      pending: countFor(StorySyncEventStatus.pending),
+      failed: countFor(StorySyncEventStatus.failed),
+      conflict: countFor(StorySyncEventStatus.conflict),
+      synced: countFor(StorySyncEventStatus.synced),
+    );
+  }
+
+  @override
+  Future<void> markSynced(int id) async {
+    final current = _events.where((event) => event.id == id).firstOrNull;
+    if (current == null) {
+      return;
+    }
+    _replaceEvent(
+      id,
+      _copyEvent(
+        current,
+        status: StorySyncEventStatus.synced,
+        clearLastError: true,
+        clearNextRetry: true,
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  @override
+  Future<void> markPending(int id) async {
+    final current = _events.where((event) => event.id == id).firstOrNull;
+    if (current == null) {
+      return;
+    }
+    _replaceEvent(
+      id,
+      _copyEvent(
+        current,
+        status: StorySyncEventStatus.pending,
+        clearLastError: true,
+        clearNextRetry: true,
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  @override
+  Future<void> markConflict({
+    required int id,
+    required String reason,
+    int? httpStatus,
+  }) async {
+    final current = _events.where((event) => event.id == id).firstOrNull;
+    if (current == null) {
+      return;
+    }
+    _replaceEvent(
+      id,
+      _copyEvent(
+        current,
+        status: StorySyncEventStatus.conflict,
+        lastError: reason,
+        lastHttpStatus: httpStatus,
+        lastAttemptAt: DateTime.now(),
+        clearNextRetry: true,
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  @override
+  Future<void> markFailed({
+    required int id,
+    required String reason,
+    int? httpStatus,
+    Duration retryAfter = const Duration(seconds: 5),
+  }) async {
+    final current = _events.where((event) => event.id == id).firstOrNull;
+    if (current == null) {
+      return;
+    }
+    _replaceEvent(
+      id,
+      _copyEvent(
+        current,
+        status: StorySyncEventStatus.failed,
+        retryCount: current.retryCount + 1,
+        lastError: reason,
+        lastHttpStatus: httpStatus,
+        lastAttemptAt: DateTime.now(),
+        nextRetryAt: DateTime.now().add(retryAfter),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  @override
+  Future<void> purgeSynced({DateTime? olderThan}) async {
+    _events.removeWhere((event) {
+      if (event.status != StorySyncEventStatus.synced) {
+        return false;
+      }
+      if (olderThan == null) {
+        return true;
+      }
+      return !event.updatedAt.isAfter(olderThan);
+    });
+  }
+
+  @override
+  Future<int> pendingCount({String? storyId}) async {
+    final counts = await statusCounts(storyId: storyId);
+    return counts.unsynced;
   }
 
   @override
   Future<void> removeEvent(int id) async {
     _events.removeWhere((event) => event.id == id);
+  }
+}
+
+extension on Iterable<StorySyncEvent> {
+  StorySyncEvent? get firstOrNull {
+    if (isEmpty) {
+      return null;
+    }
+    return first;
   }
 }
 

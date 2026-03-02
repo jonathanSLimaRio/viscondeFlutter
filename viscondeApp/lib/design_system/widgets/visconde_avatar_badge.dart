@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 
 import '../tokens/visconde_tokens.dart';
@@ -29,7 +27,7 @@ class ViscondeAvatarBadge extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   width: 2,
                 ),
                 boxShadow: context.viscondeElevations.soft,

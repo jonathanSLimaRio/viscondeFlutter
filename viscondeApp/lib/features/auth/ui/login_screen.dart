@@ -1,11 +1,10 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/loading_screen.dart';
 import '../auth_controller.dart';
@@ -174,7 +173,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 // ── Forgot password ──────────────────────────────────────────
                 TextButton(
-                  onPressed: () => context.push('/forgot-password'),
+                  onPressed: () => context.push(AppRoute.forgotPassword),
                   style: TextButton.styleFrom(
                     foregroundColor: context.viscondeColors.primaryDark,
                     textStyle: const TextStyle(

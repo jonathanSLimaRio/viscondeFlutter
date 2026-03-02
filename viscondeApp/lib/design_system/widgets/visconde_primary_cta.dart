@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 
 import '../effects/visconde_effects.dart';
@@ -34,13 +32,16 @@ class ViscondePrimaryCta extends StatelessWidget {
         gradient: disabled
             ? LinearGradient(
                 colors: [
-                  colors.primary.withOpacity(0.45),
-                  colors.primaryDark.withOpacity(0.45),
+                  colors.primary.withValues(alpha: 0.45),
+                  colors.primaryDark.withValues(alpha: 0.45),
                 ],
               )
             : context.viscondeGradients.primaryCta,
         borderRadius: BorderRadius.circular(context.viscondeRadii.pill),
-        border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.1),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.35),
+          width: 1.1,
+        ),
         boxShadow: ViscondeEffects.ctaShadows(context),
       ),
       child: Row(

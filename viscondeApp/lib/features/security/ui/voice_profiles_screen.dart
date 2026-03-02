@@ -43,7 +43,7 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
 
     setState(() => _loading = true);
     try {
-      final list = await ref.read(voiceApiProvider).listProfiles(token);
+      final list = await ref.read(voiceApiProvider).listProfiles();
       if (!mounted) return;
       setState(() => _profiles = list);
     } catch (error) {
@@ -68,7 +68,6 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
       await ref
           .read(voiceApiProvider)
           .createProfile(
-            token,
             name: name,
             relationship: _relationController.text.trim(),
           );
@@ -91,7 +90,7 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
     setState(() => _loading = true);
     try {
       // MVP de treinamento (mock endpoint no backend muda o status pra READY).
-      await ref.read(voiceApiProvider).trainProfile(token, id);
+      await ref.read(voiceApiProvider).trainProfile(id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Voz treinada com sucesso!')),

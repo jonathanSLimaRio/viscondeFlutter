@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_route.dart';
 import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
-import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ui/app_feedback.dart';
 import '../../auth/auth_controller.dart';
 import '../../story_room/models/illustration_models.dart';
 import '../../story_room/models/story_models.dart';
@@ -87,9 +88,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     } finally {
       if (mounted) {
         setState(() => _loadingChildren = false);
@@ -119,9 +118,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     } finally {
       if (mounted) {
         setState(() => _loadingVirtues = false);
@@ -152,9 +149,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     } finally {
       if (mounted) {
         setState(() => _loadingTemplates = false);
@@ -167,15 +162,17 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     if (token == null) return;
     setState(() => _loadingArtStyles = true);
     try {
-      final styles = await ref
-          .read(illustrationApiProvider)
-          .listArtStyles(token);
+      final styles = await ref.read(illustrationApiProvider).listArtStyles();
       if (!mounted) return;
       setState(() {
         _artStyles = styles;
         _selectedArtStyleId = styles.isNotEmpty ? styles.first.id : null;
       });
-    } catch (_) {
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      context.showError(error);
     } finally {
       if (mounted) setState(() => _loadingArtStyles = false);
     }
@@ -228,9 +225,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     } finally {
       if (mounted) {
         setState(() => _applyingTemplate = false);
@@ -272,17 +267,13 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         _suggestionReason = suggestion.reason;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sugestao: ${suggestion.virtue.name}')),
-      );
+      context.showMessage('Sugestao: ${suggestion.virtue.name}');
     } catch (error) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     } finally {
       if (mounted) {
         setState(() => _suggestingVirtue = false);
@@ -293,9 +284,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   Future<void> _createStory() async {
     final childId = _selectedChildId;
     if (childId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione uma crianca para iniciar.')),
-      );
+      context.showMessage('Selecione uma crianca para iniciar.');
       return;
     }
 
@@ -309,11 +298,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         theme.isEmpty ||
         scenario.isEmpty ||
         objective.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preencha titulo, tema, cenario e objetivo.'),
-        ),
-      );
+      context.showMessage('Preencha titulo, tema, cenario e objetivo.');
       return;
     }
 
@@ -326,12 +311,8 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         .toList();
 
     if (characters.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Informe ao menos um personagem (separados por virgula).',
-          ),
-        ),
+      context.showMessage(
+        'Informe ao menos um personagem (separados por virgula).',
       );
       return;
     }
@@ -361,13 +342,11 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
     if (created == null) {
       final error = ref.read(storyRoomControllerProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error ?? 'Falha ao criar sessao.')),
-      );
+      context.showMessage(error ?? 'Falha ao criar sessao.');
       return;
     }
 
-    context.go('/stories/${created.id}/room');
+    context.go(AppRoute.storyRoom(created.id));
   }
 
   @override

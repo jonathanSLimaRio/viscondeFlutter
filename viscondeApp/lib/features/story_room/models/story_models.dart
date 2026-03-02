@@ -1,182 +1,25 @@
-enum StoryMode { parentNarrator, childChooser }
+import 'story_enums.dart';
 
-enum StoryStatus { draft, published, archived }
+export 'story_enums.dart';
 
-enum StoryStepKind { narration, childChoice, system }
-
-enum StorySessionKind { presencial, remote }
-
-enum AgeBand { age4_5, age6_8, age9_10 }
-
-enum VirtueSource { manual, auto }
-
-enum RemoteRoomStatus { open, active, closed, expired }
-
-enum RemoteParticipantRole { hostParent, guestChild }
-
-enum RemoteCallMode { none, audio, video, coop }
-
-StoryMode storyModeFromApi(String value) {
-  switch (value) {
-    case 'CHILD_CHOOSER':
-      return StoryMode.childChooser;
-    case 'PARENT_NARRATOR':
-    default:
-      return StoryMode.parentNarrator;
+String _requiredString(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is String && value.trim().isNotEmpty) {
+    return value;
   }
+  throw FormatException('Campo obrigatório ausente/inválido: $key');
 }
 
-String storyModeToApi(StoryMode value) {
-  switch (value) {
-    case StoryMode.childChooser:
-      return 'CHILD_CHOOSER';
-    case StoryMode.parentNarrator:
-      return 'PARENT_NARRATOR';
+DateTime _requiredDateTime(Map<String, dynamic> json, String key) {
+  final raw = json[key];
+  if (raw is! String || raw.trim().isEmpty) {
+    throw FormatException('Data obrigatória ausente: $key');
   }
-}
-
-StoryStatus storyStatusFromApi(String value) {
-  switch (value) {
-    case 'PUBLISHED':
-      return StoryStatus.published;
-    case 'ARCHIVED':
-      return StoryStatus.archived;
-    case 'DRAFT':
-    default:
-      return StoryStatus.draft;
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) {
+    throw FormatException('Data inválida em $key: $raw');
   }
-}
-
-String storyStatusToApi(StoryStatus value) {
-  switch (value) {
-    case StoryStatus.published:
-      return 'PUBLISHED';
-    case StoryStatus.archived:
-      return 'ARCHIVED';
-    case StoryStatus.draft:
-      return 'DRAFT';
-  }
-}
-
-StoryStepKind storyStepKindFromApi(String value) {
-  switch (value) {
-    case 'CHILD_CHOICE':
-      return StoryStepKind.childChoice;
-    case 'SYSTEM':
-      return StoryStepKind.system;
-    case 'NARRATION':
-    default:
-      return StoryStepKind.narration;
-  }
-}
-
-String storyStepKindToApi(StoryStepKind value) {
-  switch (value) {
-    case StoryStepKind.childChoice:
-      return 'CHILD_CHOICE';
-    case StoryStepKind.system:
-      return 'SYSTEM';
-    case StoryStepKind.narration:
-      return 'NARRATION';
-  }
-}
-
-StorySessionKind storySessionKindFromApi(String? value) {
-  switch (value) {
-    case 'REMOTE':
-      return StorySessionKind.remote;
-    case 'PRESENTIAL':
-    default:
-      return StorySessionKind.presencial;
-  }
-}
-
-RemoteRoomStatus remoteRoomStatusFromApi(String? value) {
-  switch (value) {
-    case 'ACTIVE':
-      return RemoteRoomStatus.active;
-    case 'CLOSED':
-      return RemoteRoomStatus.closed;
-    case 'EXPIRED':
-      return RemoteRoomStatus.expired;
-    case 'OPEN':
-    default:
-      return RemoteRoomStatus.open;
-  }
-}
-
-RemoteParticipantRole remoteParticipantRoleFromApi(String? value) {
-  switch (value) {
-    case 'GUEST_CHILD':
-      return RemoteParticipantRole.guestChild;
-    case 'HOST_PARENT':
-    default:
-      return RemoteParticipantRole.hostParent;
-  }
-}
-
-RemoteCallMode remoteCallModeFromApi(String? value) {
-  switch (value) {
-    case 'NONE':
-      return RemoteCallMode.none;
-    case 'VIDEO':
-      return RemoteCallMode.video;
-    case 'COOP':
-      return RemoteCallMode.coop;
-    case 'AUDIO':
-    default:
-      return RemoteCallMode.audio;
-  }
-}
-
-String remoteCallModeToApi(RemoteCallMode value) {
-  switch (value) {
-    case RemoteCallMode.none:
-      return 'NONE';
-    case RemoteCallMode.video:
-      return 'VIDEO';
-    case RemoteCallMode.audio:
-      return 'AUDIO';
-    case RemoteCallMode.coop:
-      return 'COOP';
-  }
-}
-
-AgeBand? ageBandFromApi(String? value) {
-  switch (value) {
-    case 'AGE_4_5':
-      return AgeBand.age4_5;
-    case 'AGE_6_8':
-      return AgeBand.age6_8;
-    case 'AGE_9_10':
-      return AgeBand.age9_10;
-    default:
-      return null;
-  }
-}
-
-String ageBandLabel(AgeBand? ageBand) {
-  switch (ageBand) {
-    case AgeBand.age4_5:
-      return '4-5';
-    case AgeBand.age6_8:
-      return '6-8';
-    case AgeBand.age9_10:
-      return '9-10';
-    case null:
-      return '-';
-  }
-}
-
-VirtueSource? virtueSourceFromApi(String? value) {
-  switch (value) {
-    case 'MANUAL':
-      return VirtueSource.manual;
-    case 'AUTO':
-      return VirtueSource.auto;
-    default:
-      return null;
-  }
+  return parsed;
 }
 
 class VirtueModel {
@@ -225,9 +68,7 @@ class StoryChildSnapshot {
     return StoryChildSnapshot(
       id: json['id'] as String,
       name: json['name'] as String,
-      birthDate:
-          DateTime.tryParse(json['birthDate'] as String? ?? '') ??
-          DateTime(2018, 1, 1),
+      birthDate: _requiredDateTime(json, 'birthDate'),
       avatarUrl: json['avatarUrl'] as String?,
     );
   }
@@ -366,12 +207,8 @@ class RemoteParticipantModel {
       role: remoteParticipantRoleFromApi(json['role'] as String?),
       displayName: (json['displayName'] as String?) ?? '',
       status: (json['status'] as String?) ?? 'CONNECTED',
-      lastSeenAt:
-          DateTime.tryParse(json['lastSeenAt'] as String? ?? '') ??
-          DateTime.now(),
-      joinedAt:
-          DateTime.tryParse(json['joinedAt'] as String? ?? '') ??
-          DateTime.now(),
+      lastSeenAt: _requiredDateTime(json, 'lastSeenAt'),
+      joinedAt: _requiredDateTime(json, 'joinedAt'),
       leftAt: DateTime.tryParse(json['leftAt'] as String? ?? ''),
     );
   }
@@ -407,9 +244,7 @@ class RemoteRoomModel {
       callMode: remoteCallModeFromApi(json['callMode'] as String?),
       maxParticipants: (json['maxParticipants'] as num?)?.toInt() ?? 2,
       isOpen: (json['isOpen'] as bool?) ?? true,
-      joinCodeExpiresAt:
-          DateTime.tryParse(json['joinCodeExpiresAt'] as String? ?? '') ??
-          DateTime.now(),
+      joinCodeExpiresAt: _requiredDateTime(json, 'joinCodeExpiresAt'),
       joinCodeConsumedAt: DateTime.tryParse(
         json['joinCodeConsumedAt'] as String? ?? '',
       ),
@@ -899,9 +734,7 @@ class VirtueReportOverviewResult {
 
   factory VirtueReportOverviewResult.fromJson(Map<String, dynamic> json) {
     return VirtueReportOverviewResult(
-      generatedAt:
-          DateTime.tryParse(json['generatedAt'] as String? ?? '') ??
-          DateTime.now(),
+      generatedAt: _requiredDateTime(json, 'generatedAt'),
       totals: (json['totals'] as Map<String, dynamic>?) ?? <String, dynamic>{},
       children: ((json['children'] as List<dynamic>?) ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
@@ -961,15 +794,13 @@ class RemoteOpenResult {
 
   factory RemoteOpenResult.fromJson(Map<String, dynamic> json) {
     return RemoteOpenResult(
-      joinCode: (json['joinCode'] as String?) ?? '',
-      joinLink: (json['joinLink'] as String?) ?? '',
-      participantToken: (json['hostParticipantToken'] as String?) ?? '',
-      signalingWsUrl: (json['signalingWsUrl'] as String?) ?? '',
+      joinCode: _requiredString(json, 'joinCode'),
+      joinLink: _requiredString(json, 'joinLink'),
+      participantToken: _requiredString(json, 'hostParticipantToken'),
+      signalingWsUrl: _requiredString(json, 'signalingWsUrl'),
       rtcConfig:
           (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-      expiresAt:
-          DateTime.tryParse(json['expiresAt'] as String? ?? '') ??
-          DateTime.now(),
+      expiresAt: _requiredDateTime(json, 'expiresAt'),
       remoteRoom: RemoteRoomModel.fromJson(
         (json['remoteRoom'] as Map<String, dynamic>?) ?? <String, dynamic>{},
       ),
@@ -1000,8 +831,8 @@ class RemoteRoomStateResult {
       storySnapshot: StorySessionModel.fromJson(
         (json['storySnapshot'] as Map<String, dynamic>?) ?? <String, dynamic>{},
       ),
-      participantToken: (json['hostParticipantToken'] as String?) ?? '',
-      signalingWsUrl: (json['signalingWsUrl'] as String?) ?? '',
+      participantToken: _requiredString(json, 'hostParticipantToken'),
+      signalingWsUrl: _requiredString(json, 'signalingWsUrl'),
       rtcConfig:
           (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
     );
@@ -1025,14 +856,14 @@ class RemoteJoinResult {
 
   factory RemoteJoinResult.fromJson(Map<String, dynamic> json) {
     return RemoteJoinResult(
-      participantToken: (json['guestParticipantToken'] as String?) ?? '',
+      participantToken: _requiredString(json, 'guestParticipantToken'),
       remoteRoom: RemoteRoomModel.fromJson(
         (json['remoteRoom'] as Map<String, dynamic>?) ?? <String, dynamic>{},
       ),
       storySnapshot: StorySessionModel.fromJson(
         (json['storySnapshot'] as Map<String, dynamic>?) ?? <String, dynamic>{},
       ),
-      signalingWsUrl: (json['signalingWsUrl'] as String?) ?? '',
+      signalingWsUrl: _requiredString(json, 'signalingWsUrl'),
       rtcConfig:
           (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
     );
@@ -1088,9 +919,7 @@ class StoryInteractionModel {
       authorDisplayName: (json['authorDisplayName'] as String?) ?? '-',
       messageText: json['messageText'] as String?,
       emoji: json['emoji'] as String?,
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt: _requiredDateTime(json, 'createdAt'),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/app_route.dart';
 import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
@@ -358,7 +359,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
           ),
           const SizedBox(height: 12),
           ViscondePrimaryCta(
-            onPressed: () => context.push('/stories/new'),
+            onPressed: () => context.push(AppRoute.storyCreate),
             icon: Icons.auto_stories_outlined,
             label: 'Criar nova história',
           ),
@@ -402,7 +403,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                     ),
                     const SizedBox(height: 12),
                     ViscondePrimaryCta(
-                      onPressed: () => context.push('/stories/new'),
+                      onPressed: () => context.push(AppRoute.storyCreate),
                       icon: Icons.menu_book_outlined,
                       label: 'Criar nova história',
                     ),
@@ -414,7 +415,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: ViscondeStoryRowCard(
-                onTap: () => context.push('/vault/${item.id}'),
+                onTap: () => context.push(AppRoute.vaultDetail(item.id)),
                 title: item.title,
                 badgeLabel: item.virtue?.name ?? item.theme,
                 backgroundAsset: ViscondeArtRegistry.resolve(

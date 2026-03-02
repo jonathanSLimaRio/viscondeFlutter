@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ui/controller_disposer.dart';
 import '../../auth/auth_controller.dart';
 import '../models/admin_models.dart';
 
@@ -99,192 +100,199 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
     String? mode;
     bool isActive = true;
 
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Novo prompt'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: keyController,
-                      decoration: const InputDecoration(labelText: 'Key unica'),
-                    ),
-                    DropdownButtonFormField<AdminPromptKind>(
-                      initialValue: kind,
-                      decoration: const InputDecoration(labelText: 'Tipo'),
-                      items: AdminPromptKind.values
-                          .map(
-                            (value) => DropdownMenuItem<AdminPromptKind>(
-                              value: value,
-                              child: Text(_kindLabel(value)),
+    final created = await withControllersDisposed<bool?>(
+      [keyController, titleController, textController, sortOrderController],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Novo prompt'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: keyController,
+                        decoration: const InputDecoration(
+                          labelText: 'Key unica',
+                        ),
+                      ),
+                      DropdownButtonFormField<AdminPromptKind>(
+                        initialValue: kind,
+                        decoration: const InputDecoration(labelText: 'Tipo'),
+                        items: AdminPromptKind.values
+                            .map(
+                              (value) => DropdownMenuItem<AdminPromptKind>(
+                                value: value,
+                                child: Text(_kindLabel(value)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => kind = value);
+                          }
+                        },
+                      ),
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Titulo'),
+                      ),
+                      TextField(
+                        controller: textController,
+                        maxLines: 4,
+                        decoration: const InputDecoration(labelText: 'Texto'),
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: themeId,
+                        decoration: const InputDecoration(
+                          labelText: 'Tema (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Nenhum'),
+                          ),
+                          ..._themes.map(
+                            (theme) => DropdownMenuItem<String?>(
+                              value: theme.id,
+                              child: Text(theme.name),
                             ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => kind = value);
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => themeId = value);
+                        },
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: virtueId,
+                        decoration: const InputDecoration(
+                          labelText: 'Virtude (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Nenhuma'),
+                          ),
+                          ..._virtues.map(
+                            (virtue) => DropdownMenuItem<String?>(
+                              value: virtue.id,
+                              child: Text(virtue.name),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => virtueId = value);
+                        },
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: ageBand,
+                        decoration: const InputDecoration(
+                          labelText: 'Faixa etaria (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Qualquer'),
+                          ),
+                          ..._ageBands.map(
+                            (band) => DropdownMenuItem<String?>(
+                              value: band,
+                              child: Text(band),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => ageBand = value);
+                        },
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: mode,
+                        decoration: const InputDecoration(
+                          labelText: 'Modo (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Qualquer'),
+                          ),
+                          ..._modes.map(
+                            (item) => DropdownMenuItem<String?>(
+                              value: item,
+                              child: Text(item),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => mode = value);
+                        },
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ativo'),
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .createPrompt(
+                              token,
+                              key: keyController.text.trim(),
+                              kind: kind,
+                              title: titleController.text.trim(),
+                              text: textController.text.trim(),
+                              themeId: themeId,
+                              virtueId: virtueId,
+                              ageBand: ageBand,
+                              mode: mode,
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
                         }
-                      },
-                    ),
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Titulo'),
-                    ),
-                    TextField(
-                      controller: textController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Texto'),
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: themeId,
-                      decoration: const InputDecoration(
-                        labelText: 'Tema (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Nenhum'),
-                        ),
-                        ..._themes.map(
-                          (theme) => DropdownMenuItem<String?>(
-                            value: theme.id,
-                            child: Text(theme.name),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => themeId = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: virtueId,
-                      decoration: const InputDecoration(
-                        labelText: 'Virtude (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Nenhuma'),
-                        ),
-                        ..._virtues.map(
-                          (virtue) => DropdownMenuItem<String?>(
-                            value: virtue.id,
-                            child: Text(virtue.name),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => virtueId = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: ageBand,
-                      decoration: const InputDecoration(
-                        labelText: 'Faixa etaria (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Qualquer'),
-                        ),
-                        ..._ageBands.map(
-                          (band) => DropdownMenuItem<String?>(
-                            value: band,
-                            child: Text(band),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => ageBand = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: mode,
-                      decoration: const InputDecoration(
-                        labelText: 'Modo (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Qualquer'),
-                        ),
-                        ..._modes.map(
-                          (item) => DropdownMenuItem<String?>(
-                            value: item,
-                            child: Text(item),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => mode = value);
-                      },
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ativo'),
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .createPrompt(
-                            token,
-                            key: keyController.text.trim(),
-                            kind: kind,
-                            title: titleController.text.trim(),
-                            text: textController.text.trim(),
-                            themeId: themeId,
-                            virtueId: virtueId,
-                            ageBand: ageBand,
-                            mode: mode,
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (created == true) {
@@ -312,193 +320,200 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
     String? mode = prompt.mode;
     bool isActive = prompt.isActive;
 
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Editar prompt'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: keyController,
-                      decoration: const InputDecoration(labelText: 'Key unica'),
-                    ),
-                    DropdownButtonFormField<AdminPromptKind>(
-                      initialValue: kind,
-                      decoration: const InputDecoration(labelText: 'Tipo'),
-                      items: AdminPromptKind.values
-                          .map(
-                            (value) => DropdownMenuItem<AdminPromptKind>(
-                              value: value,
-                              child: Text(_kindLabel(value)),
+    final updated = await withControllersDisposed<bool?>(
+      [keyController, titleController, textController, sortOrderController],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Editar prompt'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: keyController,
+                        decoration: const InputDecoration(
+                          labelText: 'Key unica',
+                        ),
+                      ),
+                      DropdownButtonFormField<AdminPromptKind>(
+                        initialValue: kind,
+                        decoration: const InputDecoration(labelText: 'Tipo'),
+                        items: AdminPromptKind.values
+                            .map(
+                              (value) => DropdownMenuItem<AdminPromptKind>(
+                                value: value,
+                                child: Text(_kindLabel(value)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => kind = value);
+                          }
+                        },
+                      ),
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Titulo'),
+                      ),
+                      TextField(
+                        controller: textController,
+                        maxLines: 4,
+                        decoration: const InputDecoration(labelText: 'Texto'),
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: themeId,
+                        decoration: const InputDecoration(
+                          labelText: 'Tema (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Nenhum'),
+                          ),
+                          ..._themes.map(
+                            (theme) => DropdownMenuItem<String?>(
+                              value: theme.id,
+                              child: Text(theme.name),
                             ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => kind = value);
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => themeId = value);
+                        },
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: virtueId,
+                        decoration: const InputDecoration(
+                          labelText: 'Virtude (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Nenhuma'),
+                          ),
+                          ..._virtues.map(
+                            (virtue) => DropdownMenuItem<String?>(
+                              value: virtue.id,
+                              child: Text(virtue.name),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => virtueId = value);
+                        },
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: ageBand,
+                        decoration: const InputDecoration(
+                          labelText: 'Faixa etaria (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Qualquer'),
+                          ),
+                          ..._ageBands.map(
+                            (band) => DropdownMenuItem<String?>(
+                              value: band,
+                              child: Text(band),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => ageBand = value);
+                        },
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: mode,
+                        decoration: const InputDecoration(
+                          labelText: 'Modo (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Qualquer'),
+                          ),
+                          ..._modes.map(
+                            (item) => DropdownMenuItem<String?>(
+                              value: item,
+                              child: Text(item),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => mode = value);
+                        },
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ativo'),
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .updatePrompt(
+                              token,
+                              prompt.id,
+                              key: keyController.text.trim(),
+                              kind: kind,
+                              title: titleController.text.trim(),
+                              text: textController.text.trim(),
+                              themeId: themeId,
+                              virtueId: virtueId,
+                              ageBand: ageBand,
+                              mode: mode,
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
                         }
-                      },
-                    ),
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Titulo'),
-                    ),
-                    TextField(
-                      controller: textController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Texto'),
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: themeId,
-                      decoration: const InputDecoration(
-                        labelText: 'Tema (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Nenhum'),
-                        ),
-                        ..._themes.map(
-                          (theme) => DropdownMenuItem<String?>(
-                            value: theme.id,
-                            child: Text(theme.name),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => themeId = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: virtueId,
-                      decoration: const InputDecoration(
-                        labelText: 'Virtude (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Nenhuma'),
-                        ),
-                        ..._virtues.map(
-                          (virtue) => DropdownMenuItem<String?>(
-                            value: virtue.id,
-                            child: Text(virtue.name),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => virtueId = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: ageBand,
-                      decoration: const InputDecoration(
-                        labelText: 'Faixa etaria (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Qualquer'),
-                        ),
-                        ..._ageBands.map(
-                          (band) => DropdownMenuItem<String?>(
-                            value: band,
-                            child: Text(band),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => ageBand = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: mode,
-                      decoration: const InputDecoration(
-                        labelText: 'Modo (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Qualquer'),
-                        ),
-                        ..._modes.map(
-                          (item) => DropdownMenuItem<String?>(
-                            value: item,
-                            child: Text(item),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => mode = value);
-                      },
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ativo'),
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .updatePrompt(
-                            token,
-                            prompt.id,
-                            key: keyController.text.trim(),
-                            kind: kind,
-                            title: titleController.text.trim(),
-                            text: textController.text.trim(),
-                            themeId: themeId,
-                            virtueId: virtueId,
-                            ageBand: ageBand,
-                            mode: mode,
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (updated == true) {

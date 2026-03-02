@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use, use_null_aware_elements
-
 import 'package:flutter/material.dart';
 
 import '../tokens/visconde_tokens.dart';
@@ -52,8 +50,8 @@ class ViscondeStoryRowCard extends StatelessWidget {
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: [
-                          Colors.white.withOpacity(0.7),
-                          Colors.white.withOpacity(0.25),
+                          Colors.white.withValues(alpha: 0.7),
+                          Colors.white.withValues(alpha: 0.25),
                         ],
                       ),
                     ),
@@ -75,15 +73,16 @@ class ViscondeStoryRowCard extends StatelessWidget {
                               title,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            if (badgeLabel != null && badgeLabel!.isNotEmpty)
+                            if (badgeLabel case final label?
+                                when label.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
-                                child: ViscondePillChip(label: badgeLabel!),
+                                child: ViscondePillChip(label: label),
                               ),
                           ],
                         ),
                       ),
-                      if (trailing != null) trailing!,
+                      ...?(trailing == null ? null : <Widget>[trailing!]),
                     ],
                   ),
                 ),

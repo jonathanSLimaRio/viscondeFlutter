@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ui/controller_disposer.dart';
 import '../../auth/auth_controller.dart';
 import '../models/admin_models.dart';
 
@@ -133,161 +134,174 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
     String? selectedAgeBand;
     bool isActive = true;
 
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Novo template'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: slugController,
-                      decoration: const InputDecoration(
-                        labelText: 'Slug (opcional)',
-                      ),
-                    ),
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Titulo'),
-                    ),
-                    TextField(
-                      controller: descriptionController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(labelText: 'Descricao'),
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedThemeId,
-                      decoration: const InputDecoration(
-                        labelText: 'Tema (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Nenhum'),
+    final created = await withControllersDisposed<bool?>(
+      [
+        slugController,
+        titleController,
+        descriptionController,
+        scenarioController,
+        objectiveController,
+      ],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Novo template'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: slugController,
+                        decoration: const InputDecoration(
+                          labelText: 'Slug (opcional)',
                         ),
-                        ..._themes.map(
-                          (theme) => DropdownMenuItem<String?>(
-                            value: theme.id,
-                            child: Text(theme.name),
+                      ),
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Titulo'),
+                      ),
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Descricao',
+                        ),
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: selectedThemeId,
+                        decoration: const InputDecoration(
+                          labelText: 'Tema (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Nenhum'),
                           ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => selectedThemeId = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedVirtueId,
-                      decoration: const InputDecoration(
-                        labelText: 'Virtude (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Nenhuma'),
-                        ),
-                        ..._virtues.map(
-                          (virtue) => DropdownMenuItem<String?>(
-                            value: virtue.id,
-                            child: Text(virtue.name),
+                          ..._themes.map(
+                            (theme) => DropdownMenuItem<String?>(
+                              value: theme.id,
+                              child: Text(theme.name),
+                            ),
                           ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => selectedVirtueId = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedAgeBand,
-                      decoration: const InputDecoration(
-                        labelText: 'Faixa etaria (opcional)',
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => selectedThemeId = value);
+                        },
                       ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Qualquer'),
+                      DropdownButtonFormField<String?>(
+                        initialValue: selectedVirtueId,
+                        decoration: const InputDecoration(
+                          labelText: 'Virtude (opcional)',
                         ),
-                        ..._ageBands.map(
-                          (band) => DropdownMenuItem<String?>(
-                            value: band,
-                            child: Text(band),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Nenhuma'),
                           ),
+                          ..._virtues.map(
+                            (virtue) => DropdownMenuItem<String?>(
+                              value: virtue.id,
+                              child: Text(virtue.name),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => selectedVirtueId = value);
+                        },
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: selectedAgeBand,
+                        decoration: const InputDecoration(
+                          labelText: 'Faixa etaria (opcional)',
                         ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => selectedAgeBand = value);
-                      },
-                    ),
-                    TextField(
-                      controller: scenarioController,
-                      decoration: const InputDecoration(
-                        labelText: 'Cenario padrao',
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Qualquer'),
+                          ),
+                          ..._ageBands.map(
+                            (band) => DropdownMenuItem<String?>(
+                              value: band,
+                              child: Text(band),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => selectedAgeBand = value);
+                        },
                       ),
-                    ),
-                    TextField(
-                      controller: objectiveController,
-                      decoration: const InputDecoration(
-                        labelText: 'Objetivo padrao',
+                      TextField(
+                        controller: scenarioController,
+                        decoration: const InputDecoration(
+                          labelText: 'Cenario padrao',
+                        ),
                       ),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ativo'),
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                    ),
-                  ],
+                      TextField(
+                        controller: objectiveController,
+                        decoration: const InputDecoration(
+                          labelText: 'Objetivo padrao',
+                        ),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ativo'),
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      final createdTemplate = await ref
-                          .read(adminApiProvider)
-                          .createStoryTemplate(
-                            token,
-                            slug: slugController.text.trim(),
-                            title: titleController.text.trim(),
-                            description: descriptionController.text.trim(),
-                            themeId: selectedThemeId,
-                            virtueId: selectedVirtueId,
-                            ageBand: selectedAgeBand,
-                            defaultScenario: scenarioController.text.trim(),
-                            defaultObjective: objectiveController.text.trim(),
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        final createdTemplate = await ref
+                            .read(adminApiProvider)
+                            .createStoryTemplate(
+                              token,
+                              slug: slugController.text.trim(),
+                              title: titleController.text.trim(),
+                              description: descriptionController.text.trim(),
+                              themeId: selectedThemeId,
+                              virtueId: selectedVirtueId,
+                              ageBand: selectedAgeBand,
+                              defaultScenario: scenarioController.text.trim(),
+                              defaultObjective: objectiveController.text.trim(),
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        setState(
+                          () => _selectedTemplateId = createdTemplate.id,
+                        );
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      setState(() => _selectedTemplateId = createdTemplate.id);
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (created == true) {
@@ -318,159 +332,170 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
     String? selectedAgeBand = detail.ageBand;
     bool isActive = detail.isActive;
 
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Editar template'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: slugController,
-                      decoration: const InputDecoration(labelText: 'Slug'),
-                    ),
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Titulo'),
-                    ),
-                    TextField(
-                      controller: descriptionController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(labelText: 'Descricao'),
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedThemeId,
-                      decoration: const InputDecoration(
-                        labelText: 'Tema (opcional)',
+    final updated = await withControllersDisposed<bool?>(
+      [
+        slugController,
+        titleController,
+        descriptionController,
+        scenarioController,
+        objectiveController,
+      ],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Editar template'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: slugController,
+                        decoration: const InputDecoration(labelText: 'Slug'),
                       ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Nenhum'),
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Titulo'),
+                      ),
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Descricao',
                         ),
-                        ..._themes.map(
-                          (theme) => DropdownMenuItem<String?>(
-                            value: theme.id,
-                            child: Text(theme.name),
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: selectedThemeId,
+                        decoration: const InputDecoration(
+                          labelText: 'Tema (opcional)',
+                        ),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Nenhum'),
                           ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => selectedThemeId = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedVirtueId,
-                      decoration: const InputDecoration(
-                        labelText: 'Virtude (opcional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Nenhuma'),
-                        ),
-                        ..._virtues.map(
-                          (virtue) => DropdownMenuItem<String?>(
-                            value: virtue.id,
-                            child: Text(virtue.name),
+                          ..._themes.map(
+                            (theme) => DropdownMenuItem<String?>(
+                              value: theme.id,
+                              child: Text(theme.name),
+                            ),
                           ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => selectedVirtueId = value);
-                      },
-                    ),
-                    DropdownButtonFormField<String?>(
-                      initialValue: selectedAgeBand,
-                      decoration: const InputDecoration(
-                        labelText: 'Faixa etaria (opcional)',
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => selectedThemeId = value);
+                        },
                       ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Qualquer'),
+                      DropdownButtonFormField<String?>(
+                        initialValue: selectedVirtueId,
+                        decoration: const InputDecoration(
+                          labelText: 'Virtude (opcional)',
                         ),
-                        ..._ageBands.map(
-                          (band) => DropdownMenuItem<String?>(
-                            value: band,
-                            child: Text(band),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Nenhuma'),
                           ),
+                          ..._virtues.map(
+                            (virtue) => DropdownMenuItem<String?>(
+                              value: virtue.id,
+                              child: Text(virtue.name),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => selectedVirtueId = value);
+                        },
+                      ),
+                      DropdownButtonFormField<String?>(
+                        initialValue: selectedAgeBand,
+                        decoration: const InputDecoration(
+                          labelText: 'Faixa etaria (opcional)',
                         ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => selectedAgeBand = value);
-                      },
-                    ),
-                    TextField(
-                      controller: scenarioController,
-                      decoration: const InputDecoration(
-                        labelText: 'Cenario padrao',
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Qualquer'),
+                          ),
+                          ..._ageBands.map(
+                            (band) => DropdownMenuItem<String?>(
+                              value: band,
+                              child: Text(band),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setDialogState(() => selectedAgeBand = value);
+                        },
                       ),
-                    ),
-                    TextField(
-                      controller: objectiveController,
-                      decoration: const InputDecoration(
-                        labelText: 'Objetivo padrao',
+                      TextField(
+                        controller: scenarioController,
+                        decoration: const InputDecoration(
+                          labelText: 'Cenario padrao',
+                        ),
                       ),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ativo'),
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                    ),
-                  ],
+                      TextField(
+                        controller: objectiveController,
+                        decoration: const InputDecoration(
+                          labelText: 'Objetivo padrao',
+                        ),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ativo'),
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .updateStoryTemplate(
-                            token,
-                            detail.id,
-                            slug: slugController.text.trim(),
-                            title: titleController.text.trim(),
-                            description: descriptionController.text.trim(),
-                            themeId: selectedThemeId,
-                            virtueId: selectedVirtueId,
-                            ageBand: selectedAgeBand,
-                            defaultScenario: scenarioController.text.trim(),
-                            defaultObjective: objectiveController.text.trim(),
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .updateStoryTemplate(
+                              token,
+                              detail.id,
+                              slug: slugController.text.trim(),
+                              title: titleController.text.trim(),
+                              description: descriptionController.text.trim(),
+                              themeId: selectedThemeId,
+                              virtueId: selectedVirtueId,
+                              ageBand: selectedAgeBand,
+                              defaultScenario: scenarioController.text.trim(),
+                              defaultObjective: objectiveController.text.trim(),
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (updated == true) {
@@ -491,58 +516,61 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
     final nameController = TextEditingController();
     final roleController = TextEditingController();
 
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Adicionar personagem'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Nome'),
+    final created = await withControllersDisposed<bool?>(
+      [nameController, roleController],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Adicionar personagem'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Nome'),
+                ),
+                TextField(
+                  controller: roleController,
+                  decoration: const InputDecoration(labelText: 'Papel'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
               ),
-              TextField(
-                controller: roleController,
-                decoration: const InputDecoration(labelText: 'Papel'),
+              FilledButton(
+                onPressed: () async {
+                  try {
+                    await ref
+                        .read(adminApiProvider)
+                        .addStoryTemplateCharacter(
+                          token,
+                          detail.id,
+                          name: nameController.text.trim(),
+                          role: roleController.text.trim(),
+                        );
+                    if (!context.mounted) {
+                      return;
+                    }
+                    Navigator.of(context).pop(true);
+                  } catch (error) {
+                    if (!context.mounted) {
+                      return;
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(parseDioError(error))),
+                    );
+                  }
+                },
+                child: const Text('Salvar'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                try {
-                  await ref
-                      .read(adminApiProvider)
-                      .addStoryTemplateCharacter(
-                        token,
-                        detail.id,
-                        name: nameController.text.trim(),
-                        role: roleController.text.trim(),
-                      );
-                  if (!context.mounted) {
-                    return;
-                  }
-                  Navigator.of(context).pop(true);
-                } catch (error) {
-                  if (!context.mounted) {
-                    return;
-                  }
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
-                }
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
 
     if (created == true) {
@@ -563,107 +591,120 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
     final sortOrderController = TextEditingController(text: '0');
     AdminStoryTemplateNodeKind kind = AdminStoryTemplateNodeKind.narration;
 
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Adicionar no'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: keyController,
-                      decoration: const InputDecoration(labelText: 'Node key'),
-                    ),
-                    DropdownButtonFormField<AdminStoryTemplateNodeKind>(
-                      initialValue: kind,
-                      decoration: const InputDecoration(labelText: 'Tipo'),
-                      items: AdminStoryTemplateNodeKind.values
-                          .map(
-                            (item) =>
-                                DropdownMenuItem<AdminStoryTemplateNodeKind>(
-                                  value: item,
-                                  child: Text(item.name.toUpperCase()),
-                                ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => kind = value);
+    final created = await withControllersDisposed<bool?>(
+      [
+        keyController,
+        titleController,
+        narratorTextController,
+        promptHintController,
+        sortOrderController,
+      ],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Adicionar no'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: keyController,
+                        decoration: const InputDecoration(
+                          labelText: 'Node key',
+                        ),
+                      ),
+                      DropdownButtonFormField<AdminStoryTemplateNodeKind>(
+                        initialValue: kind,
+                        decoration: const InputDecoration(labelText: 'Tipo'),
+                        items: AdminStoryTemplateNodeKind.values
+                            .map(
+                              (item) =>
+                                  DropdownMenuItem<AdminStoryTemplateNodeKind>(
+                                    value: item,
+                                    child: Text(item.name.toUpperCase()),
+                                  ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => kind = value);
+                          }
+                        },
+                      ),
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Titulo'),
+                      ),
+                      TextField(
+                        controller: narratorTextController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Texto narrador (opcional)',
+                        ),
+                      ),
+                      TextField(
+                        controller: promptHintController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Prompt hint (opcional)',
+                        ),
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .addStoryTemplateNode(
+                              token,
+                              detail.id,
+                              nodeKey: keyController.text.trim(),
+                              kind: kind,
+                              title: titleController.text.trim(),
+                              narratorText: narratorTextController.text.trim(),
+                              promptHint: promptHintController.text.trim(),
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                            );
+                        if (!context.mounted) {
+                          return;
                         }
-                      },
-                    ),
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Titulo'),
-                    ),
-                    TextField(
-                      controller: narratorTextController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Texto narrador (opcional)',
-                      ),
-                    ),
-                    TextField(
-                      controller: promptHintController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Prompt hint (opcional)',
-                      ),
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .addStoryTemplateNode(
-                            token,
-                            detail.id,
-                            nodeKey: keyController.text.trim(),
-                            kind: kind,
-                            title: titleController.text.trim(),
-                            narratorText: narratorTextController.text.trim(),
-                            promptHint: promptHintController.text.trim(),
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                          );
-                      if (!context.mounted) {
-                        return;
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (created == true) {
@@ -693,108 +734,121 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
     );
     AdminStoryTemplateNodeKind kind = node.kind;
 
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Editar no'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: keyController,
-                      decoration: const InputDecoration(labelText: 'Node key'),
-                    ),
-                    DropdownButtonFormField<AdminStoryTemplateNodeKind>(
-                      initialValue: kind,
-                      decoration: const InputDecoration(labelText: 'Tipo'),
-                      items: AdminStoryTemplateNodeKind.values
-                          .map(
-                            (item) =>
-                                DropdownMenuItem<AdminStoryTemplateNodeKind>(
-                                  value: item,
-                                  child: Text(item.name.toUpperCase()),
-                                ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => kind = value);
+    final updated = await withControllersDisposed<bool?>(
+      [
+        keyController,
+        titleController,
+        narratorTextController,
+        promptHintController,
+        sortOrderController,
+      ],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Editar no'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: keyController,
+                        decoration: const InputDecoration(
+                          labelText: 'Node key',
+                        ),
+                      ),
+                      DropdownButtonFormField<AdminStoryTemplateNodeKind>(
+                        initialValue: kind,
+                        decoration: const InputDecoration(labelText: 'Tipo'),
+                        items: AdminStoryTemplateNodeKind.values
+                            .map(
+                              (item) =>
+                                  DropdownMenuItem<AdminStoryTemplateNodeKind>(
+                                    value: item,
+                                    child: Text(item.name.toUpperCase()),
+                                  ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => kind = value);
+                          }
+                        },
+                      ),
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Titulo'),
+                      ),
+                      TextField(
+                        controller: narratorTextController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Texto narrador (opcional)',
+                        ),
+                      ),
+                      TextField(
+                        controller: promptHintController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Prompt hint (opcional)',
+                        ),
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .updateStoryTemplateNode(
+                              token,
+                              detail.id,
+                              node.id,
+                              nodeKey: keyController.text.trim(),
+                              kind: kind,
+                              title: titleController.text.trim(),
+                              narratorText: narratorTextController.text.trim(),
+                              promptHint: promptHintController.text.trim(),
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                            );
+                        if (!context.mounted) {
+                          return;
                         }
-                      },
-                    ),
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Titulo'),
-                    ),
-                    TextField(
-                      controller: narratorTextController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Texto narrador (opcional)',
-                      ),
-                    ),
-                    TextField(
-                      controller: promptHintController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Prompt hint (opcional)',
-                      ),
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .updateStoryTemplateNode(
-                            token,
-                            detail.id,
-                            node.id,
-                            nodeKey: keyController.text.trim(),
-                            kind: kind,
-                            title: titleController.text.trim(),
-                            narratorText: narratorTextController.text.trim(),
-                            promptHint: promptHintController.text.trim(),
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                          );
-                      if (!context.mounted) {
-                        return;
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (updated == true) {
@@ -817,112 +871,119 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
     final labelController = TextEditingController();
     final sortOrderController = TextEditingController(text: '0');
 
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Adicionar opcao'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedNodeId,
-                      decoration: const InputDecoration(labelText: 'No origem'),
-                      items: detail.nodes
-                          .map(
-                            (node) => DropdownMenuItem<String>(
-                              value: node.id,
-                              child: Text('${node.nodeKey} · ${node.title}'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => selectedNodeId = value);
-                        }
-                      },
-                    ),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedNextNodeId,
-                      decoration: const InputDecoration(
-                        labelText: 'Proximo no',
+    final created = await withControllersDisposed<bool?>(
+      [optionKeyController, labelController, sortOrderController],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Adicionar opcao'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedNodeId,
+                        decoration: const InputDecoration(
+                          labelText: 'No origem',
+                        ),
+                        items: detail.nodes
+                            .map(
+                              (node) => DropdownMenuItem<String>(
+                                value: node.id,
+                                child: Text('${node.nodeKey} · ${node.title}'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => selectedNodeId = value);
+                          }
+                        },
                       ),
-                      items: detail.nodes
-                          .map(
-                            (node) => DropdownMenuItem<String>(
-                              value: node.id,
-                              child: Text('${node.nodeKey} · ${node.title}'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => selectedNextNodeId = value);
-                        }
-                      },
-                    ),
-                    TextField(
-                      controller: optionKeyController,
-                      decoration: const InputDecoration(
-                        labelText: 'Option key',
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedNextNodeId,
+                        decoration: const InputDecoration(
+                          labelText: 'Proximo no',
+                        ),
+                        items: detail.nodes
+                            .map(
+                              (node) => DropdownMenuItem<String>(
+                                value: node.id,
+                                child: Text('${node.nodeKey} · ${node.title}'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => selectedNextNodeId = value);
+                          }
+                        },
                       ),
-                    ),
-                    TextField(
-                      controller: labelController,
-                      decoration: const InputDecoration(labelText: 'Label'),
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                  ],
+                      TextField(
+                        controller: optionKeyController,
+                        decoration: const InputDecoration(
+                          labelText: 'Option key',
+                        ),
+                      ),
+                      TextField(
+                        controller: labelController,
+                        decoration: const InputDecoration(labelText: 'Label'),
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .addStoryTemplateOption(
-                            token,
-                            detail.id,
-                            nodeId: selectedNodeId,
-                            optionKey: optionKeyController.text.trim(),
-                            label: labelController.text.trim(),
-                            nextNodeId: selectedNextNodeId,
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .addStoryTemplateOption(
+                              token,
+                              detail.id,
+                              nodeId: selectedNodeId,
+                              optionKey: optionKeyController.text.trim(),
+                              label: labelController.text.trim(),
+                              nextNodeId: selectedNextNodeId,
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (created == true) {
@@ -946,95 +1007,100 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
     );
     String selectedNextNodeId = option.nextNodeId;
 
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Editar opcao'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: optionKeyController,
-                      decoration: const InputDecoration(
-                        labelText: 'Option key',
+    final updated = await withControllersDisposed<bool?>(
+      [optionKeyController, labelController, sortOrderController],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Editar opcao'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: optionKeyController,
+                        decoration: const InputDecoration(
+                          labelText: 'Option key',
+                        ),
                       ),
-                    ),
-                    TextField(
-                      controller: labelController,
-                      decoration: const InputDecoration(labelText: 'Label'),
-                    ),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedNextNodeId,
-                      decoration: const InputDecoration(
-                        labelText: 'Proximo no',
+                      TextField(
+                        controller: labelController,
+                        decoration: const InputDecoration(labelText: 'Label'),
                       ),
-                      items: detail.nodes
-                          .map(
-                            (node) => DropdownMenuItem<String>(
-                              value: node.id,
-                              child: Text('${node.nodeKey} · ${node.title}'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => selectedNextNodeId = value);
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedNextNodeId,
+                        decoration: const InputDecoration(
+                          labelText: 'Proximo no',
+                        ),
+                        items: detail.nodes
+                            .map(
+                              (node) => DropdownMenuItem<String>(
+                                value: node.id,
+                                child: Text('${node.nodeKey} · ${node.title}'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => selectedNextNodeId = value);
+                          }
+                        },
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .updateStoryTemplateOption(
+                              token,
+                              detail.id,
+                              option.id,
+                              optionKey: optionKeyController.text.trim(),
+                              label: labelController.text.trim(),
+                              nextNodeId: selectedNextNodeId,
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                            );
+                        if (!context.mounted) {
+                          return;
                         }
-                      },
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .updateStoryTemplateOption(
-                            token,
-                            detail.id,
-                            option.id,
-                            optionKey: optionKeyController.text.trim(),
-                            label: labelController.text.trim(),
-                            nextNodeId: selectedNextNodeId,
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                          );
-                      if (!context.mounted) {
-                        return;
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (updated == true) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 
 class AdminHubScreen extends StatelessWidget {
@@ -37,31 +38,31 @@ class AdminHubScreen extends StatelessWidget {
             icon: Icons.palette_outlined,
             title: 'Temas',
             subtitle: 'Gerencie catalogo de temas ativos/inativos.',
-            onTap: () => context.push('/adult/admin/themes'),
+            onTap: () => context.push(AppRoute.adminThemes),
           ),
           _AdminMenuTile(
             icon: Icons.auto_awesome_outlined,
             title: 'Virtudes e Dilemas',
             subtitle: 'Edite virtudes e templates por faixa etaria.',
-            onTap: () => context.push('/adult/admin/virtues'),
+            onTap: () => context.push(AppRoute.adminVirtues),
           ),
           _AdminMenuTile(
             icon: Icons.lightbulb_outline,
             title: 'Prompts',
             subtitle: 'Gerencie prompts de ideia/fallback e narracao.',
-            onTap: () => context.push('/adult/admin/prompts'),
+            onTap: () => context.push(AppRoute.adminPrompts),
           ),
           _AdminMenuTile(
             icon: Icons.account_tree_outlined,
             title: 'Templates de Historia',
             subtitle: 'Edite arvore de decisao e publique versoes.',
-            onTap: () => context.push('/adult/admin/templates'),
+            onTap: () => context.push(AppRoute.adminTemplates),
           ),
           _AdminMenuTile(
             icon: Icons.shield_outlined,
             title: 'Moderacao',
             subtitle: 'Bloqueie termos improprios por escopo.',
-            onTap: () => context.push('/adult/admin/moderation'),
+            onTap: () => context.push(AppRoute.adminModeration),
           ),
         ],
       ),

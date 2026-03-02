@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ui/controller_disposer.dart';
 import '../../auth/auth_controller.dart';
 import '../models/admin_models.dart';
 
@@ -96,112 +97,117 @@ class _ModerationAdminScreenState extends ConsumerState<ModerationAdminScreen> {
     AdminModerationScope scope = AdminModerationScope.templateText;
     bool isActive = true;
 
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Novo termo'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: displayTermController,
-                      decoration: const InputDecoration(
-                        labelText: 'Termo (display)',
+    final created = await withControllersDisposed<bool?>(
+      [displayTermController, replacementController],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Novo termo'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: displayTermController,
+                        decoration: const InputDecoration(
+                          labelText: 'Termo (display)',
+                        ),
                       ),
-                    ),
-                    DropdownButtonFormField<AdminModerationPolicy>(
-                      initialValue: policy,
-                      decoration: const InputDecoration(labelText: 'Politica'),
-                      items: AdminModerationPolicy.values
-                          .map(
-                            (item) => DropdownMenuItem<AdminModerationPolicy>(
-                              value: item,
-                              child: Text(_policyLabel(item)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => policy = value);
-                        }
-                      },
-                    ),
-                    DropdownButtonFormField<AdminModerationScope>(
-                      initialValue: scope,
-                      decoration: const InputDecoration(labelText: 'Escopo'),
-                      items: AdminModerationScope.values
-                          .map(
-                            (item) => DropdownMenuItem<AdminModerationScope>(
-                              value: item,
-                              child: Text(_scopeLabel(item)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => scope = value);
-                        }
-                      },
-                    ),
-                    TextField(
-                      controller: replacementController,
-                      decoration: const InputDecoration(
-                        labelText: 'Replacement (opcional)',
+                      DropdownButtonFormField<AdminModerationPolicy>(
+                        initialValue: policy,
+                        decoration: const InputDecoration(
+                          labelText: 'Politica',
+                        ),
+                        items: AdminModerationPolicy.values
+                            .map(
+                              (item) => DropdownMenuItem<AdminModerationPolicy>(
+                                value: item,
+                                child: Text(_policyLabel(item)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => policy = value);
+                          }
+                        },
                       ),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ativo'),
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                    ),
-                  ],
+                      DropdownButtonFormField<AdminModerationScope>(
+                        initialValue: scope,
+                        decoration: const InputDecoration(labelText: 'Escopo'),
+                        items: AdminModerationScope.values
+                            .map(
+                              (item) => DropdownMenuItem<AdminModerationScope>(
+                                value: item,
+                                child: Text(_scopeLabel(item)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => scope = value);
+                          }
+                        },
+                      ),
+                      TextField(
+                        controller: replacementController,
+                        decoration: const InputDecoration(
+                          labelText: 'Replacement (opcional)',
+                        ),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ativo'),
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .createModerationTerm(
-                            token,
-                            displayTerm: displayTermController.text.trim(),
-                            policy: policy,
-                            scope: scope,
-                            replacement: replacementController.text.trim(),
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .createModerationTerm(
+                              token,
+                              displayTerm: displayTermController.text.trim(),
+                              policy: policy,
+                              scope: scope,
+                              replacement: replacementController.text.trim(),
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (created == true) {
@@ -223,113 +229,118 @@ class _ModerationAdminScreenState extends ConsumerState<ModerationAdminScreen> {
     AdminModerationScope scope = term.scope;
     bool isActive = term.isActive;
 
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Editar termo'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: displayTermController,
-                      decoration: const InputDecoration(
-                        labelText: 'Termo (display)',
+    final updated = await withControllersDisposed<bool?>(
+      [displayTermController, replacementController],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Editar termo'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: displayTermController,
+                        decoration: const InputDecoration(
+                          labelText: 'Termo (display)',
+                        ),
                       ),
-                    ),
-                    DropdownButtonFormField<AdminModerationPolicy>(
-                      initialValue: policy,
-                      decoration: const InputDecoration(labelText: 'Politica'),
-                      items: AdminModerationPolicy.values
-                          .map(
-                            (item) => DropdownMenuItem<AdminModerationPolicy>(
-                              value: item,
-                              child: Text(_policyLabel(item)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => policy = value);
-                        }
-                      },
-                    ),
-                    DropdownButtonFormField<AdminModerationScope>(
-                      initialValue: scope,
-                      decoration: const InputDecoration(labelText: 'Escopo'),
-                      items: AdminModerationScope.values
-                          .map(
-                            (item) => DropdownMenuItem<AdminModerationScope>(
-                              value: item,
-                              child: Text(_scopeLabel(item)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => scope = value);
-                        }
-                      },
-                    ),
-                    TextField(
-                      controller: replacementController,
-                      decoration: const InputDecoration(
-                        labelText: 'Replacement (opcional)',
+                      DropdownButtonFormField<AdminModerationPolicy>(
+                        initialValue: policy,
+                        decoration: const InputDecoration(
+                          labelText: 'Politica',
+                        ),
+                        items: AdminModerationPolicy.values
+                            .map(
+                              (item) => DropdownMenuItem<AdminModerationPolicy>(
+                                value: item,
+                                child: Text(_policyLabel(item)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => policy = value);
+                          }
+                        },
                       ),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ativo'),
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                    ),
-                  ],
+                      DropdownButtonFormField<AdminModerationScope>(
+                        initialValue: scope,
+                        decoration: const InputDecoration(labelText: 'Escopo'),
+                        items: AdminModerationScope.values
+                            .map(
+                              (item) => DropdownMenuItem<AdminModerationScope>(
+                                value: item,
+                                child: Text(_scopeLabel(item)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => scope = value);
+                          }
+                        },
+                      ),
+                      TextField(
+                        controller: replacementController,
+                        decoration: const InputDecoration(
+                          labelText: 'Replacement (opcional)',
+                        ),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ativo'),
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .updateModerationTerm(
-                            token,
-                            term.id,
-                            displayTerm: displayTermController.text.trim(),
-                            policy: policy,
-                            scope: scope,
-                            replacement: replacementController.text.trim(),
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .updateModerationTerm(
+                              token,
+                              term.id,
+                              displayTerm: displayTermController.text.trim(),
+                              policy: policy,
+                              scope: scope,
+                              replacement: replacementController.text.trim(),
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (updated == true) {

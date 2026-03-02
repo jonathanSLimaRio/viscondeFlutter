@@ -57,11 +57,12 @@ class AdminApi {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/themes/$themeId',
       data: {
-        if (name != null) 'name': name,
-        if (shortDescription != null) 'shortDescription': shortDescription,
-        if (iconKey != null) 'iconKey': iconKey,
-        if (sortOrder != null) 'sortOrder': sortOrder,
-        if (isActive != null) 'isActive': isActive,
+        if (name case final valuename?) 'name': valuename,
+        if (shortDescription case final valueshortDescription?)
+          'shortDescription': valueshortDescription,
+        if (iconKey case final valueiconKey?) 'iconKey': valueiconKey,
+        if (sortOrder case final valuesortOrder?) 'sortOrder': valuesortOrder,
+        if (isActive case final valueisActive?) 'isActive': valueisActive,
       },
       options: authOptions(accessToken),
     );
@@ -116,11 +117,12 @@ class AdminApi {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/virtues/$virtueId',
       data: {
-        if (name != null) 'name': name,
-        if (shortDescription != null) 'shortDescription': shortDescription,
-        if (iconKey != null) 'iconKey': iconKey,
-        if (sortOrder != null) 'sortOrder': sortOrder,
-        if (isActive != null) 'isActive': isActive,
+        if (name case final valuename?) 'name': valuename,
+        if (shortDescription case final valueshortDescription?)
+          'shortDescription': valueshortDescription,
+        if (iconKey case final valueiconKey?) 'iconKey': valueiconKey,
+        if (sortOrder case final valuesortOrder?) 'sortOrder': valuesortOrder,
+        if (isActive case final valueisActive?) 'isActive': valueisActive,
       },
       options: authOptions(accessToken),
     );
@@ -136,8 +138,10 @@ class AdminApi {
     final response = await _dio.get<List<dynamic>>(
       '/admin/virtue-templates',
       queryParameters: {
-        if (virtueId != null && virtueId.isNotEmpty) 'virtueId': virtueId,
-        if (ageBand != null && ageBand.isNotEmpty) 'ageBand': ageBand,
+        if (virtueId case final valuevirtueId? when valuevirtueId.isNotEmpty)
+          'virtueId': valuevirtueId,
+        if (ageBand case final valueageBand? when valueageBand.isNotEmpty)
+          'ageBand': valueageBand,
       },
       options: authOptions(accessToken),
     );
@@ -186,10 +190,12 @@ class AdminApi {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/virtue-templates/$templateId',
       data: {
-        if (dilemmaText != null) 'dilemmaText': dilemmaText,
-        if (endQuestionText != null) 'endQuestionText': endQuestionText,
-        if (sortOrder != null) 'sortOrder': sortOrder,
-        if (isActive != null) 'isActive': isActive,
+        if (dilemmaText case final valuedilemmaText?)
+          'dilemmaText': valuedilemmaText,
+        if (endQuestionText case final valueendQuestionText?)
+          'endQuestionText': valueendQuestionText,
+        if (sortOrder case final valuesortOrder?) 'sortOrder': valuesortOrder,
+        if (isActive case final valueisActive?) 'isActive': valueisActive,
       },
       options: authOptions(accessToken),
     );
@@ -231,10 +237,12 @@ class AdminApi {
         'kind': adminPromptKindToApi(kind),
         'title': title,
         'text': text,
-        if (themeId != null && themeId.isNotEmpty) 'themeId': themeId,
-        if (virtueId != null && virtueId.isNotEmpty) 'virtueId': virtueId,
-        if (ageBand != null) 'ageBand': ageBand,
-        if (mode != null) 'mode': mode,
+        if (themeId case final valuethemeId? when valuethemeId.isNotEmpty)
+          'themeId': valuethemeId,
+        if (virtueId case final valuevirtueId? when valuevirtueId.isNotEmpty)
+          'virtueId': valuevirtueId,
+        if (ageBand case final valueageBand?) 'ageBand': valueageBand,
+        if (mode case final valuemode?) 'mode': valuemode,
         'sortOrder': sortOrder,
         'isActive': isActive,
       },
@@ -261,16 +269,16 @@ class AdminApi {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/prompts/$promptId',
       data: {
-        if (key != null) 'key': key,
-        if (kind != null) 'kind': adminPromptKindToApi(kind),
-        if (title != null) 'title': title,
-        if (text != null) 'text': text,
-        if (themeId != null) 'themeId': themeId,
-        if (virtueId != null) 'virtueId': virtueId,
-        if (ageBand != null) 'ageBand': ageBand,
-        if (mode != null) 'mode': mode,
-        if (sortOrder != null) 'sortOrder': sortOrder,
-        if (isActive != null) 'isActive': isActive,
+        if (key case final valuekey?) 'key': valuekey,
+        if (kind case final valuekind?) 'kind': adminPromptKindToApi(valuekind),
+        if (title case final valuetitle?) 'title': valuetitle,
+        if (text case final valuetext?) 'text': valuetext,
+        if (themeId case final valuethemeId?) 'themeId': valuethemeId,
+        if (virtueId case final valuevirtueId?) 'virtueId': valuevirtueId,
+        if (ageBand case final valueageBand?) 'ageBand': valueageBand,
+        if (mode case final valuemode?) 'mode': valuemode,
+        if (sortOrder case final valuesortOrder?) 'sortOrder': valuesortOrder,
+        if (isActive case final valueisActive?) 'isActive': valueisActive,
       },
       options: authOptions(accessToken),
     );
@@ -307,14 +315,16 @@ class AdminApi {
     final response = await _dio.post<Map<String, dynamic>>(
       '/admin/story-templates',
       data: {
-        if (slug != null && slug.isNotEmpty) 'slug': slug,
+        if (slug case final valueslug? when valueslug.isNotEmpty)
+          'slug': valueslug,
         'title': title,
         'description': description,
-        if (themeId != null && themeId.isNotEmpty) 'themeId': themeId,
+        if (themeId case final valuethemeId? when valuethemeId.isNotEmpty)
+          'themeId': valuethemeId,
         'defaultScenario': defaultScenario,
         'defaultObjective': defaultObjective,
-        if (virtueId != null) 'virtueId': virtueId,
-        if (ageBand != null) 'ageBand': ageBand,
+        if (virtueId case final valuevirtueId?) 'virtueId': valuevirtueId,
+        if (ageBand case final valueageBand?) 'ageBand': valueageBand,
         'isActive': isActive,
       },
       options: authOptions(accessToken),
@@ -355,15 +365,18 @@ class AdminApi {
     final response = await _dio.put<Map<String, dynamic>>(
       '/admin/story-templates/$templateId',
       data: {
-        if (slug != null) 'slug': slug,
-        if (title != null) 'title': title,
-        if (description != null) 'description': description,
-        if (themeId != null) 'themeId': themeId,
-        if (virtueId != null) 'virtueId': virtueId,
-        if (ageBand != null) 'ageBand': ageBand,
-        if (defaultScenario != null) 'defaultScenario': defaultScenario,
-        if (defaultObjective != null) 'defaultObjective': defaultObjective,
-        if (isActive != null) 'isActive': isActive,
+        if (slug case final valueslug?) 'slug': valueslug,
+        if (title case final valuetitle?) 'title': valuetitle,
+        if (description case final valuedescription?)
+          'description': valuedescription,
+        if (themeId case final valuethemeId?) 'themeId': valuethemeId,
+        if (virtueId case final valuevirtueId?) 'virtueId': valuevirtueId,
+        if (ageBand case final valueageBand?) 'ageBand': valueageBand,
+        if (defaultScenario case final valuedefaultScenario?)
+          'defaultScenario': valuedefaultScenario,
+        if (defaultObjective case final valuedefaultObjective?)
+          'defaultObjective': valuedefaultObjective,
+        if (isActive case final valueisActive?) 'isActive': valueisActive,
       },
       options: authOptions(accessToken),
     );
@@ -384,8 +397,9 @@ class AdminApi {
       '/admin/story-templates/$templateId/characters',
       data: {
         'name': name,
-        if (role != null && role.isNotEmpty) 'role': role,
-        if (sortOrder != null) 'sortOrder': sortOrder,
+        if (role case final valuerole? when valuerole.isNotEmpty)
+          'role': valuerole,
+        if (sortOrder case final valuesortOrder?) 'sortOrder': valuesortOrder,
       },
       options: authOptions(accessToken),
     );
@@ -411,11 +425,13 @@ class AdminApi {
         'nodeKey': nodeKey,
         'kind': adminStoryTemplateNodeKindToApi(kind),
         'title': title,
-        if (narratorText != null && narratorText.isNotEmpty)
-          'narratorText': narratorText,
-        if (promptHint != null && promptHint.isNotEmpty)
-          'promptHint': promptHint,
-        if (sortOrder != null) 'sortOrder': sortOrder,
+        if (narratorText case final valuenarratorText?
+            when valuenarratorText.isNotEmpty)
+          'narratorText': valuenarratorText,
+        if (promptHint case final valuepromptHint?
+            when valuepromptHint.isNotEmpty)
+          'promptHint': valuepromptHint,
+        if (sortOrder case final valuesortOrder?) 'sortOrder': valuesortOrder,
       },
       options: authOptions(accessToken),
     );
@@ -439,12 +455,15 @@ class AdminApi {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/story-templates/$templateId/nodes/$nodeId',
       data: {
-        if (nodeKey != null) 'nodeKey': nodeKey,
-        if (kind != null) 'kind': adminStoryTemplateNodeKindToApi(kind),
-        if (title != null) 'title': title,
-        if (narratorText != null) 'narratorText': narratorText,
-        if (promptHint != null) 'promptHint': promptHint,
-        if (sortOrder != null) 'sortOrder': sortOrder,
+        if (nodeKey case final valuenodeKey?) 'nodeKey': valuenodeKey,
+        if (kind case final valuekind?)
+          'kind': adminStoryTemplateNodeKindToApi(valuekind),
+        if (title case final valuetitle?) 'title': valuetitle,
+        if (narratorText case final valuenarratorText?)
+          'narratorText': valuenarratorText,
+        if (promptHint case final valuepromptHint?)
+          'promptHint': valuepromptHint,
+        if (sortOrder case final valuesortOrder?) 'sortOrder': valuesortOrder,
       },
       options: authOptions(accessToken),
     );
@@ -470,7 +489,7 @@ class AdminApi {
         'optionKey': optionKey,
         'label': label,
         'nextNodeId': nextNodeId,
-        if (sortOrder != null) 'sortOrder': sortOrder,
+        if (sortOrder case final valuesortOrder?) 'sortOrder': valuesortOrder,
       },
       options: authOptions(accessToken),
     );
@@ -492,10 +511,11 @@ class AdminApi {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/story-templates/$templateId/options/$optionId',
       data: {
-        if (optionKey != null) 'optionKey': optionKey,
-        if (label != null) 'label': label,
-        if (nextNodeId != null) 'nextNodeId': nextNodeId,
-        if (sortOrder != null) 'sortOrder': sortOrder,
+        if (optionKey case final valueoptionKey?) 'optionKey': valueoptionKey,
+        if (label case final valuelabel?) 'label': valuelabel,
+        if (nextNodeId case final valuenextNodeId?)
+          'nextNodeId': valuenextNodeId,
+        if (sortOrder case final valuesortOrder?) 'sortOrder': valuesortOrder,
       },
       options: authOptions(accessToken),
     );
@@ -559,8 +579,9 @@ class AdminApi {
         'displayTerm': displayTerm,
         'policy': adminModerationPolicyToApi(policy),
         'scope': adminModerationScopeToApi(scope),
-        if (replacement != null && replacement.isNotEmpty)
-          'replacement': replacement,
+        if (replacement case final valuereplacement?
+            when valuereplacement.isNotEmpty)
+          'replacement': valuereplacement,
         'isActive': isActive,
       },
       options: authOptions(accessToken),
@@ -583,11 +604,15 @@ class AdminApi {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/admin/moderation/terms/$termId',
       data: {
-        if (displayTerm != null) 'displayTerm': displayTerm,
-        if (policy != null) 'policy': adminModerationPolicyToApi(policy),
-        if (scope != null) 'scope': adminModerationScopeToApi(scope),
-        if (replacement != null) 'replacement': replacement,
-        if (isActive != null) 'isActive': isActive,
+        if (displayTerm case final valuedisplayTerm?)
+          'displayTerm': valuedisplayTerm,
+        if (policy case final valuepolicy?)
+          'policy': adminModerationPolicyToApi(valuepolicy),
+        if (scope case final valuescope?)
+          'scope': adminModerationScopeToApi(valuescope),
+        if (replacement case final valuereplacement?)
+          'replacement': valuereplacement,
+        if (isActive case final valueisActive?) 'isActive': valueisActive,
       },
       options: authOptions(accessToken),
     );

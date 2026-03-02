@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ui/controller_disposer.dart';
 import '../../auth/auth_controller.dart';
 import '../models/admin_models.dart';
 
@@ -71,87 +72,100 @@ class _ThemeAdminScreenState extends ConsumerState<ThemeAdminScreen> {
     final sortOrderController = TextEditingController(text: '0');
     bool isActive = true;
 
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Novo tema'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Nome'),
-                    ),
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Descricao curta',
+    final created = await withControllersDisposed<bool?>(
+      [
+        nameController,
+        descriptionController,
+        iconController,
+        sortOrderController,
+      ],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Novo tema'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Nome'),
                       ),
-                    ),
-                    TextField(
-                      controller: iconController,
-                      decoration: const InputDecoration(labelText: 'Icon key'),
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                      title: const Text('Ativo'),
-                    ),
-                  ],
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Descricao curta',
+                        ),
+                      ),
+                      TextField(
+                        controller: iconController,
+                        decoration: const InputDecoration(
+                          labelText: 'Icon key',
+                        ),
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                        title: const Text('Ativo'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .createTheme(
-                            token,
-                            name: nameController.text.trim(),
-                            shortDescription: descriptionController.text.trim(),
-                            iconKey: iconController.text.trim(),
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .createTheme(
+                              token,
+                              name: nameController.text.trim(),
+                              shortDescription: descriptionController.text
+                                  .trim(),
+                              iconKey: iconController.text.trim(),
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (created == true) {
@@ -175,88 +189,101 @@ class _ThemeAdminScreenState extends ConsumerState<ThemeAdminScreen> {
     );
     bool isActive = theme.isActive;
 
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Editar tema'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Nome'),
-                    ),
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Descricao curta',
+    final updated = await withControllersDisposed<bool?>(
+      [
+        nameController,
+        descriptionController,
+        iconController,
+        sortOrderController,
+      ],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Editar tema'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Nome'),
                       ),
-                    ),
-                    TextField(
-                      controller: iconController,
-                      decoration: const InputDecoration(labelText: 'Icon key'),
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                      title: const Text('Ativo'),
-                    ),
-                  ],
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Descricao curta',
+                        ),
+                      ),
+                      TextField(
+                        controller: iconController,
+                        decoration: const InputDecoration(
+                          labelText: 'Icon key',
+                        ),
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                        title: const Text('Ativo'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .updateTheme(
-                            token,
-                            theme.id,
-                            name: nameController.text.trim(),
-                            shortDescription: descriptionController.text.trim(),
-                            iconKey: iconController.text.trim(),
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .updateTheme(
+                              token,
+                              theme.id,
+                              name: nameController.text.trim(),
+                              shortDescription: descriptionController.text
+                                  .trim(),
+                              iconKey: iconController.text.trim(),
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (updated == true) {

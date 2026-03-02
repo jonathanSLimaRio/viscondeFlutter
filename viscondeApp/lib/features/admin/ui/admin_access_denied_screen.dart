@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 
 class AdminAccessDeniedScreen extends StatelessWidget {
@@ -32,7 +33,7 @@ class AdminAccessDeniedScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 ViscondePrimaryCta(
-                  onPressed: () => context.go('/'),
+                  onPressed: () => context.go(AppRoute.home),
                   icon: Icons.arrow_back,
                   label: 'Voltar ao início',
                 ),

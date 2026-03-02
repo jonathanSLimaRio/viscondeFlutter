@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ui/controller_disposer.dart';
 import '../../auth/auth_controller.dart';
 import '../models/admin_models.dart';
 
@@ -117,87 +118,100 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
     final sortOrderController = TextEditingController(text: '0');
     bool isActive = true;
 
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Nova virtude'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Nome'),
-                    ),
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Descricao curta',
+    final created = await withControllersDisposed<bool?>(
+      [
+        nameController,
+        descriptionController,
+        iconController,
+        sortOrderController,
+      ],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Nova virtude'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Nome'),
                       ),
-                    ),
-                    TextField(
-                      controller: iconController,
-                      decoration: const InputDecoration(labelText: 'Icon key'),
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ativa'),
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                    ),
-                  ],
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Descricao curta',
+                        ),
+                      ),
+                      TextField(
+                        controller: iconController,
+                        decoration: const InputDecoration(
+                          labelText: 'Icon key',
+                        ),
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ativa'),
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .createVirtue(
-                            token,
-                            name: nameController.text.trim(),
-                            shortDescription: descriptionController.text.trim(),
-                            iconKey: iconController.text.trim(),
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .createVirtue(
+                              token,
+                              name: nameController.text.trim(),
+                              shortDescription: descriptionController.text
+                                  .trim(),
+                              iconKey: iconController.text.trim(),
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (created == true) {
@@ -221,88 +235,101 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
     );
     bool isActive = virtue.isActive;
 
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Editar virtude'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Nome'),
-                    ),
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Descricao curta',
+    final updated = await withControllersDisposed<bool?>(
+      [
+        nameController,
+        descriptionController,
+        iconController,
+        sortOrderController,
+      ],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Editar virtude'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Nome'),
                       ),
-                    ),
-                    TextField(
-                      controller: iconController,
-                      decoration: const InputDecoration(labelText: 'Icon key'),
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ativa'),
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                    ),
-                  ],
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Descricao curta',
+                        ),
+                      ),
+                      TextField(
+                        controller: iconController,
+                        decoration: const InputDecoration(
+                          labelText: 'Icon key',
+                        ),
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ativa'),
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .updateVirtue(
-                            token,
-                            virtue.id,
-                            name: nameController.text.trim(),
-                            shortDescription: descriptionController.text.trim(),
-                            iconKey: iconController.text.trim(),
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .updateVirtue(
+                              token,
+                              virtue.id,
+                              name: nameController.text.trim(),
+                              shortDescription: descriptionController.text
+                                  .trim(),
+                              iconKey: iconController.text.trim(),
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (updated == true) {
@@ -345,122 +372,127 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
     String selectedAgeBand = _templateAgeBandFilter ?? _ageBands.first;
     bool isActive = true;
 
-    final created = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Novo template de virtude'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedVirtueId,
-                      decoration: const InputDecoration(labelText: 'Virtude'),
-                      items: _virtues
-                          .map(
-                            (virtue) => DropdownMenuItem<String>(
-                              value: virtue.id,
-                              child: Text(virtue.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => selectedVirtueId = value);
-                        }
-                      },
-                    ),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedAgeBand,
-                      decoration: const InputDecoration(
-                        labelText: 'Faixa etaria',
+    final created = await withControllersDisposed<bool?>(
+      [dilemmaController, questionController, sortOrderController],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Novo template de virtude'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedVirtueId,
+                        decoration: const InputDecoration(labelText: 'Virtude'),
+                        items: _virtues
+                            .map(
+                              (virtue) => DropdownMenuItem<String>(
+                                value: virtue.id,
+                                child: Text(virtue.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => selectedVirtueId = value);
+                          }
+                        },
                       ),
-                      items: _ageBands
-                          .map(
-                            (band) => DropdownMenuItem<String>(
-                              value: band,
-                              child: Text(band),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => selectedAgeBand = value);
-                        }
-                      },
-                    ),
-                    TextField(
-                      controller: dilemmaController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Dilema'),
-                    ),
-                    TextField(
-                      controller: questionController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Pergunta final',
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedAgeBand,
+                        decoration: const InputDecoration(
+                          labelText: 'Faixa etaria',
+                        ),
+                        items: _ageBands
+                            .map(
+                              (band) => DropdownMenuItem<String>(
+                                value: band,
+                                child: Text(band),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => selectedAgeBand = value);
+                          }
+                        },
                       ),
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                      title: const Text('Ativo'),
-                    ),
-                  ],
+                      TextField(
+                        controller: dilemmaController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(labelText: 'Dilema'),
+                      ),
+                      TextField(
+                        controller: questionController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Pergunta final',
+                        ),
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                        title: const Text('Ativo'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .createVirtueTemplate(
-                            token,
-                            virtueId: selectedVirtueId,
-                            ageBand: selectedAgeBand,
-                            dilemmaText: dilemmaController.text.trim(),
-                            endQuestionText: questionController.text.trim(),
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .createVirtueTemplate(
+                              token,
+                              virtueId: selectedVirtueId,
+                              ageBand: selectedAgeBand,
+                              dilemmaText: dilemmaController.text.trim(),
+                              endQuestionText: questionController.text.trim(),
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (created == true) {
@@ -485,90 +517,95 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
     );
     bool isActive = template.isActive;
 
-    final updated = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Editar template'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Faixa: ${template.ageBand}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: dilemmaController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Dilema'),
-                    ),
-                    TextField(
-                      controller: questionController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Pergunta final',
+    final updated = await withControllersDisposed<bool?>(
+      [dilemmaController, questionController, sortOrderController],
+      () => showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('Editar template'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Faixa: ${template.ageBand}',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
-                    ),
-                    TextField(
-                      controller: sortOrderController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Ordem'),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      value: isActive,
-                      onChanged: (value) {
-                        setDialogState(() => isActive = value);
-                      },
-                      title: const Text('Ativo'),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: dilemmaController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(labelText: 'Dilema'),
+                      ),
+                      TextField(
+                        controller: questionController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Pergunta final',
+                        ),
+                      ),
+                      TextField(
+                        controller: sortOrderController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Ordem'),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        value: isActive,
+                        onChanged: (value) {
+                          setDialogState(() => isActive = value);
+                        },
+                        title: const Text('Ativo'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await ref
-                          .read(adminApiProvider)
-                          .updateVirtueTemplate(
-                            token,
-                            template.id,
-                            dilemmaText: dilemmaController.text.trim(),
-                            endQuestionText: questionController.text.trim(),
-                            sortOrder:
-                                int.tryParse(sortOrderController.text.trim()) ??
-                                0,
-                            isActive: isActive,
-                          );
-                      if (!context.mounted) {
-                        return;
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(adminApiProvider)
+                            .updateVirtueTemplate(
+                              token,
+                              template.id,
+                              dilemmaText: dilemmaController.text.trim(),
+                              endQuestionText: questionController.text.trim(),
+                              sortOrder:
+                                  int.tryParse(
+                                    sortOrderController.text.trim(),
+                                  ) ??
+                                  0,
+                              isActive: isActive,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.of(context).pop(true);
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(parseDioError(error))),
+                        );
                       }
-                      Navigator.of(context).pop(true);
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(parseDioError(error))),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
 
     if (updated == true) {

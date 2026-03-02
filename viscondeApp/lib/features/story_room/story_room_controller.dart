@@ -14,6 +14,19 @@ import 'story_api.dart';
 
 enum StorySyncStatus { synced, pending, reconnecting }
 
+abstract interface class ConnectivityMonitor {
+  Stream<dynamic> get changes;
+}
+
+class ConnectivityPlusMonitor implements ConnectivityMonitor {
+  ConnectivityPlusMonitor(this._connectivity);
+
+  final Connectivity _connectivity;
+
+  @override
+  Stream<dynamic> get changes => _connectivity.onConnectivityChanged;
+}
+
 class StoryRoomState {
   const StoryRoomState({
     this.loading = false,
@@ -78,7 +91,7 @@ final storyRoomControllerProvider =
         ref: ref,
         api: ref.watch(storyApiProvider),
         syncQueue: ref.watch(storySyncQueueProvider),
-        connectivity: Connectivity(),
+        connectivity: ConnectivityPlusMonitor(Connectivity()),
       );
     });
 
@@ -87,7 +100,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     required Ref ref,
     required StoryApi api,
     required StorySyncQueue syncQueue,
-    required Connectivity connectivity,
+    required ConnectivityMonitor connectivity,
   }) : _ref = ref,
        _api = api,
        _syncQueue = syncQueue,
@@ -99,16 +112,14 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
   final Ref _ref;
   final StoryApi _api;
   final StorySyncQueue _syncQueue;
-  final Connectivity _connectivity;
+  final ConnectivityMonitor _connectivity;
 
   StreamSubscription<dynamic>? _connectivitySubscription;
   bool _syncingQueue = false;
 
   Future<void> _bootstrap() async {
     await _refreshPendingCount();
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
-      event,
-    ) {
+    _connectivitySubscription = _connectivity.changes.listen((event) {
       if (_isOnline(event)) {
         syncPending();
       }
@@ -150,6 +161,32 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     }
 
     return error.response == null;
+  }
+
+  int? _statusCode(Object error) {
+    if (error is DioException) {
+      return error.response?.statusCode;
+    }
+    return null;
+  }
+
+  Duration _retryBackoff({required int attempt, int? statusCode}) {
+    final normalizedAttempt = attempt <= 0 ? 1 : attempt;
+    final seconds = min(300, 5 * (1 << min(normalizedAttempt - 1, 6)));
+
+    if (statusCode == 401 || statusCode == 403) {
+      return const Duration(minutes: 2);
+    }
+
+    if (statusCode == 429) {
+      return const Duration(minutes: 1);
+    }
+
+    if (statusCode != null && statusCode >= 500) {
+      return Duration(seconds: max(15, seconds));
+    }
+
+    return Duration(seconds: seconds);
   }
 
   void setParticipantToken(String? token) {
@@ -486,7 +523,9 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     state = state.copyWith(syncStatus: StorySyncStatus.reconnecting);
 
     try {
-      final events = await _syncQueue.listPending(storyId: session.id);
+      final events = await _syncQueue.listRetryable(storyId: session.id);
+      bool shouldRefreshSession = false;
+
       for (final event in events) {
         try {
           final kind = storyStepKindFromApi(
@@ -506,24 +545,51 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
                 (event.payload['localEventId'] as String?) ??
                 _nextLocalEventId(),
           );
-
-          await _syncQueue.removeEvent(event.id);
+          await _syncQueue.markSynced(event.id);
+          shouldRefreshSession = true;
         } catch (error) {
-          if (error is DioException && error.response?.statusCode == 409) {
-            await _syncQueue.removeEvent(event.id);
+          final statusCode = _statusCode(error);
+          if (statusCode == 409) {
+            await _syncQueue.markConflict(
+              id: event.id,
+              reason: parseDioError(error),
+              httpStatus: statusCode,
+            );
+            shouldRefreshSession = true;
             continue;
           }
 
-          if (_isNetworkError(error)) {
+          await _syncQueue.markFailed(
+            id: event.id,
+            reason: parseDioError(error),
+            httpStatus: statusCode,
+            retryAfter: _retryBackoff(
+              attempt: event.retryCount + 1,
+              statusCode: statusCode,
+            ),
+          );
+
+          if (_isNetworkError(error) ||
+              statusCode == null ||
+              statusCode >= 500 ||
+              statusCode == 429 ||
+              statusCode == 401 ||
+              statusCode == 403) {
             break;
           }
 
-          await _syncQueue.removeEvent(event.id);
+          // Erro 4xx sem conflito: mantém evento como failed para observabilidade.
+          break;
         }
       }
 
-      final refreshed = await _api.getStorySession(token, session.id);
-      state = state.copyWith(session: refreshed);
+      if (shouldRefreshSession) {
+        final refreshed = await _api.getStorySession(token, session.id);
+        state = state.copyWith(session: refreshed);
+      }
+      await _syncQueue.purgeSynced(
+        olderThan: DateTime.now().subtract(const Duration(days: 7)),
+      );
     } catch (error) {
       state = state.copyWith(error: parseDioError(error));
     } finally {

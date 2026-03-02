@@ -8,6 +8,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ui/app_feedback.dart';
 import '../../auth/auth_controller.dart';
 import '../../call/remote_call_controller.dart';
 import '../../realtime/realtime_socket_client.dart';
@@ -59,6 +60,8 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
   bool _loading = false;
   bool _sendingChat = false;
   String? _error;
+  Timer? _reconnectTimer;
+  int _reconnectAttempt = 0;
 
   void _appendInteractionIfMissing(StoryInteractionModel interaction) {
     final exists = _interactions.any((item) {
@@ -94,6 +97,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
 
   @override
   void dispose() {
+    _reconnectTimer?.cancel();
     _chatController.dispose();
     _socketEventsSub?.cancel();
     _socketErrorsSub?.cancel();
@@ -215,6 +219,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
       if (!mounted) {
         return;
       }
+      _scheduleReconnect();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
@@ -226,15 +231,77 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         participantToken: token,
         clientId: _clientId,
       );
+      _reconnectTimer?.cancel();
+      _reconnectAttempt = 0;
       await _initCallController();
+      await _refreshRemoteStateAfterReconnect();
     } catch (error) {
       if (!mounted) {
         return;
       }
+      _scheduleReconnect();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Falha ao conectar realtime.')));
     }
+  }
+
+  Future<void> _refreshRemoteStateAfterReconnect() async {
+    if (widget.isGuest) {
+      return;
+    }
+
+    final accessToken = _accessToken();
+    final story = _story;
+    if (accessToken == null || story == null) {
+      return;
+    }
+
+    try {
+      final state = await ref
+          .read(storyApiProvider)
+          .getRemoteRoomState(accessToken, story.id);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _remoteRoom = state.remoteRoom;
+        _story = state.storySnapshot;
+        _participantToken = state.participantToken;
+        _signalingWsUrl = state.signalingWsUrl;
+        _rtcConfig = state.rtcConfig;
+      });
+      ref
+          .read(storyRoomControllerProvider.notifier)
+          .setParticipantToken(state.participantToken);
+    } catch (_) {
+      // Falha de refresh não bloqueia a sessão já conectada.
+    }
+  }
+
+  void _scheduleReconnect() {
+    if (!mounted || (_remoteRoom?.isOpen != true)) {
+      return;
+    }
+
+    final wsUrl = _signalingWsUrl;
+    final token = _participantToken;
+    if (wsUrl == null || wsUrl.isEmpty || token == null || token.isEmpty) {
+      return;
+    }
+
+    if (_reconnectTimer?.isActive == true) {
+      return;
+    }
+
+    final backoffSeconds = min(30, 1 << min(_reconnectAttempt, 5));
+    _reconnectAttempt = min(_reconnectAttempt + 1, 10);
+    _reconnectTimer = Timer(Duration(seconds: backoffSeconds), () {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_connectRealtime());
+    });
   }
 
   void _onRealtimeEvent(RealtimeSocketEvent event) {
@@ -315,10 +382,12 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                   status: (item['status'] as String?) ?? 'CONNECTED',
                   lastSeenAt:
                       DateTime.tryParse(item['lastSeenAt'] as String? ?? '') ??
-                      DateTime.now(),
+                      existing?.lastSeenAt ??
+                      DateTime.fromMillisecondsSinceEpoch(0),
                   joinedAt:
                       DateTime.tryParse(item['joinedAt'] as String? ?? '') ??
-                      DateTime.now(),
+                      existing?.joinedAt ??
+                      DateTime.fromMillisecondsSinceEpoch(0),
                   leftAt: DateTime.tryParse(item['leftAt'] as String? ?? ''),
                 );
               })
@@ -356,9 +425,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
             );
           });
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sala remota foi encerrada pelo host.')),
-        );
+        context.showMessage('Sala remota foi encerrada pelo host.');
         unawaited(_callController?.hangup(sendSignalEvent: false));
         break;
       default:
@@ -376,12 +443,8 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
     }
 
     if (!gate.isUnlocked || gate.unlockToken == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Desbloqueie a area adulta com PIN antes de abrir sala remota.',
-          ),
-        ),
+      context.showMessage(
+        'Desbloqueie a area adulta com PIN antes de abrir sala remota.',
       );
       return;
     }
@@ -425,9 +488,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     } finally {
       if (mounted) {
         setState(() {
@@ -447,11 +508,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
     }
 
     if (!gate.isUnlocked || gate.unlockToken == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('PIN adulto necessario para regenerar codigo.'),
-        ),
-      );
+      context.showMessage('PIN adulto necessario para regenerar codigo.');
       return;
     }
 
@@ -486,9 +543,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -532,9 +587,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -570,9 +623,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     } finally {
       if (mounted) {
         setState(() => _sendingChat = false);
@@ -601,9 +652,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     }
   }
 
@@ -626,9 +675,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     }
   }
 
@@ -689,13 +736,16 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      context.showError(error);
     }
   }
 
   void _setCallMode(RemoteCallMode mode) {
+    if (widget.isGuest) {
+      context.showMessage('Somente o host pode alterar o modo da chamada.');
+      return;
+    }
+
     final room = _remoteRoom;
     if (room == null) {
       return;
@@ -930,22 +980,30 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                         ChoiceChip(
                           label: const Text('Sem chamada'),
                           selected: room?.callMode == RemoteCallMode.none,
-                          onSelected: (_) => _setCallMode(RemoteCallMode.none),
+                          onSelected: widget.isGuest
+                              ? null
+                              : (_) => _setCallMode(RemoteCallMode.none),
                         ),
                         ChoiceChip(
                           label: const Text('Audio'),
                           selected: room?.callMode == RemoteCallMode.audio,
-                          onSelected: (_) => _setCallMode(RemoteCallMode.audio),
+                          onSelected: widget.isGuest
+                              ? null
+                              : (_) => _setCallMode(RemoteCallMode.audio),
                         ),
                         ChoiceChip(
                           label: const Text('Video'),
                           selected: room?.callMode == RemoteCallMode.video,
-                          onSelected: (_) => _setCallMode(RemoteCallMode.video),
+                          onSelected: widget.isGuest
+                              ? null
+                              : (_) => _setCallMode(RemoteCallMode.video),
                         ),
                         ChoiceChip(
                           label: const Text('Co-op / Votação'),
                           selected: room?.callMode == RemoteCallMode.coop,
-                          onSelected: (_) => _setCallMode(RemoteCallMode.coop),
+                          onSelected: widget.isGuest
+                              ? null
+                              : (_) => _setCallMode(RemoteCallMode.coop),
                         ),
                       ],
                     ),

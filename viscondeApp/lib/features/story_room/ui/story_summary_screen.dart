@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../gamification/models/gamification_models.dart';
 import '../../gamification/inventory_models.dart';
@@ -83,7 +84,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Historia publicada com sucesso.')),
     );
-    context.go('/');
+    context.go(AppRoute.home);
   }
 
   Future<void> _showGamificationModal(

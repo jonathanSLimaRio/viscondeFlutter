@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
@@ -65,7 +66,7 @@ class _RemoteJoinScreenState extends ConsumerState<RemoteJoinScreen> {
         isGuest: true,
       );
 
-      context.go('/remote/room', extra: bundle);
+      context.go(AppRoute.remoteRoom, extra: bundle);
     } catch (error) {
       if (!mounted) {
         return;

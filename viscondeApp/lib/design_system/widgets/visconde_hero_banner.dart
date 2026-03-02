@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use, use_null_aware_elements
-
 import 'package:flutter/material.dart';
 
 import '../tokens/visconde_tokens.dart';
@@ -55,8 +53,8 @@ class ViscondeHeroBanner extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.white.withOpacity(0.1),
-                    colors.parchment.withOpacity(0.82),
+                    Colors.white.withValues(alpha: 0.1),
+                    colors.parchment.withValues(alpha: 0.82),
                   ],
                 ),
               ),
@@ -95,18 +93,18 @@ class ViscondeHeroBanner extends StatelessWidget {
                           title,
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
-                        if (subtitle != null && subtitle!.isNotEmpty)
+                        if (subtitle case final text? when text.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              subtitle!,
+                              text,
                               style: Theme.of(context).textTheme.bodyLarge,
                             ),
                           ),
                       ],
                     ),
                   ),
-                  if (trailing != null) trailing!,
+                  ...?(trailing == null ? null : <Widget>[trailing!]),
                 ],
               ),
             ),

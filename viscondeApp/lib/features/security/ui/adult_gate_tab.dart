@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
@@ -295,7 +296,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
         const SizedBox(height: 12),
         FilledButton.icon(
           onPressed: _isUnlocked
-              ? () => context.push('/adult/virtues/reports')
+              ? () => context.push(AppRoute.adultVirtueReports)
               : null,
           icon: const Icon(Icons.insights_outlined),
           label: const Text('Relatorio de virtudes'),
@@ -303,21 +304,25 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: _isUnlocked
-              ? () => context.push('/adult/interactions')
+              ? () => context.push(AppRoute.adultInteractions)
               : null,
           icon: const Icon(Icons.forum_outlined),
           label: const Text('Interacoes remotas'),
         ),
         const SizedBox(height: 8),
         FilledButton.icon(
-          onPressed: _isUnlocked ? () => context.push('/adult/voices') : null,
+          onPressed: _isUnlocked
+              ? () => context.push(AppRoute.adultVoices)
+              : null,
           icon: const Icon(Icons.record_voice_over_outlined),
           label: const Text('Voz inesquecivel'),
         ),
         if (auth.user?.isAdmin ?? false) ...[
           const SizedBox(height: 8),
           FilledButton.icon(
-            onPressed: _isUnlocked ? () => context.push('/adult/admin') : null,
+            onPressed: _isUnlocked
+                ? () => context.push(AppRoute.adminHub)
+                : null,
             icon: const Icon(Icons.admin_panel_settings_outlined),
             label: const Text('Administracao'),
           ),

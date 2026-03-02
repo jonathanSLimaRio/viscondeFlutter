@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 
 import '../tokens/visconde_tokens.dart';
@@ -32,7 +30,7 @@ class ViscondePillChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(context.viscondeRadii.pill),
         border: Border.all(
           color: selected
-              ? colors.primaryDark.withOpacity(0.4)
+              ? colors.primaryDark.withValues(alpha: 0.4)
               : colors.borderSoft,
         ),
         boxShadow: context.viscondeElevations.soft,

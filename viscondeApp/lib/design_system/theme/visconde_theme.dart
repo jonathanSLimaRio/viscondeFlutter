@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 
 import '../tokens/visconde_tokens.dart';
@@ -52,8 +50,8 @@ class ViscondeTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white.withOpacity(0.65),
-        hintStyle: TextStyle(color: colors.textMuted.withOpacity(0.8)),
+        fillColor: Colors.white.withValues(alpha: 0.65),
+        hintStyle: TextStyle(color: colors.textMuted.withValues(alpha: 0.8)),
         labelStyle: TextStyle(color: colors.textMuted),
         border: OutlineInputBorder(
           borderRadius: inputRadius,
@@ -77,8 +75,8 @@ class ViscondeTheme {
           borderRadius: BorderRadius.circular(radii.pill),
           side: BorderSide(color: colors.borderSoft),
         ),
-        backgroundColor: Colors.white.withOpacity(0.75),
-        selectedColor: colors.primary.withOpacity(0.2),
+        backgroundColor: Colors.white.withValues(alpha: 0.75),
+        selectedColor: colors.primary.withValues(alpha: 0.2),
         labelStyle: TextStyle(
           color: colors.textStrong,
           fontWeight: FontWeight.w700,
@@ -88,7 +86,7 @@ class ViscondeTheme {
         style: FilledButton.styleFrom(
           backgroundColor: colors.primary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: colors.primary.withOpacity(0.4),
+          disabledBackgroundColor: colors.primary.withValues(alpha: 0.4),
           disabledForegroundColor: Colors.white,
           elevation: 0,
           textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
@@ -107,7 +105,7 @@ class ViscondeTheme {
             borderRadius: BorderRadius.circular(radii.pill),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          backgroundColor: Colors.white.withOpacity(0.45),
+          backgroundColor: Colors.white.withValues(alpha: 0.45),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -123,8 +121,8 @@ class ViscondeTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 78,
-        backgroundColor: colors.parchment.withOpacity(0.82),
-        indicatorColor: colors.primary.withOpacity(0.2),
+        backgroundColor: colors.parchment.withValues(alpha: 0.82),
+        indicatorColor: colors.primary.withValues(alpha: 0.2),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(

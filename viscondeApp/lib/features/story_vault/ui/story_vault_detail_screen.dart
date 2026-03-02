@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/app_route.dart';
 import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
@@ -160,7 +161,7 @@ class _StoryVaultDetailScreenState
       if (!mounted) {
         return;
       }
-      context.push('/stories/${story.id}/room');
+      context.push(AppRoute.storyRoom(story.id));
     } catch (error) {
       if (!mounted) {
         return;
@@ -250,7 +251,7 @@ class _StoryVaultDetailScreenState
       if (!mounted) {
         return;
       }
-      context.push('/stories/${story.id}/room');
+      context.push(AppRoute.storyRoom(story.id));
     } catch (error) {
       if (!mounted) {
         return;
@@ -377,7 +378,7 @@ class _StoryVaultDetailScreenState
                   trailing: IconButton(
                     icon: const Icon(Icons.chevron_right),
                     onPressed: () =>
-                        context.push('/stories/${episode.storyId}/room'),
+                        context.push(AppRoute.storyRoom(episode.storyId)),
                   ),
                   childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                   children: [

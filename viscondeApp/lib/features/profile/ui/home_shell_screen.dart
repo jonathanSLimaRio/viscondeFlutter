@@ -46,7 +46,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
           ),
         ],
       ),
-      body: tabs[_index],
+      body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
         child: ClipRRect(

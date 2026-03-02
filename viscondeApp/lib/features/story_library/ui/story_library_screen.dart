@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
@@ -91,7 +92,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen> {
           ),
           const SizedBox(height: 12),
           ViscondePrimaryCta(
-            onPressed: () => context.push('/stories/new'),
+            onPressed: () => context.push(AppRoute.storyCreate),
             icon: Icons.auto_stories,
             label: 'Nova Sala de História',
           ),
@@ -152,7 +153,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen> {
           ..._stories.map(
             (story) => ViscondeGlassCard(
               child: ListTile(
-                onTap: () => context.push('/stories/${story.id}/room'),
+                onTap: () => context.push(AppRoute.storyRoom(story.id)),
                 leading: const CircleAvatar(
                   child: Icon(Icons.menu_book_outlined),
                 ),
