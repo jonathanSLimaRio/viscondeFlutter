@@ -858,6 +858,8 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
               assetPath: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.heroUnderwater,
               ),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.winkingWavingController,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   widget.isGuest

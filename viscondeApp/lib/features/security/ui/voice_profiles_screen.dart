@@ -148,6 +148,8 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
               assetPath: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.heroTreasure,
               ),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.seriousController,
             ),
             const SizedBox(height: 12),
             ViscondeGlassCard(

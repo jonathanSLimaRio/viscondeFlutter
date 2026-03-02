@@ -66,7 +66,10 @@ class StoryVaultHeroHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: Theme.of(context).textTheme.displaySmall),
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.displaySmall,
+                      ),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
@@ -99,8 +102,13 @@ class StoryVaultHeroHeader extends StatelessWidget {
                 onPressed: onViewCollection,
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: 0.85),
-                  side: BorderSide(color: colors.primaryDark.withValues(alpha: 0.2)),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  side: BorderSide(
+                    color: colors.primaryDark.withValues(alpha: 0.2),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
                 ),
                 child: const Text('Ver coleção'),
               ),

@@ -57,6 +57,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               title: 'Nova Jornada',
               subtitle: 'Crie sua conta e comece as histórias.',
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroForest),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.pointingScroll,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.avatarChild,

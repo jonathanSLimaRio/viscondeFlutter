@@ -1131,6 +1131,8 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
               title: 'Admin • Templates',
               subtitle: 'Árvore de decisão e publicação versionada.',
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.studyingDesk,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.avatarParent,

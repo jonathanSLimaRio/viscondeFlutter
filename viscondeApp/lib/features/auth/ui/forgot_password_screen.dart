@@ -63,6 +63,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             title: 'Recupere seu acesso',
             subtitle: 'Enviamos o link para você continuar a aventura.',
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
+            showMascot: true,
+            mascotPose: ViscondeMascotPose.pointingScroll,
           ),
           const SizedBox(height: 14),
           ViscondeGlassCard(

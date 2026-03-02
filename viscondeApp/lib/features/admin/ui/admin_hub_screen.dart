@@ -17,6 +17,8 @@ class AdminHubScreen extends StatelessWidget {
             title: 'Painel Interno',
             subtitle: 'Gestão de conteúdos, templates e moderação.',
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
+            showMascot: true,
+            mascotPose: ViscondeMascotPose.studyingDesk,
             trailing: ViscondeAvatarBadge(
               imageAsset: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.avatarParent,

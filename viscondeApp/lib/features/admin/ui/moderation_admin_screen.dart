@@ -355,6 +355,8 @@ class _ModerationAdminScreenState extends ConsumerState<ModerationAdminScreen> {
               title: 'Admin • Moderação',
               subtitle: 'Termos bloqueados e políticas por escopo.',
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.studyingDesk,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.avatarParent,

@@ -201,6 +201,8 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
               assetPath: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.heroTreasure,
               ),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.seriousController,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.avatarParent,

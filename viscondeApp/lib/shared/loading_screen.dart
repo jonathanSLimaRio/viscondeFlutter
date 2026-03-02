@@ -21,6 +21,13 @@ class LoadingScreen extends StatelessWidget {
                   height: 60,
                   fit: BoxFit.contain,
                 ),
+                const SizedBox(height: 10),
+                const ViscondeMascot(
+                  pose: ViscondeMascotPose.wavingControllerBook,
+                  size: 88,
+                  glow: true,
+                  opacity: 0.92,
+                ),
                 const SizedBox(height: 24),
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,

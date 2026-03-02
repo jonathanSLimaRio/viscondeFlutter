@@ -84,4 +84,60 @@ void main() {
       matchesGoldenFile('goldens/design_system/visconde_story_row_card.png'),
     );
   });
+
+  testWidgets('ViscondeHeroBanner golden without mascot', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 300));
+    await tester.pumpWidget(
+      wrapTestApp(
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: ViscondeHeroBanner(
+            title: 'Baú de Aventuras',
+            subtitle: '4 histórias salvas',
+            assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
+            trailing: const ViscondeAvatarBadge(
+              imageAsset: 'assets/design/avatars/child.png',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile(
+        'goldens/design_system/visconde_hero_banner_without_mascot.png',
+      ),
+    );
+  });
+
+  testWidgets('ViscondeHeroBanner golden with mascot', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 300));
+    await tester.pumpWidget(
+      wrapTestApp(
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: ViscondeHeroBanner(
+            title: 'Baú de Aventuras',
+            subtitle: '4 histórias salvas',
+            assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
+            showMascot: true,
+            mascotPose: ViscondeMascotPose.readingBook,
+            trailing: const ViscondeAvatarBadge(
+              imageAsset: 'assets/design/avatars/child.png',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile(
+        'goldens/design_system/visconde_hero_banner_with_mascot.png',
+      ),
+    );
+  });
 }

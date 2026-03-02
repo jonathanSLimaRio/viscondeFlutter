@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/models/child_profile.dart';
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -242,9 +243,32 @@ class _ChildrenTabState extends ConsumerState<ChildrenTab> {
                 ),
                 const SizedBox(height: 12),
                 if (_children.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 24),
-                    child: Text('Nenhuma crianca cadastrada ainda.'),
+                  ViscondeGlassCard(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Column(
+                        children: const [
+                          ViscondeMascot(
+                            pose: ViscondeMascotPose.readingBookClose,
+                            size: 180,
+                            glow: true,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Nenhuma criança cadastrada ainda.',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Cadastre uma criança para começar novas aventuras.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ..._children.map(
                   (child) => Card(

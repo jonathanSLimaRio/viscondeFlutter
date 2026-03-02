@@ -17,6 +17,8 @@ class AdminAccessDeniedScreen extends StatelessWidget {
             title: 'Acesso Restrito',
             subtitle: 'Somente contas ADMIN podem abrir este painel.',
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroForest),
+            showMascot: true,
+            mascotPose: ViscondeMascotPose.potionPalette,
           ),
           const SizedBox(height: 12),
           ViscondeGlassCard(

@@ -315,6 +315,8 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             assetPath: ViscondeArtRegistry.resolve(
               ViscondeArtKey.heroUnderwater,
             ),
+            showMascot: true,
+            mascotPose: ViscondeMascotPose.thumbsUpController,
             trailing: ViscondeAvatarBadge(
               imageAsset: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.avatarChild,

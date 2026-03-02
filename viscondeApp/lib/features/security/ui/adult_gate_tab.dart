@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -210,6 +211,27 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        const ViscondeGlassCard(
+          child: Row(
+            children: [
+              Expanded(
+                child: ViscondeSectionTitle(
+                  title: 'Área adulta protegida',
+                  subtitle:
+                      'Gerencie PIN e recursos sensíveis com proteção extra.',
+                ),
+              ),
+              SizedBox(width: 8),
+              ViscondeMascot(
+                pose: ViscondeMascotPose.seriousController,
+                size: 72,
+                opacity: 0.85,
+                glow: true,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
         Text(
           _hasPin ? 'PIN configurado' : 'Configure seu PIN adulto',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

@@ -107,7 +107,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                               step.stepIndex,
                               p.id,
                             );
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         showDialog(
                           context: context,
                           builder: (ctx) => AlertDialog(
@@ -127,7 +127,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                           ),
                         );
                       } catch (e) {
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text(parseDioError(e))),
                         );
@@ -215,6 +215,8 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
               assetPath: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.heroUnderwater,
               ),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.speakingMic,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.avatarChild,

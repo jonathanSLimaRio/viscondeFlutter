@@ -6,6 +6,7 @@ export 'typography/visconde_typography.dart';
 export 'widgets/visconde_avatar_badge.dart';
 export 'widgets/visconde_glass_card.dart';
 export 'widgets/visconde_hero_banner.dart';
+export 'widgets/visconde_mascot.dart';
 export 'widgets/visconde_pill_chip.dart';
 export 'widgets/visconde_primary_cta.dart';
 export 'widgets/visconde_scaffold_background.dart';

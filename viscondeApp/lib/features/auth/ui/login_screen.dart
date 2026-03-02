@@ -126,6 +126,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   assetPath: ViscondeArtRegistry.resolve(
                     ViscondeArtKey.heroTreasure,
                   ),
+                  showMascot: true,
+                  mascotPose: ViscondeMascotPose.wavingControllerBook,
                   trailing: ViscondeAvatarBadge(
                     imageAsset: ViscondeArtRegistry.resolve(
                       ViscondeArtKey.avatarParent,

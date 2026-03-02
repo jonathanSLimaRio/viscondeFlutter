@@ -303,6 +303,8 @@ class _ThemeAdminScreenState extends ConsumerState<ThemeAdminScreen> {
               title: 'Admin • Temas',
               subtitle: 'Catálogo visual de temas do app.',
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroForest),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.studyingDesk,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.avatarParent,

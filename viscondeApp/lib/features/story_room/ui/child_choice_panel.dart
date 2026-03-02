@@ -61,7 +61,9 @@ class ChildChoicePanel extends StatelessWidget {
                               message: v.displayName,
                               child: CircleAvatar(
                                 radius: 12,
-                                backgroundColor: Colors.blue.withOpacity(0.2),
+                                backgroundColor: Colors.blue.withValues(
+                                  alpha: 0.2,
+                                ),
                                 child: Text(
                                   v.displayName.substring(0, 1).toUpperCase(),
                                   style: const TextStyle(

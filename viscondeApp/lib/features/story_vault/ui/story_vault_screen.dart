@@ -169,7 +169,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     setState(() => _loading = true);
     try {
       final now = DateTime.now();
-      final monthStr = "\${now.year}-\${now.month.toString().padLeft(2, '0')}";
+      final monthStr = '${now.year}-${now.month.toString().padLeft(2, '0')}';
       final book = await ref
           .read(bookApiProvider)
           .createMonthlyBook(_selectedChildId!, monthStr, token);
@@ -230,6 +230,8 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             title: 'Baú de Aventuras',
             subtitle: '${_collections.length} sagas encontradas',
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
+            showMascot: true,
+            mascotPose: ViscondeMascotPose.readingBook,
             trailing: ViscondeAvatarBadge(
               imageAsset: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.avatarChild,
@@ -375,9 +377,38 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
               child: Center(child: CircularProgressIndicator()),
             ),
           if (!_loading && _collections.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text('Nenhuma saga encontrada com os filtros atuais.'),
+            ViscondeGlassCard(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Seu baú está vazio',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const ViscondeMascot(
+                      pose: ViscondeMascotPose.readingBook,
+                      size: 180,
+                      glow: true,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Crie a primeira aventura e comece sua coleção.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    ViscondePrimaryCta(
+                      onPressed: () => context.push('/stories/new'),
+                      icon: Icons.menu_book_outlined,
+                      label: 'Criar nova história',
+                    ),
+                  ],
+                ),
+              ),
             ),
           ..._collections.map(
             (item) => Padding(

@@ -166,6 +166,8 @@ class _StoryInteractionsAdultScreenState
               title: 'Interações da Sala',
               subtitle: 'Histórico de chat e reações do modo remoto.',
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroSpace),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.seriousController,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.avatarParent,

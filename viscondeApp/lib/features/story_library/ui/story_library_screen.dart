@@ -86,6 +86,8 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen> {
             title: 'Biblioteca Clássica',
             subtitle: 'Visão por capítulos individuais.',
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
+            showMascot: true,
+            mascotPose: ViscondeMascotPose.readingBook,
           ),
           const SizedBox(height: 12),
           ViscondePrimaryCta(
@@ -123,9 +125,29 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen> {
               child: Center(child: CircularProgressIndicator()),
             ),
           if (!_loading && _stories.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 24),
-              child: Text('Nenhuma historia encontrada.'),
+            ViscondeGlassCard(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Column(
+                  children: [
+                    const ViscondeMascot(
+                      pose: ViscondeMascotPose.readingBook,
+                      size: 180,
+                      glow: true,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Nenhuma história encontrada.',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Publique um capítulo para preencher sua biblioteca.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ..._stories.map(
             (story) => ViscondeGlassCard(

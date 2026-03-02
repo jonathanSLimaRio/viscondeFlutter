@@ -524,6 +524,8 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
               title: 'Admin • Prompts',
               subtitle: 'Prompts de ideia, fallback e narração.',
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroSpace),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.studyingDesk,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.avatarParent,

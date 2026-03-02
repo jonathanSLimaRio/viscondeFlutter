@@ -91,6 +91,8 @@ class _RemoteJoinScreenState extends ConsumerState<RemoteJoinScreen> {
             title: 'Conexão Remota',
             subtitle: 'Entre com código para criar junto em tempo real.',
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroSpace),
+            showMascot: true,
+            mascotPose: ViscondeMascotPose.winkingWavingController,
             trailing: ViscondeAvatarBadge(
               imageAsset: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.avatarChild,

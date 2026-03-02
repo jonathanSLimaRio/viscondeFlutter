@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../tokens/visconde_tokens.dart';
 import 'visconde_glass_card.dart';
+import 'visconde_mascot.dart';
 
 class ViscondeHeroBanner extends StatelessWidget {
   const ViscondeHeroBanner({
@@ -13,6 +14,11 @@ class ViscondeHeroBanner extends StatelessWidget {
     this.assetPath,
     this.trailing,
     this.height = 170,
+    this.showMascot = false,
+    this.mascotPose = ViscondeMascotPose.readingBook,
+    this.mascotAlignment = Alignment.bottomRight,
+    this.mascotSize = 96,
+    this.mascotOpacity = 0.92,
   });
 
   final String title;
@@ -20,6 +26,11 @@ class ViscondeHeroBanner extends StatelessWidget {
   final String? assetPath;
   final Widget? trailing;
   final double height;
+  final bool showMascot;
+  final ViscondeMascotPose mascotPose;
+  final Alignment mascotAlignment;
+  final double mascotSize;
+  final double mascotOpacity;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +61,26 @@ class ViscondeHeroBanner extends StatelessWidget {
                 ),
               ),
             ),
+            if (showMascot)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Align(
+                    alignment: mascotAlignment,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: trailing != null ? 56 : 12,
+                        bottom: 4,
+                      ),
+                      child: ViscondeMascot(
+                        pose: mascotPose,
+                        size: mascotSize,
+                        glow: true,
+                        opacity: mascotOpacity,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../auth/auth_controller.dart';
@@ -150,6 +151,16 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
               label: const Text('Alterar foto'),
             ),
           ),
+          const SizedBox(height: 4),
+          const Center(
+            child: ViscondeMascot(
+              pose: ViscondeMascotPose.readingBookClose,
+              size: 72,
+              opacity: 0.85,
+              glow: true,
+            ),
+          ),
+          const SizedBox(height: 8),
           TextField(
             controller: _nameController,
             decoration: const InputDecoration(labelText: 'Nome'),

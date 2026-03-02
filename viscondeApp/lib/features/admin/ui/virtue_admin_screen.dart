@@ -608,6 +608,8 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
               assetPath: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.heroTreasure,
               ),
+              showMascot: true,
+              mascotPose: ViscondeMascotPose.studyingDesk,
               trailing: ViscondeAvatarBadge(
                 imageAsset: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.avatarParent,
