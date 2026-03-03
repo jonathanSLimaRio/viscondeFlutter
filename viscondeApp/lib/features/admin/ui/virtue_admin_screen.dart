@@ -647,11 +647,6 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
               ),
               showMascot: true,
               mascotPose: ViscondeMascotPose.studyingDesk,
-              trailing: ViscondeAvatarBadge(
-                imageAsset: ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.avatarParent,
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             if (_loading)

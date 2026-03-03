@@ -203,11 +203,6 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
               ),
               showMascot: true,
               mascotPose: ViscondeMascotPose.seriousController,
-              trailing: ViscondeAvatarBadge(
-                imageAsset: ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.avatarParent,
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             if (_loading)

@@ -317,11 +317,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ),
             showMascot: true,
             mascotPose: ViscondeMascotPose.thumbsUpController,
-            trailing: ViscondeAvatarBadge(
-              imageAsset: ViscondeArtRegistry.resolve(
-                ViscondeArtKey.avatarChild,
-              ),
-            ),
           ),
           const SizedBox(height: 12),
           if (_loading)

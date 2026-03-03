@@ -318,11 +318,6 @@ class _StoryVaultDetailScreenState
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroForest),
               showMascot: true,
               mascotPose: ViscondeMascotPose.readingBook,
-              trailing: ViscondeAvatarBadge(
-                imageAsset: ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.avatarChild,
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             ViscondeGlassCard(

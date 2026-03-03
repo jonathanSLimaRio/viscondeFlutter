@@ -366,11 +366,6 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                   ),
                   showMascot: true,
                   mascotPose: ViscondeMascotPose.observingSpyglass,
-                  trailing: ViscondeAvatarBadge(
-                    imageAsset: ViscondeArtRegistry.resolve(
-                      ViscondeArtKey.avatarParent,
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 12),
                 ViscondeGlassCard(

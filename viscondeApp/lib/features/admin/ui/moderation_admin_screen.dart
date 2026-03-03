@@ -368,11 +368,6 @@ class _ModerationAdminScreenState extends ConsumerState<ModerationAdminScreen> {
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
               showMascot: true,
               mascotPose: ViscondeMascotPose.studyingDesk,
-              trailing: ViscondeAvatarBadge(
-                imageAsset: ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.avatarParent,
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             if (_loading)

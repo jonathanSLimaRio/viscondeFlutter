@@ -94,11 +94,6 @@ class _RemoteJoinScreenState extends ConsumerState<RemoteJoinScreen> {
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroSpace),
             showMascot: true,
             mascotPose: ViscondeMascotPose.winkingWavingController,
-            trailing: ViscondeAvatarBadge(
-              imageAsset: ViscondeArtRegistry.resolve(
-                ViscondeArtKey.avatarChild,
-              ),
-            ),
           ),
           const SizedBox(height: 12),
           ViscondeGlassCard(

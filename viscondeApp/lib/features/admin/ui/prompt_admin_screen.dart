@@ -541,11 +541,6 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroSpace),
               showMascot: true,
               mascotPose: ViscondeMascotPose.studyingDesk,
-              trailing: ViscondeAvatarBadge(
-                imageAsset: ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.avatarParent,
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             if (_loading)

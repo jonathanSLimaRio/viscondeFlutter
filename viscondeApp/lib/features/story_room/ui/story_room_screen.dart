@@ -207,11 +207,6 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
               ),
               showMascot: true,
               mascotPose: ViscondeMascotPose.speakingMic,
-              trailing: ViscondeAvatarBadge(
-                imageAsset: ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.avatarChild,
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             illustrationAsync.when(

@@ -332,11 +332,6 @@ class _ThemeAdminScreenState extends ConsumerState<ThemeAdminScreen> {
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroForest),
               showMascot: true,
               mascotPose: ViscondeMascotPose.studyingDesk,
-              trailing: ViscondeAvatarBadge(
-                imageAsset: ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.avatarParent,
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             if (_loading)

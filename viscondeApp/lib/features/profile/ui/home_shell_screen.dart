@@ -58,26 +58,22 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
 
   Widget _buildAnimatedBody() {
     return Stack(
+      fit: StackFit.expand,
       children: List<Widget>.generate(5, (index) {
-        final tab = _tabCache[index];
-        if (tab == null) {
-          return const SizedBox.shrink();
-        }
-
+        final tab = _tabCache[index] ?? const SizedBox.expand();
         final selected = _index == index;
-        return Positioned.fill(
-          child: IgnorePointer(
-            ignoring: !selected,
-            child: AnimatedOpacity(
-              opacity: selected ? 1 : 0,
+
+        return IgnorePointer(
+          ignoring: !selected,
+          child: AnimatedOpacity(
+            opacity: selected ? 1 : 0,
+            duration: _menuAnimationDuration,
+            curve: Curves.easeOutCubic,
+            child: AnimatedSlide(
+              offset: selected ? Offset.zero : const Offset(0.03, 0),
               duration: _menuAnimationDuration,
               curve: Curves.easeOutCubic,
-              child: AnimatedSlide(
-                offset: selected ? Offset.zero : const Offset(0.03, 0),
-                duration: _menuAnimationDuration,
-                curve: Curves.easeOutCubic,
-                child: KeyedSubtree(key: ValueKey<int>(index), child: tab),
-              ),
+              child: KeyedSubtree(key: ValueKey<int>(index), child: tab),
             ),
           ),
         );

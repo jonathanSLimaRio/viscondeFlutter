@@ -910,13 +910,6 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
               ),
               showMascot: true,
               mascotPose: ViscondeMascotPose.winkingWavingController,
-              trailing: ViscondeAvatarBadge(
-                imageAsset: ViscondeArtRegistry.resolve(
-                  widget.isGuest
-                      ? ViscondeArtKey.avatarChild
-                      : ViscondeArtKey.avatarParent,
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             ViscondeGlassCard(

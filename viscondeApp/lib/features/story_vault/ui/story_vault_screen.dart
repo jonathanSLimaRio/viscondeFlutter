@@ -233,11 +233,6 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
             showMascot: true,
             mascotPose: ViscondeMascotPose.readingBook,
-            trailing: ViscondeAvatarBadge(
-              imageAsset: ViscondeArtRegistry.resolve(
-                ViscondeArtKey.avatarChild,
-              ),
-            ),
           ),
           const SizedBox(height: 12),
           ViscondeGlassCard(

@@ -95,9 +95,6 @@ void main() {
             title: 'Baú de Aventuras',
             subtitle: '4 histórias salvas',
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
-            trailing: const ViscondeAvatarBadge(
-              imageAsset: 'assets/design/avatars/child.png',
-            ),
           ),
         ),
       ),
@@ -124,9 +121,6 @@ void main() {
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
             showMascot: true,
             mascotPose: ViscondeMascotPose.readingBook,
-            trailing: const ViscondeAvatarBadge(
-              imageAsset: 'assets/design/avatars/child.png',
-            ),
           ),
         ),
       ),

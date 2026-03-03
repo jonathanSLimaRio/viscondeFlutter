@@ -10,7 +10,6 @@ class ViscondeHeroBanner extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.assetPath,
-    this.trailing,
     this.height = 170,
     this.showMascot = false,
     this.mascotPose = ViscondeMascotPose.readingBook,
@@ -22,7 +21,6 @@ class ViscondeHeroBanner extends StatelessWidget {
   final String title;
   final String? subtitle;
   final String? assetPath;
-  final Widget? trailing;
   final double height;
   final bool showMascot;
   final ViscondeMascotPose mascotPose;
@@ -65,10 +63,7 @@ class ViscondeHeroBanner extends StatelessWidget {
                   child: Align(
                     alignment: mascotAlignment,
                     child: Padding(
-                      padding: EdgeInsets.only(
-                        right: trailing != null ? 56 : 12,
-                        bottom: 4,
-                      ),
+                      padding: const EdgeInsets.only(right: 12, bottom: 4),
                       child: ViscondeMascot(
                         pose: mascotPose,
                         size: mascotSize,
@@ -104,7 +99,6 @@ class ViscondeHeroBanner extends StatelessWidget {
                       ],
                     ),
                   ),
-                  ...?(trailing == null ? null : <Widget>[trailing!]),
                 ],
               ),
             ),
