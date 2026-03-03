@@ -121,7 +121,7 @@ class UxAnalyticsApi implements UxAnalyticsTransport {
     String? accessToken,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/ux/events/batch',
+      'ux/events/batch',
       data: payload.toJson(),
       options: (accessToken == null || accessToken.trim().isEmpty)
           ? null

@@ -21,7 +21,7 @@ const devAdminPassword = String.fromEnvironment(
 final apiBaseUrlProvider = Provider<String>((ref) {
   return const String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:3000/api/v1',
+    defaultValue: 'http://localhost:3000/api/v1/',
   );
 });
 

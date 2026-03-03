@@ -79,7 +79,7 @@ class StoryApi {
     String? artStyleId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions',
+      'story-sessions',
       data: {
         'childProfileId': childProfileId,
         'titleDraft': titleDraft,
@@ -118,7 +118,7 @@ class StoryApi {
     bool applyAutoVirtue = false,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/story-sessions/$storyId',
+      'story-sessions/$storyId',
       data: {
         'titleDraft': titleDraft,
         'theme': theme,
@@ -144,7 +144,7 @@ class StoryApi {
     String storyId,
   ) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/story-sessions/$storyId',
+      'story-sessions/$storyId',
       options: authOptions(accessToken),
     );
 
@@ -157,7 +157,7 @@ class StoryApi {
     StoryMode mode,
   ) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/story-sessions/$storyId/mode',
+      'story-sessions/$storyId/mode',
       data: {'mode': storyModeToApi(mode)},
       options: authOptions(accessToken),
     );
@@ -171,7 +171,7 @@ class StoryApi {
     String? contextHint,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/ideas',
+      'story-sessions/$storyId/ideas',
       data: {
         if (contextHint != null && contextHint.trim().isNotEmpty)
           'contextHint': contextHint.trim(),
@@ -194,7 +194,7 @@ class StoryApi {
     required String localEventId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/steps',
+      'story-sessions/$storyId/steps',
       data: {
         'kind': storyStepKindToApi(kind),
         'stepIndex': stepIndex,
@@ -227,7 +227,7 @@ class StoryApi {
     String? titleFinal,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/finalize',
+      'story-sessions/$storyId/finalize',
       data: {
         if (titleFinal != null && titleFinal.trim().isNotEmpty)
           'titleFinal': titleFinal.trim(),
@@ -254,7 +254,7 @@ class StoryApi {
     String? titleFinal,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/wizard-publish',
+      'story-sessions/$storyId/wizard-publish',
       data: {
         if (titleFinal != null && titleFinal.trim().isNotEmpty)
           'titleFinal': titleFinal.trim(),
@@ -281,7 +281,7 @@ class StoryApi {
     StoryStatus? status,
   }) async {
     final response = await _dio.get<List<dynamic>>(
-      '/stories',
+      'stories',
       queryParameters: {
         if (childProfileId != null && childProfileId.trim().isNotEmpty)
           'childProfileId': childProfileId.trim(),
@@ -306,7 +306,7 @@ class StoryApi {
     bool favoriteOnly = false,
   }) async {
     final response = await _dio.get<List<dynamic>>(
-      '/story-vault/collections',
+      'story-vault/collections',
       queryParameters: {
         if (childProfileId != null && childProfileId.trim().isNotEmpty)
           'childProfileId': childProfileId.trim(),
@@ -331,7 +331,7 @@ class StoryApi {
     String collectionId,
   ) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/story-vault/collections/$collectionId',
+      'story-vault/collections/$collectionId',
       options: authOptions(accessToken),
     );
 
@@ -346,7 +346,7 @@ class StoryApi {
     required bool isFavorite,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/story-vault/collections/$collectionId/favorite',
+      'story-vault/collections/$collectionId/favorite',
       data: {'isFavorite': isFavorite},
       options: authOptions(accessToken),
     );
@@ -360,7 +360,7 @@ class StoryApi {
     String? titleDraft,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/stories/$storyId/continue',
+      'stories/$storyId/continue',
       data: {
         if (titleDraft != null && titleDraft.trim().isNotEmpty)
           'titleDraft': titleDraft.trim(),
@@ -380,7 +380,7 @@ class StoryApi {
     String? childProfileId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/stories/$storyId/duplicate-template',
+      'stories/$storyId/duplicate-template',
       data: {
         if (childProfileId != null && childProfileId.trim().isNotEmpty)
           'childProfileId': childProfileId.trim(),
@@ -396,7 +396,7 @@ class StoryApi {
 
   Future<StorySessionModel> getStory(String accessToken, String storyId) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/stories/$storyId',
+      'stories/$storyId',
       options: authOptions(accessToken),
     );
 
@@ -405,7 +405,7 @@ class StoryApi {
 
   Future<List<VirtueModel>> listVirtues(String accessToken) async {
     final response = await _dio.get<List<dynamic>>(
-      '/virtues',
+      'virtues',
       options: authOptions(accessToken),
     );
 
@@ -419,7 +419,7 @@ class StoryApi {
     String accessToken,
   ) async {
     final response = await _dio.get<List<dynamic>>(
-      '/content/story-templates',
+      'content/story-templates',
       options: authOptions(accessToken),
     );
 
@@ -434,7 +434,7 @@ class StoryApi {
     String templateId,
   ) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/content/story-templates/$templateId/prefill',
+      'content/story-templates/$templateId/prefill',
       options: authOptions(accessToken),
     );
 
@@ -448,7 +448,7 @@ class StoryApi {
     required String childProfileId,
   }) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/virtues/suggest',
+      'virtues/suggest',
       queryParameters: {'childProfileId': childProfileId},
       options: authOptions(accessToken),
     );
@@ -463,7 +463,7 @@ class StoryApi {
     required String parentalUnlockToken,
   }) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/virtues/reports/overview',
+      'virtues/reports/overview',
       options: authOptions(accessToken).copyWith(
         headers: {
           'Authorization': 'Bearer $accessToken',
@@ -483,7 +483,7 @@ class StoryApi {
     required String parentalUnlockToken,
   }) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/virtues/reports/children/$childId/summary',
+      'virtues/reports/children/$childId/summary',
       options: authOptions(accessToken).copyWith(
         headers: {
           'Authorization': 'Bearer $accessToken',
@@ -504,7 +504,7 @@ class StoryApi {
     RemoteCallMode callMode = RemoteCallMode.audio,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/remote/open',
+      'story-sessions/$storyId/remote/open',
       data: {'callMode': remoteCallModeToApi(callMode)},
       options: authOptions(accessToken).copyWith(
         headers: {
@@ -523,7 +523,7 @@ class StoryApi {
     required String parentalUnlockToken,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/remote/code/regenerate',
+      'story-sessions/$storyId/remote/code/regenerate',
       options: authOptions(accessToken).copyWith(
         headers: {
           'Authorization': 'Bearer $accessToken',
@@ -537,7 +537,7 @@ class StoryApi {
 
   Future<void> closeRemoteRoom(String accessToken, String storyId) async {
     await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/remote/close',
+      'story-sessions/$storyId/remote/close',
       options: authOptions(accessToken),
     );
   }
@@ -547,7 +547,7 @@ class StoryApi {
     String storyId,
   ) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/story-sessions/$storyId/remote/state',
+      'story-sessions/$storyId/remote/state',
       options: authOptions(accessToken),
     );
 
@@ -559,7 +559,7 @@ class StoryApi {
     required String displayName,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/remote/join',
+      'story-sessions/remote/join',
       data: {'code': code, 'displayName': displayName},
     );
 
@@ -575,7 +575,7 @@ class StoryApi {
     required String localEventId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/remote/steps',
+      'story-sessions/$storyId/remote/steps',
       data: {
         'kind': 'CHILD_CHOICE',
         'stepIndex': stepIndex,
@@ -604,7 +604,7 @@ class StoryApi {
     required String selectedOptionId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/remote/votes',
+      'story-sessions/$storyId/remote/votes',
       data: {
         'stepIndex': stepIndex,
         'optionId': selectedOptionId.trim(),
@@ -622,7 +622,7 @@ class StoryApi {
     required String messageText,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/remote/chat',
+      'story-sessions/$storyId/remote/chat',
       data: {'messageText': messageText},
       options: authOptions(bearerToken),
     );
@@ -636,7 +636,7 @@ class StoryApi {
     required String emoji,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/story-sessions/$storyId/remote/reactions',
+      'story-sessions/$storyId/remote/reactions',
       data: {'emoji': emoji},
       options: authOptions(bearerToken),
     );
@@ -650,7 +650,7 @@ class StoryApi {
     required String parentalUnlockToken,
   }) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/stories/$storyId/interactions',
+      'stories/$storyId/interactions',
       options: authOptions(accessToken).copyWith(
         headers: {
           'Authorization': 'Bearer $accessToken',

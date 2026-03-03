@@ -16,7 +16,7 @@ class AuthApi {
     required String timezone,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/auth/signup',
+      'auth/signup',
       data: {
         'email': email,
         'password': password,
@@ -33,7 +33,7 @@ class AuthApi {
     required String password,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/auth/login',
+      'auth/login',
       data: {'email': email, 'password': password},
     );
 
@@ -42,7 +42,7 @@ class AuthApi {
 
   Future<AuthSession> loginWithGoogle({required String idToken}) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/auth/social/google',
+      'auth/social/google',
       data: {'idToken': idToken},
     );
 
@@ -51,7 +51,7 @@ class AuthApi {
 
   Future<AuthSession> loginWithApple({required String idToken}) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/auth/social/apple',
+      'auth/social/apple',
       data: {'idToken': idToken},
     );
 
@@ -60,7 +60,7 @@ class AuthApi {
 
   Future<AuthSession> refresh({required String refreshToken}) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/auth/refresh',
+      'auth/refresh',
       data: {'refreshToken': refreshToken},
     );
 
@@ -72,7 +72,7 @@ class AuthApi {
     required String? refreshToken,
   }) async {
     await _dio.post<Map<String, dynamic>>(
-      '/auth/logout',
+      'auth/logout',
       data: <String, dynamic>{'refreshToken': refreshToken}
         ..removeWhere((_, value) => value == null),
       options: accessToken != null ? authOptions(accessToken) : null,
@@ -81,14 +81,14 @@ class AuthApi {
 
   Future<void> forgotPassword(String email) async {
     await _dio.post<Map<String, dynamic>>(
-      '/auth/forgot-password',
+      'auth/forgot-password',
       data: {'email': email},
     );
   }
 
   Future<AppUser> me({required String accessToken}) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/me',
+      'me',
       options: authOptions(accessToken),
     );
 

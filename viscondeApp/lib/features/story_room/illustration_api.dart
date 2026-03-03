@@ -11,7 +11,7 @@ class IllustrationApi {
 
   Future<List<ArtStyleModel>> listArtStyles() async {
     return withApiException(() async {
-      final response = await _dio.get<List<dynamic>>('/art-styles');
+      final response = await _dio.get<List<dynamic>>('art-styles');
       final list = response.data ?? <dynamic>[];
       return list
           .map((e) => ArtStyleModel.fromJson(e as Map<String, dynamic>))
@@ -25,7 +25,7 @@ class IllustrationApi {
   ) async {
     return withApiException(() async {
       final response = await _dio.get<Map<String, dynamic>?>(
-        '/stories/$storyId/illustrations',
+        'stories/$storyId/illustrations',
         queryParameters: {'stepIndex': stepIndex},
       );
       if (response.data == null) return null;
@@ -42,7 +42,7 @@ class IllustrationApi {
   }) async {
     return withApiException(() async {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/stories/$storyId/illustrations',
+        'stories/$storyId/illustrations',
         data: {'stepIndex': stepIndex, 'artStyleId': artStyleId},
       );
       return StoryIllustrationModel.fromJson(

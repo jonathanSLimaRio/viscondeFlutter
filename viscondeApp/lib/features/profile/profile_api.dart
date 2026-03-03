@@ -10,7 +10,7 @@ class ProfileApi {
 
   Future<AppUser> getMe(String accessToken) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/me',
+      'me',
       options: authOptions(accessToken),
     );
 
@@ -23,7 +23,7 @@ class ProfileApi {
     required String timezone,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/me',
+      'me',
       data: {'name': name, 'timezone': timezone},
       options: authOptions(accessToken),
     );
@@ -40,7 +40,7 @@ class ProfileApi {
     });
 
     final response = await _dio.post<Map<String, dynamic>>(
-      '/me/photo',
+      'me/photo',
       data: data,
       options: authOptions(accessToken),
     );

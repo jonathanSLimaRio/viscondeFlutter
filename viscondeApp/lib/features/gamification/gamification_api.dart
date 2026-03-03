@@ -10,7 +10,7 @@ class GamificationApi {
 
   Future<WalletModel> fetchWallet(String accessToken) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/gamification/wallet',
+      'gamification/wallet',
       options: authOptions(accessToken),
     );
 
@@ -19,7 +19,7 @@ class GamificationApi {
 
   Future<List<AchievementModel>> listAchievements(String accessToken) async {
     final response = await _dio.get<List<dynamic>>(
-      '/gamification/achievements',
+      'gamification/achievements',
       options: authOptions(accessToken),
     );
 
@@ -35,7 +35,7 @@ class GamificationApi {
     CatalogItemType? type,
   }) async {
     final response = await _dio.get<List<dynamic>>(
-      '/gamification/catalog',
+      'gamification/catalog',
       queryParameters: {
         'childProfileId': childProfileId,
         if (type != null) 'type': catalogItemTypeToApi(type),
@@ -54,7 +54,7 @@ class GamificationApi {
     required String childId,
   }) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/gamification/children/$childId/progression',
+      'gamification/children/$childId/progression',
       options: authOptions(accessToken),
     );
 
@@ -68,7 +68,7 @@ class GamificationApi {
     required String parentalUnlockToken,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/gamification/children/$childId/unlock',
+      'gamification/children/$childId/unlock',
       data: {'itemId': itemId},
       options: authOptions(accessToken).copyWith(
         headers: {
@@ -90,7 +90,7 @@ class GamificationApi {
     required bool equipped,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/gamification/children/$childId/equip',
+      'gamification/children/$childId/equip',
       data: {'itemId': itemId, 'equipped': equipped},
       options: authOptions(accessToken),
     );

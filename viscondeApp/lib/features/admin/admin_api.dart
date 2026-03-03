@@ -12,7 +12,7 @@ class AdminApi {
 
   Future<List<AdminThemeModel>> listThemes(String accessToken) async {
     final response = await _dio.get<List<dynamic>>(
-      '/admin/themes',
+      'admin/themes',
       options: authOptions(accessToken),
     );
 
@@ -31,7 +31,7 @@ class AdminApi {
     bool isActive = true,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/themes',
+      'admin/themes',
       data: {
         'name': name,
         'shortDescription': shortDescription,
@@ -55,7 +55,7 @@ class AdminApi {
     bool? isActive,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/admin/themes/$themeId',
+      'admin/themes/$themeId',
       data: {
         if (name case final valuename?) 'name': valuename,
         if (shortDescription case final valueshortDescription?)
@@ -72,7 +72,7 @@ class AdminApi {
 
   Future<List<AdminVirtueModel>> listVirtues(String accessToken) async {
     final response = await _dio.get<List<dynamic>>(
-      '/admin/virtues',
+      'admin/virtues',
       options: authOptions(accessToken),
     );
 
@@ -91,7 +91,7 @@ class AdminApi {
     bool isActive = true,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/virtues',
+      'admin/virtues',
       data: {
         'name': name,
         'shortDescription': shortDescription,
@@ -115,7 +115,7 @@ class AdminApi {
     bool? isActive,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/admin/virtues/$virtueId',
+      'admin/virtues/$virtueId',
       data: {
         if (name case final valuename?) 'name': valuename,
         if (shortDescription case final valueshortDescription?)
@@ -136,7 +136,7 @@ class AdminApi {
     String? ageBand,
   }) async {
     final response = await _dio.get<List<dynamic>>(
-      '/admin/virtue-templates',
+      'admin/virtue-templates',
       queryParameters: {
         if (virtueId case final valuevirtueId? when valuevirtueId.isNotEmpty)
           'virtueId': valuevirtueId,
@@ -162,7 +162,7 @@ class AdminApi {
     bool isActive = true,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/virtue-templates',
+      'admin/virtue-templates',
       data: {
         'virtueId': virtueId,
         'ageBand': ageBand,
@@ -188,7 +188,7 @@ class AdminApi {
     bool? isActive,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/admin/virtue-templates/$templateId',
+      'admin/virtue-templates/$templateId',
       data: {
         if (dilemmaText case final valuedilemmaText?)
           'dilemmaText': valuedilemmaText,
@@ -207,7 +207,7 @@ class AdminApi {
 
   Future<List<AdminPromptModel>> listPrompts(String accessToken) async {
     final response = await _dio.get<List<dynamic>>(
-      '/admin/prompts',
+      'admin/prompts',
       options: authOptions(accessToken),
     );
 
@@ -231,7 +231,7 @@ class AdminApi {
     bool isActive = true,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/prompts',
+      'admin/prompts',
       data: {
         'key': key,
         'kind': adminPromptKindToApi(kind),
@@ -267,7 +267,7 @@ class AdminApi {
     bool? isActive,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/admin/prompts/$promptId',
+      'admin/prompts/$promptId',
       data: {
         if (key case final valuekey?) 'key': valuekey,
         if (kind case final valuekind?) 'kind': adminPromptKindToApi(valuekind),
@@ -290,7 +290,7 @@ class AdminApi {
     String accessToken,
   ) async {
     final response = await _dio.get<List<dynamic>>(
-      '/admin/story-templates',
+      'admin/story-templates',
       options: authOptions(accessToken),
     );
 
@@ -313,7 +313,7 @@ class AdminApi {
     bool isActive = true,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/story-templates',
+      'admin/story-templates',
       data: {
         if (slug case final valueslug? when valueslug.isNotEmpty)
           'slug': valueslug,
@@ -340,7 +340,7 @@ class AdminApi {
     String templateId,
   ) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/admin/story-templates/$templateId',
+      'admin/story-templates/$templateId',
       options: authOptions(accessToken),
     );
 
@@ -363,7 +363,7 @@ class AdminApi {
     bool? isActive,
   }) async {
     final response = await _dio.put<Map<String, dynamic>>(
-      '/admin/story-templates/$templateId',
+      'admin/story-templates/$templateId',
       data: {
         if (slug case final valueslug?) 'slug': valueslug,
         if (title case final valuetitle?) 'title': valuetitle,
@@ -394,7 +394,7 @@ class AdminApi {
     int? sortOrder,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/story-templates/$templateId/characters',
+      'admin/story-templates/$templateId/characters',
       data: {
         'name': name,
         if (role case final valuerole? when valuerole.isNotEmpty)
@@ -420,7 +420,7 @@ class AdminApi {
     int? sortOrder,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/story-templates/$templateId/nodes',
+      'admin/story-templates/$templateId/nodes',
       data: {
         'nodeKey': nodeKey,
         'kind': adminStoryTemplateNodeKindToApi(kind),
@@ -453,7 +453,7 @@ class AdminApi {
     int? sortOrder,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/admin/story-templates/$templateId/nodes/$nodeId',
+      'admin/story-templates/$templateId/nodes/$nodeId',
       data: {
         if (nodeKey case final valuenodeKey?) 'nodeKey': valuenodeKey,
         if (kind case final valuekind?)
@@ -483,7 +483,7 @@ class AdminApi {
     int? sortOrder,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/story-templates/$templateId/options',
+      'admin/story-templates/$templateId/options',
       data: {
         'nodeId': nodeId,
         'optionKey': optionKey,
@@ -509,7 +509,7 @@ class AdminApi {
     int? sortOrder,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/admin/story-templates/$templateId/options/$optionId',
+      'admin/story-templates/$templateId/options/$optionId',
       data: {
         if (optionKey case final valueoptionKey?) 'optionKey': valueoptionKey,
         if (label case final valuelabel?) 'label': valuelabel,
@@ -530,7 +530,7 @@ class AdminApi {
     String templateId,
   ) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/story-templates/$templateId/validate',
+      'admin/story-templates/$templateId/validate',
       options: authOptions(accessToken),
     );
 
@@ -544,7 +544,7 @@ class AdminApi {
     String templateId,
   ) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/story-templates/$templateId/publish',
+      'admin/story-templates/$templateId/publish',
       options: authOptions(accessToken),
     );
 
@@ -555,7 +555,7 @@ class AdminApi {
     String accessToken,
   ) async {
     final response = await _dio.get<List<dynamic>>(
-      '/admin/moderation/terms',
+      'admin/moderation/terms',
       options: authOptions(accessToken),
     );
 
@@ -574,7 +574,7 @@ class AdminApi {
     bool isActive = true,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/admin/moderation/terms',
+      'admin/moderation/terms',
       data: {
         'displayTerm': displayTerm,
         'policy': adminModerationPolicyToApi(policy),
@@ -602,7 +602,7 @@ class AdminApi {
     bool? isActive,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/admin/moderation/terms/$termId',
+      'admin/moderation/terms/$termId',
       data: {
         if (displayTerm case final valuedisplayTerm?)
           'displayTerm': valuedisplayTerm,
@@ -636,7 +636,7 @@ class AdminApi {
     }
 
     final response = await _dio.get<Map<String, dynamic>>(
-      '/admin/ux/funnel',
+      'admin/ux/funnel',
       queryParameters: {
         if (dateFrom != null) 'dateFrom': formatDate(dateFrom),
         if (dateTo != null) 'dateTo': formatDate(dateTo),

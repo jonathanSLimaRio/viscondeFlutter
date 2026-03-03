@@ -10,7 +10,7 @@ class ChildrenApi {
 
   Future<List<ChildProfile>> listChildren(String accessToken) async {
     final response = await _dio.get<List<dynamic>>(
-      '/children',
+      'children',
       options: authOptions(accessToken),
     );
 
@@ -27,7 +27,7 @@ class ChildrenApi {
     required List<String> favoriteThemes,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/children',
+      'children',
       data: {
         'name': name,
         'birthDate': birthDate.toIso8601String(),
@@ -47,7 +47,7 @@ class ChildrenApi {
     required List<String> favoriteThemes,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/children/$childId',
+      'children/$childId',
       data: {
         'name': name,
         'birthDate': birthDate.toIso8601String(),
@@ -61,7 +61,7 @@ class ChildrenApi {
 
   Future<void> deleteChild(String accessToken, String childId) async {
     await _dio.delete<Map<String, dynamic>>(
-      '/children/$childId',
+      'children/$childId',
       options: authOptions(accessToken),
     );
   }
@@ -76,7 +76,7 @@ class ChildrenApi {
     });
 
     final response = await _dio.post<Map<String, dynamic>>(
-      '/children/$childId/avatar',
+      'children/$childId/avatar',
       data: data,
       options: authOptions(accessToken),
     );

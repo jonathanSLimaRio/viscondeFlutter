@@ -9,7 +9,7 @@ class VoiceApi {
 
   Future<List<VoiceProfileModel>> listProfiles() async {
     return withApiException(() async {
-      final response = await _dio.get<List<dynamic>>('/voices');
+      final response = await _dio.get<List<dynamic>>('voices');
       final list = response.data ?? <dynamic>[];
       return list
           .map((e) => VoiceProfileModel.fromJson(e as Map<String, dynamic>))
@@ -23,7 +23,7 @@ class VoiceApi {
   }) async {
     return withApiException(() async {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/voices',
+        'voices',
         data: {'name': name, 'relationship': relationship},
       );
       return VoiceProfileModel.fromJson(response.data ?? <String, dynamic>{});
@@ -32,7 +32,7 @@ class VoiceApi {
 
   Future<void> trainProfile(String profileId) async {
     await withApiException(() async {
-      await _dio.post<Map<String, dynamic>>('/voices/$profileId/train');
+      await _dio.post<Map<String, dynamic>>('voices/$profileId/train');
     });
   }
 
@@ -43,7 +43,7 @@ class VoiceApi {
   ) async {
     return withApiException(() async {
       final response = await _dio.post<Map<String, dynamic>>(
-        '/stories/$storyId/narrate',
+        'stories/$storyId/narrate',
         data: {'stepIndex': stepIndex, 'voiceProfileId': voiceProfileId},
       );
       return NarrationJobModel.fromJson(response.data ?? <String, dynamic>{});

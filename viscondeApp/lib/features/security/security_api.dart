@@ -23,7 +23,7 @@ class SecurityApi {
 
   Future<bool> hasPin(String accessToken) async {
     final response = await _dio.get<Map<String, dynamic>>(
-      '/security/pin/status',
+      'security/pin/status',
       options: authOptions(accessToken),
     );
 
@@ -33,7 +33,7 @@ class SecurityApi {
 
   Future<void> setPin(String accessToken, String pin) async {
     await _dio.post<Map<String, dynamic>>(
-      '/security/pin/set',
+      'security/pin/set',
       data: {'pin': pin},
       options: authOptions(accessToken),
     );
@@ -41,7 +41,7 @@ class SecurityApi {
 
   Future<PinVerifyResult> verifyPin(String accessToken, String pin) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/security/pin/verify',
+      'security/pin/verify',
       data: {'pin': pin},
       options: authOptions(accessToken),
     );
@@ -67,7 +67,7 @@ class SecurityApi {
     String? appleIdentityToken,
   }) async {
     await _dio.post<Map<String, dynamic>>(
-      '/security/pin/reset',
+      'security/pin/reset',
       data: {
         'newPin': newPin,
         if (currentPassword != null && currentPassword.isNotEmpty)

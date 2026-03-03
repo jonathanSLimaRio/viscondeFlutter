@@ -12,7 +12,7 @@ class InventoryApi {
     String accessToken,
   ) async {
     final response = await _dio.get<List<dynamic>>(
-      '/children/$childProfileId/inventory',
+      'children/$childProfileId/inventory',
       options: authOptions(accessToken),
     );
 
@@ -27,7 +27,7 @@ class InventoryApi {
     String accessToken,
   ) async {
     final response = await _dio.get<Map<String, dynamic>?>(
-      '/children/$childProfileId/memories',
+      'children/$childProfileId/memories',
       options: authOptions(accessToken),
     );
 
@@ -40,7 +40,7 @@ class InventoryApi {
     String accessToken,
   ) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      '/stories/$storyId/reward',
+      'stories/$storyId/reward',
       options: authOptions(accessToken),
     );
 
