@@ -22,6 +22,34 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   int _index = 0;
   final Map<int, Widget> _tabCache = <int, Widget>{0: const StoryVaultScreen()};
 
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Sair do app'),
+          content: const Text('Deseja encerrar a sessão neste dispositivo?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Sair'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout != true || !mounted) {
+      return;
+    }
+
+    await ref.read(authControllerProvider.notifier).logout();
+  }
+
   Widget _tabForIndex(int index) {
     switch (index) {
       case 0:
@@ -44,7 +72,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
       case 0:
         return 'Histórias';
       case 1:
-        return 'Game Hub';
+        return 'Game';
       case 2:
         return 'Crianças';
       case 3:
@@ -157,9 +185,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
                 border: Border.all(color: colors.borderSoft, width: 1),
               ),
               child: IconButton(
-                onPressed: () async {
-                  await ref.read(authControllerProvider.notifier).logout();
-                },
+                onPressed: _confirmLogout,
                 icon: const Icon(Icons.logout),
                 tooltip: 'Sair',
               ),

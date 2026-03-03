@@ -290,6 +290,17 @@ class AuthController extends StateNotifier<AuthState> {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
+  Future<void> expireSession({
+    String reason = 'Sua sessão expirou. Faça login novamente.',
+  }) async {
+    if (state.status == AuthStatus.unauthenticated) {
+      return;
+    }
+
+    await _sessionStorage.clear();
+    state = AuthState(status: AuthStatus.unauthenticated, error: reason);
+  }
+
   void updateUser(AppUser user) {
     state = state.copyWith(user: user);
   }

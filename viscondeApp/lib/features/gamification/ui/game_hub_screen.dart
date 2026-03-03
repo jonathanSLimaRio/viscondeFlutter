@@ -6,6 +6,7 @@ import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
 import '../../security/parental_gate_controller.dart';
 import '../models/gamification_models.dart';
@@ -28,9 +29,35 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
   List<ChildInventoryModel> _childInventory = const [];
   String? _selectedChildId;
   CatalogItemType? _selectedCatalogType;
+  String? _loadError;
 
   String? _accessToken() {
     return ref.read(authControllerProvider).accessToken;
+  }
+
+  WeeklyMissionModel? _primaryMission(ChildProgressionModel? progression) {
+    if (progression == null || progression.weeklyMissions.isEmpty) {
+      return null;
+    }
+
+    double progressRatio(WeeklyMissionModel mission) {
+      if (mission.targetValue <= 0) {
+        return 0;
+      }
+      return mission.progressValue / mission.targetValue;
+    }
+
+    final activeMissions = progression.weeklyMissions
+        .where((mission) => mission.status == WeeklyMissionStatus.active)
+        .toList();
+    if (activeMissions.isNotEmpty) {
+      activeMissions.sort(
+        (a, b) => progressRatio(b).compareTo(progressRatio(a)),
+      );
+      return activeMissions.first;
+    }
+
+    return progression.weeklyMissions.first;
   }
 
   @override
@@ -59,6 +86,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         _selectedChildId =
             _selectedChildId ??
             (children.isNotEmpty ? children.first.id : null);
+        _loadError = null;
       });
 
       await _loadData();
@@ -67,6 +95,8 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         return;
       }
 
+      final message = parseDioError(error);
+      setState(() => _loadError = message);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
@@ -113,12 +143,15 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         _progression = results[2] as ChildProgressionModel;
         _catalog = results[3] as List<CatalogItemModel>;
         _childInventory = results[4] as List<ChildInventoryModel>;
+        _loadError = null;
       });
     } catch (error) {
       if (!mounted) {
         return;
       }
 
+      final message = parseDioError(error);
+      setState(() => _loadError = message);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
@@ -129,12 +162,13 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     }
   }
 
-  Future<String?> _resolveUnlockToken() async {
+  Future<String?> _resolveUnlockToken({bool showSuccessMessage = false}) async {
     final gate = ref.read(parentalGateControllerProvider);
     if (gate.isUnlocked && gate.unlockToken != null) {
       return gate.unlockToken;
     }
 
+    UxAnalytics.log('pin_prompt_shown');
     final pinController = TextEditingController();
     final pin = await showDialog<String>(
       context: context,
@@ -162,8 +196,13 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         );
       },
     );
+    pinController.dispose();
 
     if (pin == null || pin.length != 6) {
+      UxAnalytics.log(
+        'pin_prompt_abandon',
+        params: <String, Object?>{'reason': 'cancel_or_invalid_length'},
+      );
       return null;
     }
 
@@ -184,6 +223,10 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             context,
           ).showSnackBar(const SnackBar(content: Text('PIN inválido.')));
         }
+        UxAnalytics.log(
+          'pin_prompt_abandon',
+          params: const <String, Object?>{'reason': 'invalid_pin'},
+        );
         return null;
       }
 
@@ -194,6 +237,23 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             expiresAt: verified.parentalUnlockExpiresAt!,
           );
 
+      UxAnalytics.log(
+        'pin_prompt_success',
+        params: <String, Object?>{
+          'expires_at': verified.parentalUnlockExpiresAt!.toIso8601String(),
+        },
+      );
+
+      if (showSuccessMessage && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Área adulta liberada por alguns minutos para compras e ações protegidas.',
+            ),
+          ),
+        );
+      }
+
       return verified.parentalUnlockToken!;
     } catch (error) {
       if (mounted) {
@@ -201,6 +261,10 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
       }
+      UxAnalytics.log(
+        'pin_prompt_abandon',
+        params: const <String, Object?>{'reason': 'verification_error'},
+      );
       return null;
     }
   }
@@ -302,6 +366,10 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
   Widget build(BuildContext context) {
     final wallet = _wallet;
     final progression = _progression;
+    final primaryMission = _primaryMission(progression);
+    final gate = ref.watch(parentalGateControllerProvider);
+    final unlockActive =
+        gate.isUnlocked && gate.expiresAt != null && gate.unlockToken != null;
     final dateFormat = DateFormat('dd/MM HH:mm');
 
     return RefreshIndicator(
@@ -310,7 +378,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           ViscondeHeroBanner(
-            title: 'Game Hub',
+            title: 'Game',
             subtitle: 'Progresso saudável, missões e cosméticos.',
             assetPath: ViscondeArtRegistry.resolve(
               ViscondeArtKey.heroUnderwater,
@@ -319,6 +387,98 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             mascotPose: ViscondeMascotPose.thumbsUpController,
           ),
           const SizedBox(height: 12),
+          if (_loadError != null)
+            ViscondeGlassCard(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Não foi possível atualizar os dados agora.',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(_loadError!),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _loadData,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Tentar novamente'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (_loadError != null) const SizedBox(height: 12),
+          ViscondeGlassCard(
+            child: ListTile(
+              leading: Icon(
+                unlockActive ? Icons.verified_user : Icons.lock_clock_outlined,
+                color: unlockActive ? Colors.green : null,
+              ),
+              title: Text(
+                unlockActive ? 'Área adulta liberada' : 'Área adulta bloqueada',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(
+                unlockActive
+                    ? 'Liberada até ${dateFormat.format(gate.expiresAt!)} para compras e ações protegidas.'
+                    : 'Desbloqueie com PIN para evitar interrupções durante as compras.',
+              ),
+              trailing: OutlinedButton(
+                onPressed: () {
+                  _resolveUnlockToken(showSuccessMessage: true);
+                },
+                child: Text(unlockActive ? 'Renovar' : 'Desbloquear'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (primaryMission != null)
+            ViscondeGlassCard(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Meta da semana',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      primaryMission.title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(primaryMission.description),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: primaryMission.targetValue == 0
+                          ? 0
+                          : (primaryMission.progressValue /
+                                    primaryMission.targetValue)
+                                .clamp(0, 1)
+                                .toDouble(),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${primaryMission.progressValue}/${primaryMission.targetValue} • ${_missionStatusLabel(primaryMission.status)}',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (primaryMission != null) const SizedBox(height: 12),
           if (_loading)
             const Padding(
               padding: EdgeInsets.only(bottom: 12),

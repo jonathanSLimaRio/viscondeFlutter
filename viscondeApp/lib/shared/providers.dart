@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/api_client.dart';
@@ -14,26 +15,45 @@ import '../features/story_room/story_api.dart';
 import '../features/story_sync/story_sync_queue.dart';
 import '../features/story_vault/book_api.dart';
 
-final authorizedDioProvider = Provider((ref) {
+final sessionAwareDioProvider = Provider<Dio>((ref) {
   final baseUrl = ref.watch(apiBaseUrlProvider);
   final accessToken = ref.watch(authControllerProvider).accessToken;
-  return createApiDio(baseUrl: baseUrl, accessToken: accessToken);
+  final dio = createApiDio(baseUrl: baseUrl, accessToken: accessToken);
+
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onError: (error, handler) async {
+        final status = error.response?.statusCode;
+        final auth = ref.read(authControllerProvider);
+        if (status == 401 && auth.status == AuthStatus.authenticated) {
+          await ref
+              .read(authControllerProvider.notifier)
+              .expireSession(
+                reason: 'Sua sessão expirou. Faça login novamente.',
+              );
+        }
+        handler.next(error);
+      },
+    ),
+  );
+
+  return dio;
 });
 
 final authorizedApiClientProvider = Provider<AuthorizedApiClient>((ref) {
-  return AuthorizedApiClient(ref.watch(authorizedDioProvider));
+  return AuthorizedApiClient(ref.watch(sessionAwareDioProvider));
 });
 
 final profileApiProvider = Provider<ProfileApi>((ref) {
-  return ProfileApi(ref.watch(apiClientProvider).dio);
+  return ProfileApi(ref.watch(sessionAwareDioProvider));
 });
 
 final childrenApiProvider = Provider<ChildrenApi>((ref) {
-  return ChildrenApi(ref.watch(apiClientProvider).dio);
+  return ChildrenApi(ref.watch(sessionAwareDioProvider));
 });
 
 final securityApiProvider = Provider<SecurityApi>((ref) {
-  return SecurityApi(ref.watch(apiClientProvider).dio);
+  return SecurityApi(ref.watch(sessionAwareDioProvider));
 });
 
 final voiceApiProvider = Provider<VoiceApi>((ref) {
@@ -45,23 +65,23 @@ final illustrationApiProvider = Provider<IllustrationApi>((ref) {
 });
 
 final gamificationApiProvider = Provider<GamificationApi>((ref) {
-  return GamificationApi(ref.watch(apiClientProvider).dio);
+  return GamificationApi(ref.watch(sessionAwareDioProvider));
 });
 
 final inventoryApiProvider = Provider<InventoryApi>((ref) {
-  return InventoryApi(ref.watch(apiClientProvider).dio);
+  return InventoryApi(ref.watch(sessionAwareDioProvider));
 });
 
 final storyApiProvider = Provider<StoryApi>((ref) {
-  return StoryApi(ref.watch(apiClientProvider).dio);
+  return StoryApi(ref.watch(sessionAwareDioProvider));
 });
 
 final bookApiProvider = Provider<BookApi>((ref) {
-  return BookApi(ref.watch(apiClientProvider).dio);
+  return BookApi(ref.watch(sessionAwareDioProvider));
 });
 
 final adminApiProvider = Provider<AdminApi>((ref) {
-  return AdminApi(ref.watch(apiClientProvider).dio);
+  return AdminApi(ref.watch(sessionAwareDioProvider));
 });
 
 final storySyncQueueProvider = Provider<StorySyncQueue>((ref) {

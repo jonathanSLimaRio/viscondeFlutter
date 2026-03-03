@@ -23,6 +23,8 @@ class StoryRoomScreen extends ConsumerStatefulWidget {
 }
 
 class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
+  int _lastKnownSteps = 0;
+
   @override
   void initState() {
     super.initState();
@@ -148,6 +150,15 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(next.error!)));
       }
+
+      final previousSteps = previous?.session?.steps.length ?? _lastKnownSteps;
+      final currentSteps = next.session?.steps.length ?? previousSteps;
+      if (currentSteps > previousSteps) {
+        context.showMessage(
+          'Etapa salva. Próximo passo: continue narrando ou revise para publicar.',
+        );
+      }
+      _lastKnownSteps = currentSteps;
     });
 
     final state = ref.watch(storyRoomControllerProvider);
@@ -177,18 +188,6 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
       appBar: AppBar(
         title: Text(story.title),
         actions: [
-          IconButton(
-            onPressed: state.syncStatus == StorySyncStatus.reconnecting
-                ? null
-                : controller.syncPending,
-            icon: const Icon(Icons.sync),
-            tooltip: 'Sincronizar pendentes',
-          ),
-          IconButton(
-            onPressed: () => context.push(AppRoute.storyRemote(story.id)),
-            icon: const Icon(Icons.video_call_outlined),
-            tooltip: 'Sala remota',
-          ),
           IconButton(
             onPressed: () => context.push(AppRoute.storySummary(story.id)),
             icon: const Icon(Icons.checklist_outlined),
@@ -318,6 +317,12 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
               ),
             ),
             const SizedBox(height: 12),
+            const ViscondeSectionTitle(
+              title: 'Criar capítulo',
+              subtitle:
+                  'Foque na narrativa. Ferramentas avançadas ficam abaixo.',
+            ),
+            const SizedBox(height: 8),
             SegmentedButton<StoryMode>(
               segments: const [
                 ButtonSegment<StoryMode>(
@@ -360,6 +365,29 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                 },
               ),
             const SizedBox(height: 20),
+            ViscondeGlassCard(
+              child: ExpansionTile(
+                title: const Text('Ferramentas avançadas'),
+                subtitle: Text(
+                  'Sincronização: ${controller.syncLabel()} · Pendentes: ${state.pendingCount}',
+                ),
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.sync),
+                    title: const Text('Sincronizar pendências agora'),
+                    onTap: state.syncStatus == StorySyncStatus.reconnecting
+                        ? null
+                        : controller.syncPending,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.video_call_outlined),
+                    title: const Text('Abrir sala remota'),
+                    onTap: () => context.push(AppRoute.storyRemote(story.id)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             const ViscondeSectionTitle(
               title: 'Timeline da sessão',
               subtitle: 'Cada passo salvo da aventura.',

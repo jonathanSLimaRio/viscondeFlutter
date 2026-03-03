@@ -151,12 +151,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (auth.status == AuthStatus.unauthenticated) {
-        return (isAuthRoute || isRemotePublicRoute) ? null : AppRoute.login;
+        if (isAuthRoute || isRemotePublicRoute) {
+          return null;
+        }
+
+        final from = state.uri.toString();
+        return Uri(
+          path: AppRoute.login,
+          queryParameters: {'from': from},
+        ).toString();
       }
 
       if (auth.status == AuthStatus.authenticated) {
         final isAdmin = auth.user?.isAdmin ?? false;
         if (location == AppRoute.loading || isAuthRoute) {
+          final from = state.uri.queryParameters['from'];
+          if (from != null &&
+              from.startsWith('/') &&
+              !AppRoute.isAuthRoute(from)) {
+            return from;
+          }
           return AppRoute.home;
         }
         if (isAdminProtectedRoute && !isAdmin) {

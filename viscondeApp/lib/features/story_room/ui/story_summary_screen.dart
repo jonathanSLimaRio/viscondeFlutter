@@ -10,7 +10,10 @@ import '../../auth/auth_controller.dart';
 import '../../story_vault/story_pdf_exporter.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
+import '../../../shared/ux_analytics.dart';
 import '../../../shared/providers.dart';
+
+enum _PostPublishAction { home, nextAdventure }
 
 class StorySummaryScreen extends ConsumerStatefulWidget {
   const StorySummaryScreen({super.key, required this.storyId});
@@ -63,6 +66,14 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       return;
     }
 
+    UxAnalytics.log(
+      'story_published',
+      params: <String, Object?>{
+        'story_id': finalized.story.id,
+        'steps': finalized.story.steps.length,
+      },
+    );
+
     ChildInventoryModel? reward;
     try {
       final token = ref.read(authControllerProvider).accessToken;
@@ -73,52 +84,87 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       }
     } catch (_) {}
 
-    if (finalized.gamification != null) {
-      await _showGamificationModal(finalized.gamification!, reward: reward);
-    }
+    final nextAction = await _showGamificationModal(
+      finalized.gamification,
+      reward: reward,
+    );
 
     if (!mounted) {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('História publicada com sucesso.')),
-    );
+    if (nextAction == _PostPublishAction.nextAdventure) {
+      context.go(AppRoute.storyCreate);
+      return;
+    }
     context.go(AppRoute.home);
   }
 
-  Future<void> _showGamificationModal(
-    PublishGamificationSummaryModel gamification, {
+  Future<_PostPublishAction> _showGamificationModal(
+    PublishGamificationSummaryModel? gamification, {
     ChildInventoryModel? reward,
   }) async {
     if (!mounted) {
-      return;
+      return _PostPublishAction.home;
     }
 
-    await showDialog<void>(
+    UxAnalytics.log(
+      'reward_modal_opened',
+      params: <String, Object?>{
+        'has_gamification': gamification != null,
+        'has_reward_item': reward?.item != null,
+      },
+    );
+
+    final action = await showDialog<_PostPublishAction>(
       context: context,
       builder: (context) {
+        final textTheme = Theme.of(context).textTheme;
+        final colors = context.viscondeColors;
         return AlertDialog(
-          title: const Text('Recompensas da aventura'),
+          title: const Text('Capítulo publicado!'),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('+${gamification.deltaCoins} moedas'),
-                Text('+${gamification.deltaStars} estrelas'),
-                const SizedBox(height: 8),
-                Text(
-                  'Carteira: ${gamification.wallet.coins} moedas · ${gamification.wallet.stars} estrelas',
+                Center(
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.86, end: 1),
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOutBack,
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: Icon(
+                      Icons.celebration_rounded,
+                      size: 44,
+                      color: colors.primary,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                Text('Streak atual: ${gamification.streak.currentDays} dias'),
-                Text('Escudos: ${gamification.streak.shieldCount}'),
+                Text(
+                  'Parabéns! A história já está no baú e a aventura segue viva.',
+                  style: textTheme.bodyMedium,
+                ),
+                if (gamification != null) ...[
+                  const SizedBox(height: 12),
+                  Text('+${gamification.deltaCoins} moedas'),
+                  Text('+${gamification.deltaStars} estrelas'),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Carteira: ${gamification.wallet.coins} moedas · ${gamification.wallet.stars} estrelas',
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Streak atual: ${gamification.streak.currentDays} dias'),
+                  Text('Escudos: ${gamification.streak.shieldCount}'),
+                ],
                 if (reward != null && reward.item != null) ...[
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Item Encontrado',
-                    style: TextStyle(
+                    style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.amber,
                     ),
@@ -126,26 +172,32 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
                   Text('Você achou: ${reward.item!.name} ${reward.item!.icon}'),
                   Text(
                     '${reward.item!.rarity} - ${reward.item!.description}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colors.textMuted,
+                    ),
                   ),
                 ],
-                if (gamification.completedMissions.isNotEmpty) ...[
+                if (gamification?.completedMissions.isNotEmpty ?? false) ...[
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Missões concluídas',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  ...gamification.completedMissions.map<Widget>(
+                  ...gamification!.completedMissions.map<Widget>(
                     (mission) => Text('- ${mission.title}'),
                   ),
                 ],
-                if (gamification.unlockedAchievements.isNotEmpty) ...[
+                if (gamification?.unlockedAchievements.isNotEmpty ?? false) ...[
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Conquistas desbloqueadas',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  ...gamification.unlockedAchievements.map<Widget>(
+                  ...gamification!.unlockedAchievements.map<Widget>(
                     (achievement) => Text('- ${achievement.title}'),
                   ),
                 ],
@@ -153,14 +205,32 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
             ),
           ),
           actions: [
+            TextButton(
+              onPressed: () {
+                UxAnalytics.log(
+                  'reward_modal_cta_clicked',
+                  params: const <String, Object?>{'target': 'home'},
+                );
+                Navigator.of(context).pop(_PostPublishAction.home);
+              },
+              child: const Text('Voltar ao início'),
+            ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Continuar'),
+              onPressed: () {
+                UxAnalytics.log(
+                  'reward_modal_cta_clicked',
+                  params: const <String, Object?>{'target': 'next_adventure'},
+                );
+                Navigator.of(context).pop(_PostPublishAction.nextAdventure);
+              },
+              child: const Text('Próxima aventura'),
             ),
           ],
         );
       },
     );
+
+    return action ?? _PostPublishAction.home;
   }
 
   @override
@@ -190,7 +260,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
           IconButton(
             onPressed: () => StoryPdfExporter.exportAndShare(story),
             icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'Exportar Histório como PDF',
+            tooltip: 'Exportar história como PDF',
           ),
         ],
       ),

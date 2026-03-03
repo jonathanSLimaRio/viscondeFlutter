@@ -2,35 +2,110 @@ import 'package:dio/dio.dart';
 
 import '../core/network/api_exception.dart';
 
-String parseDioError(Object error) {
+String _normalizeKnownMessage(ApiException error) {
+  final message = error.message.trim();
+  final normalized = message.toLowerCase();
+
+  if (error.kind == ApiErrorKind.unauthorized ||
+      normalized == 'unauthorized' ||
+      normalized == 'not authorized') {
+    return 'Sua sessão expirou. Faça login novamente.';
+  }
+
+  if (error.kind == ApiErrorKind.forbidden || normalized == 'forbidden') {
+    return 'Você não tem permissão para esta ação.';
+  }
+
+  if (error.kind == ApiErrorKind.network) {
+    return 'Sem conexão com a internet. Verifique sua rede e tente novamente.';
+  }
+
+  if (error.kind == ApiErrorKind.timeout) {
+    return 'A conexão demorou mais que o esperado. Tente novamente.';
+  }
+
+  if (message.isEmpty) {
+    return 'Erro inesperado.';
+  }
+
+  return message;
+}
+
+class ApiErrorPresentation {
+  const ApiErrorPresentation({
+    required this.message,
+    this.sessionExpired = false,
+  });
+
+  final String message;
+  final bool sessionExpired;
+}
+
+bool isSessionExpiredError(Object error) {
   if (error is ApiException) {
-    return error.message;
+    return error.kind == ApiErrorKind.unauthorized;
+  }
+
+  if (error is DioException) {
+    if (error.response?.statusCode == 401) {
+      return true;
+    }
+
+    final rawMessage = error.message?.toLowerCase() ?? '';
+    if (rawMessage.contains('unauthorized')) {
+      return true;
+    }
+  }
+
+  if (error is String) {
+    final normalized = error.toLowerCase();
+    if (normalized.contains('unauthorized') ||
+        normalized.contains('não autorizado')) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+ApiErrorPresentation describeApiError(Object error) {
+  if (error is ApiException) {
+    final message = _normalizeKnownMessage(error);
+    return ApiErrorPresentation(
+      message: message,
+      sessionExpired: error.kind == ApiErrorKind.unauthorized,
+    );
   }
 
   if (error is DioException) {
     final nested = error.error;
     if (nested is ApiException) {
-      return nested.message;
+      return ApiErrorPresentation(
+        message: _normalizeKnownMessage(nested),
+        sessionExpired: nested.kind == ApiErrorKind.unauthorized,
+      );
     }
 
-    final data = error.response?.data;
-    if (data is Map<String, dynamic>) {
-      final message = data['error'];
-      if (message is String && message.isNotEmpty) {
-        return message;
-      }
-    }
-
-    if (error.type == DioExceptionType.connectionError) {
-      return 'Falha de conexão com o servidor.';
-    }
-
-    return 'Erro de requisição (${error.response?.statusCode ?? 'sem status'}).';
+    final mapped = ApiException.fromDio(error);
+    return ApiErrorPresentation(
+      message: mapped.message,
+      sessionExpired: mapped.kind == ApiErrorKind.unauthorized,
+    );
   }
 
   if (error is String && error.trim().isNotEmpty) {
-    return error.trim();
+    if (isSessionExpiredError(error)) {
+      return const ApiErrorPresentation(
+        message: 'Sua sessão expirou. Faça login novamente.',
+        sessionExpired: true,
+      );
+    }
+    return ApiErrorPresentation(message: error.trim());
   }
 
-  return 'Erro inesperado.';
+  return const ApiErrorPresentation(message: 'Erro inesperado.');
+}
+
+String parseDioError(Object error) {
+  return describeApiError(error).message;
 }
