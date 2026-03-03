@@ -72,6 +72,17 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
     }
   }
 
+  Future<void> _unlockAndLoad() async {
+    final unlockToken = await ref
+        .read(parentalUnlockServiceProvider)
+        .ensureUnlocked(context, source: 'adult_virtue_reports_unlock');
+    if (unlockToken == null || !mounted) {
+      return;
+    }
+
+    await _loadOverview();
+  }
+
   Future<void> _openChildSummary(String childId) async {
     final token = ref.read(authControllerProvider).accessToken;
     final gate = ref.read(parentalGateControllerProvider);
@@ -174,12 +185,23 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
         appBar: AppBar(title: const Text('Relatório de Virtudes')),
         body: ListView(
           padding: const EdgeInsets.all(16),
-          children: const [
+          children: [
             ViscondeGlassCard(
-              child: ViscondeSectionTitle(
-                title: 'Área protegida',
-                subtitle:
-                    'Volte para a área adulta, desbloqueie via PIN e abra novamente os relatórios.',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const ViscondeSectionTitle(
+                    title: 'Área protegida',
+                    subtitle:
+                        'Desbloqueie via PIN para abrir os relatórios de virtudes.',
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _unlockAndLoad,
+                    icon: const Icon(Icons.lock_open_outlined),
+                    label: const Text('Desbloquear agora'),
+                  ),
+                ],
               ),
             ),
           ],

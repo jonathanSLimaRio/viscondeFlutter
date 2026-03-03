@@ -30,6 +30,18 @@ const uxEventNameSchema = z.enum([
   "story_create_abandoned",
   "story_published",
   "game_hub_opened",
+  "vault_state_shown",
+  "vault_retry_tapped",
+  "vault_empty_cta_tapped",
+  "game_state_shown",
+  "game_retry_tapped",
+  "game_empty_cta_tapped",
+  "post_publish_modal_opened",
+  "post_publish_cta_clicked",
+  "pin_prompt_shown",
+  "pin_prompt_success",
+  "pin_prompt_abandon",
+  "pin_lock_now_clicked",
 ]);
 
 const optionalString = z

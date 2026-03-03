@@ -4,16 +4,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
-import '../../gamification/models/gamification_models.dart';
 import '../../gamification/inventory_models.dart';
 import '../../auth/auth_controller.dart';
 import '../../story_vault/story_pdf_exporter.dart';
+import '../../../shared/ui/app_feedback.dart';
+import '../../../shared/ui/post_publish_celebration_dialog.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
 import '../../../shared/ux_analytics.dart';
 import '../../../shared/providers.dart';
-
-enum _PostPublishAction { home, nextAdventure }
 
 class StorySummaryScreen extends ConsumerStatefulWidget {
   const StorySummaryScreen({super.key, required this.storyId});
@@ -82,12 +81,20 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       if (token != null) {
         reward = await ref
             .read(inventoryApiProvider)
-            .rewardRandomItem(widget.storyId, token);
+            .rewardRandomItem(finalized.story.id, token);
       }
     } catch (_) {}
 
-    final nextAction = await _showGamificationModal(
-      finalized.gamification,
+    if (!mounted) {
+      return;
+    }
+
+    final nextAction = await showPostPublishCelebrationDialog(
+      context,
+      source: 'story_summary_screen',
+      flow: 'summary',
+      storyId: finalized.story.id,
+      gamification: finalized.gamification,
       reward: reward,
     );
 
@@ -95,144 +102,50 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       return;
     }
 
-    if (nextAction == _PostPublishAction.nextAdventure) {
-      context.go(AppRoute.storyCreate);
-      return;
-    }
-    context.go(AppRoute.home);
+    await _handlePostPublishAction(nextAction, finalized.story.id);
   }
 
-  Future<_PostPublishAction> _showGamificationModal(
-    PublishGamificationSummaryModel? gamification, {
-    ChildInventoryModel? reward,
-  }) async {
-    if (!mounted) {
-      return _PostPublishAction.home;
+  Future<void> _handlePostPublishAction(
+    PostPublishAction action,
+    String storyId,
+  ) async {
+    switch (action) {
+      case PostPublishAction.continueSaga:
+        final token = ref.read(authControllerProvider).accessToken;
+        if (token == null) {
+          if (mounted) {
+            context.showMessage('Sua sessão expirou. Faça login novamente.');
+            context.go(AppRoute.homePath(tab: HomeTab.stories));
+          }
+          return;
+        }
+        try {
+          final session = await ref
+              .read(storyApiProvider)
+              .continueStory(token, storyId);
+          if (!mounted) {
+            return;
+          }
+          context.go(AppRoute.storyRoom(session.id));
+        } catch (error) {
+          if (!mounted) {
+            return;
+          }
+          context.showError(error);
+          context.go(AppRoute.homePath(tab: HomeTab.stories));
+        }
+        return;
+      case PostPublishAction.goGame:
+        if (mounted) {
+          context.go(AppRoute.homePath(tab: HomeTab.game));
+        }
+        return;
+      case PostPublishAction.backToVault:
+        if (mounted) {
+          context.go(AppRoute.homePath(tab: HomeTab.stories));
+        }
+        return;
     }
-
-    UxAnalytics.log(
-      'reward_modal_opened',
-      params: <String, Object?>{
-        'has_gamification': gamification != null,
-        'has_reward_item': reward?.item != null,
-      },
-    );
-
-    final action = await showDialog<_PostPublishAction>(
-      context: context,
-      builder: (context) {
-        final textTheme = Theme.of(context).textTheme;
-        final colors = context.viscondeColors;
-        return AlertDialog(
-          title: const Text('Capítulo publicado!'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0.86, end: 1),
-                    duration: const Duration(milliseconds: 320),
-                    curve: Curves.easeOutBack,
-                    builder: (context, value, child) {
-                      return Transform.scale(scale: value, child: child);
-                    },
-                    child: Icon(
-                      Icons.celebration_rounded,
-                      size: 44,
-                      color: colors.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Parabéns! A história já está no baú e a aventura segue viva.',
-                  style: textTheme.bodyMedium,
-                ),
-                if (gamification != null) ...[
-                  const SizedBox(height: 12),
-                  Text('+${gamification.deltaCoins} moedas'),
-                  Text('+${gamification.deltaStars} estrelas'),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Carteira: ${gamification.wallet.coins} moedas · ${gamification.wallet.stars} estrelas',
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Streak atual: ${gamification.streak.currentDays} dias'),
-                  Text('Escudos: ${gamification.streak.shieldCount}'),
-                ],
-                if (reward != null && reward.item != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'Item Encontrado',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.amber,
-                    ),
-                  ),
-                  Text('Você achou: ${reward.item!.name} ${reward.item!.icon}'),
-                  Text(
-                    '${reward.item!.rarity} - ${reward.item!.description}',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colors.textMuted,
-                    ),
-                  ),
-                ],
-                if (gamification?.completedMissions.isNotEmpty ?? false) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'Missões concluídas',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  ...gamification!.completedMissions.map<Widget>(
-                    (mission) => Text('- ${mission.title}'),
-                  ),
-                ],
-                if (gamification?.unlockedAchievements.isNotEmpty ?? false) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'Conquistas desbloqueadas',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  ...gamification!.unlockedAchievements.map<Widget>(
-                    (achievement) => Text('- ${achievement.title}'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                UxAnalytics.log(
-                  'reward_modal_cta_clicked',
-                  params: const <String, Object?>{'target': 'home'},
-                );
-                Navigator.of(context).pop(_PostPublishAction.home);
-              },
-              child: const Text('Voltar ao início'),
-            ),
-            FilledButton(
-              onPressed: () {
-                UxAnalytics.log(
-                  'reward_modal_cta_clicked',
-                  params: const <String, Object?>{'target': 'next_adventure'},
-                );
-                Navigator.of(context).pop(_PostPublishAction.nextAdventure);
-              },
-              child: const Text('Próxima aventura'),
-            ),
-          ],
-        );
-      },
-    );
-
-    return action ?? _PostPublishAction.home;
   }
 
   @override

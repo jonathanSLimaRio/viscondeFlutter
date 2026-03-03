@@ -1,16 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../features/auth/auth_controller.dart';
+import '../../../shared/providers.dart';
 import '../../children/ui/children_tab.dart';
 import '../../gamification/ui/game_hub_screen.dart';
+import '../../security/parental_gate_controller.dart';
 import '../../security/ui/adult_gate_tab.dart';
 import '../../story_vault/ui/story_vault_screen.dart';
 import 'profile_tab.dart';
 
 class HomeShellScreen extends ConsumerStatefulWidget {
-  const HomeShellScreen({super.key});
+  const HomeShellScreen({super.key, this.initialTab = HomeTab.stories});
+
+  final HomeTab initialTab;
 
   @override
   ConsumerState<HomeShellScreen> createState() => _HomeShellScreenState();
@@ -21,6 +28,44 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
 
   int _index = 0;
   final Map<int, Widget> _tabCache = <int, Widget>{0: const StoryVaultScreen()};
+  Timer? _unlockTicker;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = _indexFromTab(widget.initialTab);
+    _tabCache.putIfAbsent(_index, () => _tabForIndex(_index));
+    _unlockTicker = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _unlockTicker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeShellScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab == widget.initialTab) {
+      return;
+    }
+
+    final nextIndex = _indexFromTab(widget.initialTab);
+    if (nextIndex == _index) {
+      return;
+    }
+
+    setState(() {
+      _index = nextIndex;
+      _tabCache.putIfAbsent(_index, () => _tabForIndex(_index));
+    });
+  }
 
   Future<void> _confirmLogout() async {
     final shouldLogout = await showDialog<bool>(
@@ -84,6 +129,21 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
     }
   }
 
+  int _indexFromTab(HomeTab tab) {
+    switch (tab) {
+      case HomeTab.stories:
+        return 0;
+      case HomeTab.game:
+        return 1;
+      case HomeTab.children:
+        return 2;
+      case HomeTab.profile:
+        return 3;
+      case HomeTab.adult:
+        return 4;
+    }
+  }
+
   Widget _buildAnimatedBody() {
     return Stack(
       fit: StackFit.expand,
@@ -138,6 +198,9 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   Widget build(BuildContext context) {
     final colors = context.viscondeColors;
     final currentTabLabel = _tabLabel(_index);
+    final gate = ref.watch(parentalGateControllerProvider);
+    final isAdultUnlocked = gate.isUnlocked;
+    final remainingMinutes = gate.remainingWholeMinutesAt(DateTime.now()) ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -175,6 +238,66 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
             ),
           ],
         ),
+        bottom: isAdultUnlocked
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(88),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: context.viscondeGradients.pill,
+                          borderRadius: BorderRadius.circular(
+                            context.viscondeRadii.pill,
+                          ),
+                          border: Border.all(color: colors.borderSoft),
+                          boxShadow: context.viscondeElevations.soft,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.lock_open_rounded,
+                                size: 16,
+                                color: colors.textStrong,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Área adulta desbloqueada por $remainingMinutes min',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.labelLarge,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            ref
+                                .read(parentalUnlockServiceProvider)
+                                .lockNow(source: 'home_appbar_lock_now');
+                          },
+                          icon: const Icon(Icons.lock_outline, size: 16),
+                          label: const Text('Bloquear agora'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : null,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 10),

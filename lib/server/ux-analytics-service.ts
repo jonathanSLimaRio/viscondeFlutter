@@ -15,6 +15,18 @@ const UX_EVENT_NAME_MAP = {
   story_create_abandoned: "STORY_CREATE_ABANDONED",
   story_published: "STORY_PUBLISHED",
   game_hub_opened: "GAME_HUB_OPENED",
+  vault_state_shown: "VAULT_STATE_SHOWN",
+  vault_retry_tapped: "VAULT_RETRY_TAPPED",
+  vault_empty_cta_tapped: "VAULT_EMPTY_CTA_TAPPED",
+  game_state_shown: "GAME_STATE_SHOWN",
+  game_retry_tapped: "GAME_RETRY_TAPPED",
+  game_empty_cta_tapped: "GAME_EMPTY_CTA_TAPPED",
+  post_publish_modal_opened: "POST_PUBLISH_MODAL_OPENED",
+  post_publish_cta_clicked: "POST_PUBLISH_CTA_CLICKED",
+  pin_prompt_shown: "PIN_PROMPT_SHOWN",
+  pin_prompt_success: "PIN_PROMPT_SUCCESS",
+  pin_prompt_abandon: "PIN_PROMPT_ABANDON",
+  pin_lock_now_clicked: "PIN_LOCK_NOW_CLICKED",
 } as const;
 
 type UxClientInfo = {
@@ -64,6 +76,25 @@ const PARAM_ALLOWLIST: Record<keyof typeof UX_EVENT_NAME_MAP, readonly string[]>
   story_create_abandoned: ["step", "source", "flow", "duration_ms", "reason"],
   story_published: ["story_id", "steps"],
   game_hub_opened: ["selected_child", "source"],
+  vault_state_shown: ["screen", "state", "filtered", "source"],
+  vault_retry_tapped: ["screen", "source"],
+  vault_empty_cta_tapped: ["screen", "cta", "state", "source"],
+  game_state_shown: ["screen", "state", "source"],
+  game_retry_tapped: ["screen", "source"],
+  game_empty_cta_tapped: ["screen", "cta", "state", "source"],
+  post_publish_modal_opened: [
+    "source",
+    "flow",
+    "story_id",
+    "coins_delta",
+    "stars_delta",
+    "achievements_count",
+  ],
+  post_publish_cta_clicked: ["source", "flow", "target"],
+  pin_prompt_shown: ["source"],
+  pin_prompt_success: ["source", "expires_at"],
+  pin_prompt_abandon: ["source", "reason", "message"],
+  pin_lock_now_clicked: ["source"],
 };
 
 function toUtcStartOfDay(dateValue: string) {
@@ -255,6 +286,58 @@ export async function getUxFunnelOverview(input: UxDateRangeInput) {
     step2: { totalMs: 0, count: 0 },
     step3: { totalMs: 0, count: 0 },
   };
+  const postPublish = {
+    publishedTotal: 0,
+    modalOpenedTotal: 0,
+    ctaClicksTotal: 0,
+    ctaClicksByTarget: {
+      continueSaga: 0,
+      goGame: 0,
+      backToVault: 0,
+    },
+  };
+  const sessionsWithPostPublishModal = new Set<string>();
+  const sessionsWithPostPublishCta = new Set<string>();
+  const screenStates = {
+    vault: {
+      loadingShown: 0,
+      emptyShown: 0,
+      errorShown: 0,
+      contentShown: 0,
+      retryTapped: 0,
+      emptyCtaTapped: 0,
+    },
+    game: {
+      loadingShown: 0,
+      emptyShown: 0,
+      errorShown: 0,
+      contentShown: 0,
+      retryTapped: 0,
+      emptyCtaTapped: 0,
+    },
+  };
+  const pinFriction = {
+    promptShownTotal: 0,
+    promptSuccessTotal: 0,
+    promptAbandonTotal: 0,
+    lockNowTotal: 0,
+    abandonByReason: new Map<string, number>(),
+  };
+
+  function normalizeScreen(raw: unknown): "vault" | "game" | null {
+    if (raw === "vault" || raw === "game") {
+      return raw;
+    }
+    return null;
+  }
+
+  function normalizeStateLabel(raw: unknown): string | null {
+    if (typeof raw !== "string") {
+      return null;
+    }
+    const state = raw.trim().toLowerCase();
+    return state.length > 0 ? state : null;
+  }
 
   function readFlags(sessionId: string) {
     const existing = funnelBySession.get(sessionId);
@@ -338,11 +421,113 @@ export async function getUxFunnelOverview(input: UxDateRangeInput) {
 
     if (event.eventName === "STORY_PUBLISHED") {
       flags.published = true;
+      postPublish.publishedTotal += 1;
       continue;
     }
 
     if (event.eventName === "GAME_HUB_OPENED") {
       flags.gameHubOpened = true;
+      continue;
+    }
+
+    if (event.eventName === "POST_PUBLISH_MODAL_OPENED") {
+      postPublish.modalOpenedTotal += 1;
+      sessionsWithPostPublishModal.add(event.appSessionId);
+      continue;
+    }
+
+    if (event.eventName === "POST_PUBLISH_CTA_CLICKED") {
+      postPublish.ctaClicksTotal += 1;
+      sessionsWithPostPublishCta.add(event.appSessionId);
+      const params =
+        event.params && typeof event.params === "object"
+          ? (event.params as Record<string, unknown>)
+          : null;
+      const rawTarget = typeof params?.target === "string" ? params.target.trim().toLowerCase() : "";
+      if (rawTarget === "continue_saga") {
+        postPublish.ctaClicksByTarget.continueSaga += 1;
+      } else if (rawTarget === "go_game") {
+        postPublish.ctaClicksByTarget.goGame += 1;
+      } else if (rawTarget === "back_to_vault") {
+        postPublish.ctaClicksByTarget.backToVault += 1;
+      }
+      continue;
+    }
+
+    if (event.eventName === "PIN_PROMPT_SHOWN") {
+      pinFriction.promptShownTotal += 1;
+      continue;
+    }
+
+    if (event.eventName === "PIN_PROMPT_SUCCESS") {
+      pinFriction.promptSuccessTotal += 1;
+      continue;
+    }
+
+    if (event.eventName === "PIN_PROMPT_ABANDON") {
+      pinFriction.promptAbandonTotal += 1;
+      const params =
+        event.params && typeof event.params === "object"
+          ? (event.params as Record<string, unknown>)
+          : null;
+      const reason =
+        typeof params?.reason === "string" && params.reason.trim().length > 0
+          ? params.reason.trim()
+          : "unknown";
+      pinFriction.abandonByReason.set(
+        reason,
+        (pinFriction.abandonByReason.get(reason) ?? 0) + 1
+      );
+      continue;
+    }
+
+    if (event.eventName === "PIN_LOCK_NOW_CLICKED") {
+      pinFriction.lockNowTotal += 1;
+      continue;
+    }
+
+    if (
+      event.eventName === "VAULT_STATE_SHOWN" ||
+      event.eventName === "GAME_STATE_SHOWN" ||
+      event.eventName === "VAULT_RETRY_TAPPED" ||
+      event.eventName === "GAME_RETRY_TAPPED" ||
+      event.eventName === "VAULT_EMPTY_CTA_TAPPED" ||
+      event.eventName === "GAME_EMPTY_CTA_TAPPED"
+    ) {
+      const params =
+        event.params && typeof event.params === "object"
+          ? (event.params as Record<string, unknown>)
+          : null;
+
+      const screen = normalizeScreen(params?.screen);
+      if (!screen) {
+        continue;
+      }
+
+      if (event.eventName === "VAULT_RETRY_TAPPED" || event.eventName === "GAME_RETRY_TAPPED") {
+        screenStates[screen].retryTapped += 1;
+        continue;
+      }
+
+      if (event.eventName === "VAULT_EMPTY_CTA_TAPPED" || event.eventName === "GAME_EMPTY_CTA_TAPPED") {
+        screenStates[screen].emptyCtaTapped += 1;
+        continue;
+      }
+
+      const state = normalizeStateLabel(params?.state);
+      if (state == null) {
+        continue;
+      }
+
+      if (state.startsWith("loading")) {
+        screenStates[screen].loadingShown += 1;
+      } else if (state.startsWith("error")) {
+        screenStates[screen].errorShown += 1;
+      } else if (state.startsWith("empty")) {
+        screenStates[screen].emptyShown += 1;
+      } else if (state.startsWith("content")) {
+        screenStates[screen].contentShown += 1;
+      }
       continue;
     }
 
@@ -403,6 +588,12 @@ export async function getUxFunnelOverview(input: UxDateRangeInput) {
 
   const coveragePct =
     newAuthSessions > 0 ? Number(((trackedNewAuthSessions.size / newAuthSessions) * 100).toFixed(2)) : 0;
+  let sessionsWithNextAction = 0;
+  for (const sessionId of sessionsWithPostPublishCta) {
+    if (sessionsWithPostPublishModal.has(sessionId)) {
+      sessionsWithNextAction += 1;
+    }
+  }
   const toRate = (value: number, base: number) =>
     base > 0 ? Number(((value / base) * 100).toFixed(2)) : 0;
   const toAvgDuration = (totalMs: number, count: number) =>
@@ -439,6 +630,30 @@ export async function getUxFunnelOverview(input: UxDateRangeInput) {
     authErrors: {
       total: authErrors.reduce((sum, item) => sum + item.count, 0),
       breakdown: authErrors,
+    },
+    postPublish: {
+      ...postPublish,
+      modalOpenRatePct: toRate(postPublish.modalOpenedTotal, postPublish.publishedTotal),
+      continueSagaClickRatePct: toRate(
+        postPublish.ctaClicksByTarget.continueSaga,
+        postPublish.modalOpenedTotal
+      ),
+      nextActionConversionPct: toRate(
+        sessionsWithNextAction,
+        sessionsWithPostPublishModal.size
+      ),
+    },
+    screenStates,
+    pinFriction: {
+      promptShownTotal: pinFriction.promptShownTotal,
+      promptSuccessTotal: pinFriction.promptSuccessTotal,
+      promptAbandonTotal: pinFriction.promptAbandonTotal,
+      lockNowTotal: pinFriction.lockNowTotal,
+      successRatePct: toRate(pinFriction.promptSuccessTotal, pinFriction.promptShownTotal),
+      abandonRatePct: toRate(pinFriction.promptAbandonTotal, pinFriction.promptShownTotal),
+      abandonByReason: [...pinFriction.abandonByReason.entries()]
+        .map(([reason, count]) => ({ reason, count }))
+        .sort((left, right) => right.count - left.count),
     },
   };
 }

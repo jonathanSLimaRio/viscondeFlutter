@@ -6,12 +6,44 @@ class ParentalGateState {
   final String? unlockToken;
   final DateTime? expiresAt;
 
+  static const expirySafetyBuffer = Duration(seconds: 30);
+
   bool get isUnlocked {
+    return isUnlockedAt(DateTime.now());
+  }
+
+  bool isUnlockedAt(DateTime now, {Duration expiryBuffer = Duration.zero}) {
     if (unlockToken == null || expiresAt == null) {
       return false;
     }
 
-    return DateTime.now().isBefore(expiresAt!);
+    final safeExpiry = expiresAt!.subtract(expiryBuffer);
+    return now.isBefore(safeExpiry);
+  }
+
+  Duration? remainingAt(DateTime now) {
+    if (unlockToken == null || expiresAt == null) {
+      return null;
+    }
+
+    final remaining = expiresAt!.difference(now);
+    if (remaining.isNegative) {
+      return Duration.zero;
+    }
+    return remaining;
+  }
+
+  int? remainingWholeMinutesAt(DateTime now) {
+    final remaining = remainingAt(now);
+    if (remaining == null) {
+      return null;
+    }
+
+    if (remaining == Duration.zero) {
+      return 0;
+    }
+
+    return (remaining.inSeconds / 60).ceil();
   }
 
   ParentalGateState copyWith({

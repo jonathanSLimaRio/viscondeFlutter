@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/server/auth-context";
 import { handleRouteError, ok } from "@/lib/server/http";
+import { requireParentalUnlock } from "@/lib/server/parental-gate";
 import { parseBody } from "@/lib/server/schemas";
 import { createVoiceProfile, createVoiceProfileSchema, listVoiceProfiles } from "@/lib/server/voice-service";
 
@@ -8,6 +9,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     const auth = await requireAuth(request);
+    await requireParentalUnlock(request, auth.userId);
     const result = await listVoiceProfiles(auth.userId);
     return ok(result);
   } catch (error) {
@@ -18,6 +20,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const auth = await requireAuth(request);
+    await requireParentalUnlock(request, auth.userId);
     const body = parseBody(createVoiceProfileSchema, await request.json());
     const result = await createVoiceProfile(auth.userId, body);
     return ok(result, 201);

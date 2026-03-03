@@ -7,6 +7,9 @@ import '../../../app/app_route.dart';
 import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
+import '../../../shared/logging/app_logger.dart';
+import '../../../shared/ui/app_feedback.dart';
+import '../../../shared/ui/ui_state_copy.dart';
 import '../../../shared/providers.dart';
 import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
@@ -28,11 +31,15 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
   List<ChildProfile> _children = const [];
   List<VirtueModel> _virtues = const [];
 
-  bool _loading = false;
+  bool _loadingInitial = true;
+  bool _loadingCollections = false;
   bool _loadingFilters = false;
   bool _favoriteOnly = false;
   bool _quickCreating = false;
   CreateStoryWizardDraft? _resumeDraft;
+  String? _blockingError;
+  String? _inlineError;
+  String? _lastTrackedState;
 
   String? _selectedChildId;
   String? _selectedVirtueId;
@@ -59,9 +66,27 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
   }
 
   Future<void> _bootstrap() async {
-    await _loadFiltersData();
-    await _loadCollections();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _loadingInitial = true;
+      _blockingError = null;
+      _inlineError = null;
+    });
+    _trackVaultState('loading');
+
+    await _loadFiltersData(isInitial: true);
+    await _loadCollections(isInitial: true);
     await _loadResumeDraft();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _loadingInitial = false);
+    _trackVaultState(_computeVaultState());
   }
 
   Future<void> _loadResumeDraft() async {
@@ -73,7 +98,13 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     CreateStoryWizardDraft? draft;
     try {
       draft = await ref.read(createStoryWizardDraftStoreProvider).read(userId);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao ler rascunho local para retomada no Baú.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_vault',
+      );
       draft = null;
     }
     if (!mounted) {
@@ -91,7 +122,14 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     }
     try {
       await ref.read(createStoryWizardDraftStoreProvider).clear(userId);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao descartar rascunho local no Baú.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_vault',
+      );
+    }
     if (!mounted) {
       return;
     }
@@ -110,7 +148,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     await _loadCollections();
   }
 
-  Future<void> _loadFiltersData() async {
+  Future<void> _loadFiltersData({bool isInitial = false}) async {
     final token = _accessToken();
     if (token == null) {
       return;
@@ -130,14 +168,20 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
       setState(() {
         _children = result[0] as List<ChildProfile>;
         _virtues = result[1] as List<VirtueModel>;
+        _inlineError = null;
       });
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      final message = parseDioError(error);
+      setState(() {
+        if (isInitial && _collections.isEmpty) {
+          _blockingError = message;
+        } else {
+          _inlineError = message;
+        }
+      });
     } finally {
       if (mounted) {
         setState(() => _loadingFilters = false);
@@ -145,13 +189,13 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     }
   }
 
-  Future<void> _loadCollections() async {
+  Future<void> _loadCollections({bool isInitial = false}) async {
     final token = _accessToken();
     if (token == null) {
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() => _loadingCollections = true);
     try {
       final collections = await ref
           .read(storyApiProvider)
@@ -173,17 +217,25 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
 
       setState(() {
         _collections = collections;
+        _blockingError = null;
+        _inlineError = null;
       });
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      final message = parseDioError(error);
+      setState(() {
+        if (isInitial && _collections.isEmpty) {
+          _blockingError = message;
+        } else {
+          _inlineError = message;
+        }
+      });
     } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() => _loadingCollections = false);
+        _trackVaultState(_computeVaultState());
       }
     }
   }
@@ -220,7 +272,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() => _loadingCollections = true);
     try {
       final now = DateTime.now();
       final monthStr = '${now.year}-${now.month.toString().padLeft(2, '0')}';
@@ -239,7 +291,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
         ),
       );
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _loadingCollections = false);
     }
   }
 
@@ -271,10 +323,88 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     await _loadCollections();
   }
 
+  bool get _hasActiveFilters {
+    return _selectedChildId != null ||
+        _selectedVirtueId != null ||
+        _dateFrom != null ||
+        _dateTo != null ||
+        _favoriteOnly ||
+        _themeController.text.trim().isNotEmpty;
+  }
+
+  String _computeVaultState() {
+    if (_loadingInitial) {
+      return 'loading';
+    }
+
+    if (_blockingError != null && _collections.isEmpty) {
+      return 'error_blocking';
+    }
+
+    if (_collections.isEmpty) {
+      return _hasActiveFilters ? 'empty_filtered' : 'empty';
+    }
+
+    return 'content';
+  }
+
+  void _trackVaultState(String state) {
+    if (_lastTrackedState == state) {
+      return;
+    }
+    _lastTrackedState = state;
+    UxAnalytics.log(
+      'vault_state_shown',
+      params: <String, Object?>{
+        'screen': 'vault',
+        'state': state,
+        'filtered': _hasActiveFilters,
+        'source': 'story_vault_screen',
+      },
+    );
+  }
+
+  Future<void> _retryVaultLoad() async {
+    UxAnalytics.log(
+      'vault_retry_tapped',
+      params: const <String, Object?>{
+        'screen': 'vault',
+        'source': 'story_vault_screen',
+      },
+    );
+    if (_collections.isEmpty) {
+      await _bootstrap();
+      return;
+    }
+    await _loadCollections();
+  }
+
+  Future<void> _clearFiltersAndReload() async {
+    setState(() {
+      _selectedChildId = null;
+      _selectedVirtueId = null;
+      _dateFrom = null;
+      _dateTo = null;
+      _favoriteOnly = false;
+      _themeController.clear();
+    });
+    await _loadCollections();
+  }
+
   void _showSnackMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    context.showMessage(message);
+  }
+
+  void _trackVaultEmptyCta(String cta) {
+    UxAnalytics.log(
+      'vault_empty_cta_tapped',
+      params: <String, Object?>{
+        'screen': 'vault',
+        'cta': cta,
+        'state': _computeVaultState(),
+        'source': 'story_vault_screen',
+      },
+    );
   }
 
   Future<void> _createQuickStory() async {
@@ -339,7 +469,13 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             .read(storyApiProvider)
             .suggestVirtue(token, childProfileId: selectedChild.id);
         suggestedVirtueId = suggestion.virtue.id;
-      } catch (_) {
+      } catch (error, stackTrace) {
+        AppLogger.warn(
+          'Falha ao sugerir virtude no quick create. Seguindo com fallback.',
+          error: error,
+          stackTrace: stackTrace,
+          scope: 'story_vault',
+        );
         // O backend já resolve virtude automaticamente quando necessário.
       }
 
@@ -439,7 +575,14 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
       if (userId != null) {
         try {
           await ref.read(createStoryWizardDraftStoreProvider).clear(userId);
-        } catch (_) {}
+        } catch (error, stackTrace) {
+          AppLogger.warn(
+            'Falha ao limpar rascunho local após quick create.',
+            error: error,
+            stackTrace: stackTrace,
+            scope: 'story_vault',
+          );
+        }
       }
       if (mounted) {
         setState(() {
@@ -469,12 +612,19 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     }
   }
 
-  Widget _buildCreationActions() {
+  Widget _buildCreationActions({bool trackAsEmptyCta = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ViscondePrimaryCta(
-          onPressed: _quickCreating ? null : _createQuickStory,
+          onPressed: _quickCreating
+              ? null
+              : () {
+                  if (trackAsEmptyCta) {
+                    _trackVaultEmptyCta('quick_create');
+                  }
+                  _createQuickStory();
+                },
           icon: Icons.flash_on_rounded,
           label: _quickCreating
               ? 'Criando história rápida...'
@@ -484,11 +634,197 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
         OutlinedButton.icon(
           onPressed: _quickCreating
               ? null
-              : () => _openCreateWithResume(resume: false),
+              : () {
+                  if (trackAsEmptyCta) {
+                    _trackVaultEmptyCta('create_with_details');
+                  }
+                  _openCreateWithResume(resume: false);
+                },
           icon: const Icon(Icons.tune),
           label: const Text('Criar com detalhes'),
         ),
       ],
+    );
+  }
+
+  Widget _buildInitialSkeleton() {
+    return Column(
+      children: [
+        const ViscondeSkeletonCard(
+          leading: ViscondeSkeletonBox(height: 72, width: 72, radius: 36),
+          lines: 3,
+        ),
+        const SizedBox(height: 12),
+        const ViscondeSkeletonCard(lines: 5),
+        const SizedBox(height: 12),
+        ...List<Widget>.generate(
+          3,
+          (_) => const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: ViscondeSkeletonCard(lines: 3),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFiltersCard(DateFormat dateFormat) {
+    return ViscondeGlassCard(
+      child: Column(
+        children: [
+          const ViscondeSectionTitle(
+            title: 'Filtros',
+            subtitle: 'Refine por criança, virtude e período.',
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _themeController,
+            decoration: InputDecoration(
+              labelText: 'Filtro por tema',
+              suffixIcon: IconButton(
+                onPressed: _loadCollections,
+                icon: const Icon(Icons.search),
+              ),
+            ),
+            onSubmitted: (_) => _loadCollections(),
+          ),
+          const SizedBox(height: 10),
+          if (_loadingFilters)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(),
+            ),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String?>(
+                  initialValue: _selectedChildId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Criança'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Todas'),
+                    ),
+                    ..._children.map(
+                      (child) => DropdownMenuItem<String?>(
+                        value: child.id,
+                        child: Text(child.name),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) async {
+                    setState(() => _selectedChildId = value);
+                    await _loadCollections();
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String?>(
+                  initialValue: _selectedVirtueId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Virtude'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Todas'),
+                    ),
+                    ..._virtues.map(
+                      (virtue) => DropdownMenuItem<String?>(
+                        value: virtue.id,
+                        child: Text(virtue.name),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) async {
+                    setState(() => _selectedVirtueId = value);
+                    await _loadCollections();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickFromDate,
+                  icon: const Icon(Icons.date_range),
+                  label: Text(
+                    _dateFrom == null
+                        ? 'Data inicial'
+                        : 'De ${dateFormat.format(_dateFrom!)}',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickToDate,
+                  icon: const Icon(Icons.event),
+                  label: Text(
+                    _dateTo == null
+                        ? 'Data final'
+                        : 'Até ${dateFormat.format(_dateTo!)}',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            value: _favoriteOnly,
+            onChanged: (value) async {
+              setState(() => _favoriteOnly = value);
+              await _loadCollections();
+            },
+            title: const Text('Somente favoritas'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    final filtered = _hasActiveFilters;
+    final title = filtered
+        ? UiStateCopy.vaultFilteredEmptyTitle
+        : UiStateCopy.vaultEmptyTitle;
+    final description = filtered
+        ? UiStateCopy.vaultFilteredEmptyDescription
+        : UiStateCopy.vaultEmptyDescription;
+
+    return ViscondeContentState.empty(
+      title: title,
+      description: description,
+      primaryActionLabel: filtered ? 'Limpar filtros' : 'Criar história rápida',
+      onPrimaryAction: filtered
+          ? () {
+              _trackVaultEmptyCta('clear_filters');
+              _clearFiltersAndReload();
+            }
+          : () {
+              _trackVaultEmptyCta('quick_create');
+              _createQuickStory();
+            },
+      secondaryActionLabel: filtered
+          ? 'Tentar novamente'
+          : 'Criar com detalhes',
+      onSecondaryAction: filtered
+          ? () {
+              _trackVaultEmptyCta('retry');
+              _retryVaultLoad();
+            }
+          : () {
+              _trackVaultEmptyCta('create_with_details');
+              _openCreateWithResume(resume: false);
+            },
+      mascotPose: filtered
+          ? ViscondeMascotPose.enchantedHearts
+          : ViscondeMascotPose.readingBook,
     );
   }
 
@@ -536,9 +872,10 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');
+    final hasBlockingError = _blockingError != null && _collections.isEmpty;
 
     return RefreshIndicator(
-      onRefresh: _loadCollections,
+      onRefresh: _retryVaultLoad,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -550,130 +887,52 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             mascotPose: ViscondeMascotPose.readingBook,
           ),
           const SizedBox(height: 12),
-          ViscondeGlassCard(
-            child: Column(
-              children: [
-                const ViscondeSectionTitle(
-                  title: 'Filtros',
-                  subtitle: 'Refine por criança, virtude e período.',
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _themeController,
-                  decoration: InputDecoration(
-                    labelText: 'Filtro por tema',
-                    suffixIcon: IconButton(
-                      onPressed: _loadCollections,
-                      icon: const Icon(Icons.search),
-                    ),
-                  ),
-                  onSubmitted: (_) => _loadCollections(),
-                ),
-                const SizedBox(height: 10),
-                if (_loadingFilters)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: LinearProgressIndicator(),
-                  ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String?>(
-                        initialValue: _selectedChildId,
-                        isExpanded: true,
-                        decoration: const InputDecoration(labelText: 'Criança'),
-                        items: [
-                          const DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('Todas'),
-                          ),
-                          ..._children.map(
-                            (child) => DropdownMenuItem<String?>(
-                              value: child.id,
-                              child: Text(child.name),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) async {
-                          setState(() => _selectedChildId = value);
-                          await _loadCollections();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String?>(
-                        initialValue: _selectedVirtueId,
-                        isExpanded: true,
-                        decoration: const InputDecoration(labelText: 'Virtude'),
-                        items: [
-                          const DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('Todas'),
-                          ),
-                          ..._virtues.map(
-                            (virtue) => DropdownMenuItem<String?>(
-                              value: virtue.id,
-                              child: Text(virtue.name),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) async {
-                          setState(() => _selectedVirtueId = value);
-                          await _loadCollections();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _pickFromDate,
-                        icon: const Icon(Icons.date_range),
-                        label: Text(
-                          _dateFrom == null
-                              ? 'Data inicial'
-                              : 'De ${dateFormat.format(_dateFrom!)}',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _pickToDate,
-                        icon: const Icon(Icons.event),
-                        label: Text(
-                          _dateTo == null
-                              ? 'Data final'
-                              : 'Até ${dateFormat.format(_dateTo!)}',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: _favoriteOnly,
-                  onChanged: (value) async {
-                    setState(() => _favoriteOnly = value);
-                    await _loadCollections();
-                  },
-                  title: const Text('Somente favoritas'),
-                ),
-              ],
+          if (_loadingInitial) _buildInitialSkeleton(),
+          if (!_loadingInitial) _buildFiltersCard(dateFormat),
+          if (!_loadingInitial && hasBlockingError) ...[
+            const SizedBox(height: 12),
+            ViscondeContentState.error(
+              title: UiStateCopy.genericErrorTitle,
+              description:
+                  _blockingError ?? UiStateCopy.genericErrorDescription,
+              primaryActionLabel: 'Tentar novamente',
+              onPrimaryAction: _retryVaultLoad,
+              secondaryActionLabel: 'Criar história rápida',
+              onSecondaryAction: () {
+                _trackVaultEmptyCta('quick_create_error');
+                _createQuickStory();
+              },
             ),
-          ),
+            const SizedBox(height: 12),
+            _buildCreationActions(trackAsEmptyCta: true),
+          ],
+          if (!_loadingInitial && !hasBlockingError) ...[
+            if (_inlineError != null) ...[
+              ViscondeContentState.error(
+                title: UiStateCopy.genericErrorTitle,
+                description: _inlineError!,
+                primaryActionLabel: 'Tentar novamente',
+                onPrimaryAction: _retryVaultLoad,
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (_loadingCollections)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: LinearProgressIndicator(),
+              ),
+          ],
           const SizedBox(height: 12),
-          if (_resumeDraft != null) ...[
+          if (!_loadingInitial &&
+              _resumeDraft != null &&
+              !hasBlockingError) ...[
             _buildResumeDraftCard(),
             const SizedBox(height: 12),
           ],
-          _buildCreationActions(),
-          if (_selectedChildId != null) ...[
+          if (!_loadingInitial && !hasBlockingError) _buildCreationActions(),
+          if (!_loadingInitial &&
+              !hasBlockingError &&
+              _selectedChildId != null) ...[
             const SizedBox(height: 12),
             ViscondePrimaryCta(
               onPressed: _generateMonthlyBook,
@@ -682,70 +941,41 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             ),
           ],
           const SizedBox(height: 12),
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          if (!_loading && _collections.isEmpty)
-            ViscondeGlassCard(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Column(
-                  children: [
-                    Text(
-                      'Seu baú está vazio',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    const ViscondeMascot(
-                      pose: ViscondeMascotPose.readingBook,
-                      size: 180,
-                      glow: true,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Crie a primeira aventura e comece sua coleção.',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildCreationActions(),
-                  ],
-                ),
-              ),
-            ),
-          ..._collections.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: ViscondeStoryRowCard(
-                onTap: () => context.push(AppRoute.vaultDetail(item.id)),
-                title: item.title,
-                badgeLabel: item.virtue?.name ?? item.theme,
-                backgroundAsset: ViscondeArtRegistry.resolve(
-                  item.isFavorite
-                      ? ViscondeArtKey.heroCastle
-                      : ViscondeArtKey.heroForest,
-                ),
-                trailing: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: () => _toggleFavorite(item),
-                      icon: Icon(
-                        item.isFavorite ? Icons.star : Icons.star_border,
-                        color: item.isFavorite ? Colors.amber.shade700 : null,
+          if (!_loadingInitial && !hasBlockingError && _collections.isEmpty)
+            _buildEmptyState(),
+          if (!_loadingInitial && !hasBlockingError)
+            ..._collections.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: ViscondeStoryRowCard(
+                  onTap: () => context.push(AppRoute.vaultDetail(item.id)),
+                  title: item.title,
+                  badgeLabel: item.virtue?.name ?? item.theme,
+                  backgroundAsset: ViscondeArtRegistry.resolve(
+                    item.isFavorite
+                        ? ViscondeArtKey.heroCastle
+                        : ViscondeArtKey.heroForest,
+                  ),
+                  trailing: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () => _toggleFavorite(item),
+                        icon: Icon(
+                          item.isFavorite ? Icons.star : Icons.star_border,
+                          color: item.isFavorite ? Colors.amber.shade700 : null,
+                        ),
+                        tooltip: item.isFavorite ? 'Desfavoritar' : 'Favoritar',
                       ),
-                      tooltip: item.isFavorite ? 'Desfavoritar' : 'Favoritar',
-                    ),
-                    Text(
-                      '${item.episodesCount} ep',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                  ],
+                      Text(
+                        '${item.episodesCount} ep',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

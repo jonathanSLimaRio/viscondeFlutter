@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/app_route.dart';
 import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ui/ui_state_copy.dart';
 import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
 import '../../security/parental_gate_controller.dart';
@@ -20,7 +23,8 @@ class GameHubScreen extends ConsumerStatefulWidget {
 }
 
 class _GameHubScreenState extends ConsumerState<GameHubScreen> {
-  bool _loading = false;
+  bool _loadingInitial = true;
+  bool _loadingData = false;
   WalletModel? _wallet;
   List<AchievementModel> _achievements = const [];
   List<ChildProfile> _children = const [];
@@ -29,8 +33,11 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
   List<ChildInventoryModel> _childInventory = const [];
   String? _selectedChildId;
   CatalogItemType? _selectedCatalogType;
-  String? _loadError;
+  String? _blockingError;
+  String? _inlineError;
   bool _gameHubOpenedLogged = false;
+  String? _lastTrackedState;
+  final Set<String> _trackedSectionStates = <String>{};
 
   String? _accessToken() {
     return ref.read(authControllerProvider).accessToken;
@@ -75,7 +82,12 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() {
+      _loadingInitial = true;
+      _blockingError = null;
+      _inlineError = null;
+    });
+    _trackGameState('loading');
     try {
       final children = await ref.read(childrenApiProvider).listChildren(token);
       if (!mounted) {
@@ -87,24 +99,24 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         _selectedChildId =
             _selectedChildId ??
             (children.isNotEmpty ? children.first.id : null);
-        _loadError = null;
+        _blockingError = null;
+        _inlineError = null;
       });
       _logGameHubOpenedIfNeeded();
 
-      await _loadData();
+      await _loadData(isInitial: true);
     } catch (error) {
       if (!mounted) {
         return;
       }
 
       final message = parseDioError(error);
-      setState(() => _loadError = message);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      setState(() => _blockingError = message);
+      _trackGameState('error_blocking');
     } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() => _loadingInitial = false);
+        _trackGameState(_computeGlobalState());
       }
     }
   }
@@ -126,7 +138,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     );
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool isInitial = false}) async {
     final token = _accessToken();
     final childId = _selectedChildId;
 
@@ -134,7 +146,8 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       return;
     }
 
-    setState(() => _loading = true);
+    _trackedSectionStates.clear();
+    setState(() => _loadingData = true);
     try {
       final results = await Future.wait([
         ref.read(gamificationApiProvider).fetchWallet(token),
@@ -162,7 +175,8 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         _progression = results[2] as ChildProgressionModel;
         _catalog = results[3] as List<CatalogItemModel>;
         _childInventory = results[4] as List<ChildInventoryModel>;
-        _loadError = null;
+        _blockingError = null;
+        _inlineError = null;
       });
     } catch (error) {
       if (!mounted) {
@@ -170,121 +184,18 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       }
 
       final message = parseDioError(error);
-      setState(() => _loadError = message);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      setState(() {
+        if ((isInitial || _hasCoreData == false) && _blockingError == null) {
+          _blockingError = message;
+        } else {
+          _inlineError = message;
+        }
+      });
     } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() => _loadingData = false);
+        _trackGameState(_computeGlobalState());
       }
-    }
-  }
-
-  Future<String?> _resolveUnlockToken({bool showSuccessMessage = false}) async {
-    final gate = ref.read(parentalGateControllerProvider);
-    if (gate.isUnlocked && gate.unlockToken != null) {
-      return gate.unlockToken;
-    }
-
-    UxAnalytics.log('pin_prompt_shown');
-    final pinController = TextEditingController();
-    final pin = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('PIN adulto'),
-          content: TextField(
-            controller: pinController,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Digite seu PIN'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(pinController.text.trim()),
-              child: const Text('Confirmar'),
-            ),
-          ],
-        );
-      },
-    );
-    pinController.dispose();
-
-    if (pin == null || pin.length != 6) {
-      UxAnalytics.log(
-        'pin_prompt_abandon',
-        params: <String, Object?>{'reason': 'cancel_or_invalid_length'},
-      );
-      return null;
-    }
-
-    final token = _accessToken();
-    if (token == null) {
-      return null;
-    }
-
-    try {
-      final verified = await ref
-          .read(securityApiProvider)
-          .verifyPin(token, pin);
-      if (!verified.verified ||
-          verified.parentalUnlockToken == null ||
-          verified.parentalUnlockExpiresAt == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('PIN inválido.')));
-        }
-        UxAnalytics.log(
-          'pin_prompt_abandon',
-          params: const <String, Object?>{'reason': 'invalid_pin'},
-        );
-        return null;
-      }
-
-      ref
-          .read(parentalGateControllerProvider.notifier)
-          .setUnlocked(
-            token: verified.parentalUnlockToken!,
-            expiresAt: verified.parentalUnlockExpiresAt!,
-          );
-
-      UxAnalytics.log(
-        'pin_prompt_success',
-        params: <String, Object?>{
-          'expires_at': verified.parentalUnlockExpiresAt!.toIso8601String(),
-        },
-      );
-
-      if (showSuccessMessage && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Área adulta liberada por alguns minutos para compras e ações protegidas.',
-            ),
-          ),
-        );
-      }
-
-      return verified.parentalUnlockToken!;
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
-      }
-      UxAnalytics.log(
-        'pin_prompt_abandon',
-        params: const <String, Object?>{'reason': 'verification_error'},
-      );
-      return null;
     }
   }
 
@@ -295,12 +206,14 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       return;
     }
 
-    final unlockToken = await _resolveUnlockToken();
+    final unlockToken = await ref
+        .read(parentalUnlockServiceProvider)
+        .ensureUnlocked(context, source: 'game_hub_unlock_item');
     if (unlockToken == null) {
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() => _loadingData = true);
     try {
       final result = await ref
           .read(gamificationApiProvider)
@@ -333,7 +246,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
     } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() => _loadingData = false);
       }
     }
   }
@@ -345,7 +258,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() => _loadingData = true);
     try {
       await ref
           .read(gamificationApiProvider)
@@ -365,7 +278,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
     } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() => _loadingData = false);
       }
     }
   }
@@ -381,6 +294,113 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     }
   }
 
+  bool get _hasCoreData {
+    return _wallet != null || _progression != null;
+  }
+
+  String _computeGlobalState() {
+    if (_loadingInitial) {
+      return 'loading';
+    }
+
+    if (_blockingError != null && !_hasCoreData) {
+      return 'error_blocking';
+    }
+
+    if (_hasCoreData == false) {
+      return 'empty';
+    }
+
+    return 'content';
+  }
+
+  void _trackGameState(String state) {
+    if (_lastTrackedState == state) {
+      return;
+    }
+    _lastTrackedState = state;
+    UxAnalytics.log(
+      'game_state_shown',
+      params: <String, Object?>{
+        'screen': 'game',
+        'state': state,
+        'source': 'game_hub_screen',
+      },
+    );
+  }
+
+  void _trackGameSectionState(String state) {
+    if (_trackedSectionStates.contains(state)) {
+      return;
+    }
+    _trackedSectionStates.add(state);
+    UxAnalytics.log(
+      'game_state_shown',
+      params: <String, Object?>{
+        'screen': 'game',
+        'state': state,
+        'source': 'game_hub_screen',
+      },
+    );
+  }
+
+  Future<void> _retryGameLoad() async {
+    UxAnalytics.log(
+      'game_retry_tapped',
+      params: const <String, Object?>{
+        'screen': 'game',
+        'source': 'game_hub_screen',
+      },
+    );
+    if (_hasCoreData == false) {
+      await _bootstrap();
+      return;
+    }
+    await _loadData();
+  }
+
+  void _openStoriesHome() {
+    _trackGameEmptyCta('open_stories');
+    context.go(AppRoute.home);
+  }
+
+  void _openCreateStory() {
+    _trackGameEmptyCta('create_story');
+    context.push(AppRoute.storyCreate);
+  }
+
+  void _trackGameEmptyCta(String cta) {
+    UxAnalytics.log(
+      'game_empty_cta_tapped',
+      params: <String, Object?>{
+        'screen': 'game',
+        'cta': cta,
+        'state': _computeGlobalState(),
+        'source': 'game_hub_screen',
+      },
+    );
+  }
+
+  Widget _buildInitialSkeleton() {
+    return Column(
+      children: [
+        const ViscondeSkeletonCard(lines: 3),
+        const SizedBox(height: 10),
+        const ViscondeSkeletonCard(lines: 4),
+        const SizedBox(height: 10),
+        const ViscondeSkeletonCard(lines: 4),
+        const SizedBox(height: 10),
+        ...List<Widget>.generate(
+          3,
+          (_) => const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: ViscondeSkeletonCard(lines: 3),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final wallet = _wallet;
@@ -392,7 +412,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     final dateFormat = DateFormat('dd/MM HH:mm');
 
     return RefreshIndicator(
-      onRefresh: _loadData,
+      onRefresh: _retryGameLoad,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -400,161 +420,171 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
           _buildGameHubHero(context),
           const SizedBox(height: 12),
 
-          // ── Error state ──
-          if (_loadError != null) ...[
-            ViscondeGlassCard(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Não foi possível atualizar os dados agora.',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(_loadError!),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _loadData,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Tentar novamente'),
-                    ),
-                  ],
-                ),
-              ),
+          if (_loadingInitial) _buildInitialSkeleton(),
+          if (_loadingInitial) const SizedBox(height: 12),
+          if (!_loadingInitial && _blockingError != null && !_hasCoreData) ...[
+            ViscondeContentState.error(
+              title: UiStateCopy.genericErrorTitle,
+              description:
+                  _blockingError ?? UiStateCopy.genericErrorDescription,
+              primaryActionLabel: 'Tentar novamente',
+              onPrimaryAction: _retryGameLoad,
+              secondaryActionLabel: 'Ir para Histórias',
+              onSecondaryAction: _openStoriesHome,
             ),
             const SizedBox(height: 12),
           ],
-
-          // ── Adult gate card ──
-          ViscondeGlassCard(
-            child: ListTile(
-              leading: Icon(
-                unlockActive ? Icons.verified_user : Icons.lock_clock_outlined,
-                color: unlockActive ? Colors.green : null,
-              ),
-              title: Text(
-                unlockActive ? 'Área adulta liberada' : 'Área adulta bloqueada',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              subtitle: Text(
-                unlockActive
-                    ? 'Liberada até ${dateFormat.format(gate.expiresAt!)} para compras e ações protegidas.'
-                    : 'Desbloqueie com PIN para evitar interrupções durante as compras.',
-              ),
-              trailing: OutlinedButton(
-                onPressed: () {
-                  _resolveUnlockToken(showSuccessMessage: true);
-                },
-                child: Text(unlockActive ? 'Renovar' : 'Desbloquear'),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // ── Weekly mission highlight ──
-          if (primaryMission != null) ...[
-            ViscondeGlassCard(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Meta da semana',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      primaryMission.title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(primaryMission.description),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: primaryMission.targetValue == 0
-                          ? 0
-                          : (primaryMission.progressValue /
-                                    primaryMission.targetValue)
-                                .clamp(0, 1)
-                                .toDouble(),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${primaryMission.progressValue}/${primaryMission.targetValue} • ${_missionStatusLabel(primaryMission.status)}',
-                    ),
-                  ],
-                ),
-              ),
+          if (!_loadingInitial && _inlineError != null && _hasCoreData) ...[
+            ViscondeContentState.error(
+              title: UiStateCopy.genericErrorTitle,
+              description: _inlineError!,
+              primaryActionLabel: 'Tentar novamente',
+              onPrimaryAction: _retryGameLoad,
             ),
             const SizedBox(height: 12),
           ],
-
-          if (_loading)
+          if (_loadingData)
             const Padding(
               padding: EdgeInsets.only(bottom: 12),
               child: LinearProgressIndicator(),
             ),
 
-          // ── Child selector ──
-          if (_children.isNotEmpty) ...[
-            DropdownButtonFormField<String>(
-              initialValue: _selectedChildId,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Criança'),
-              items: _children
-                  .map(
-                    (child) => DropdownMenuItem<String>(
-                      value: child.id,
-                      child: Text(child.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) async {
-                if (value == null) return;
-                setState(() => _selectedChildId = value);
-                await _loadData();
-              },
+          if (_loadingInitial || (_blockingError != null && !_hasCoreData))
+            const SizedBox.shrink()
+          else ...[
+            // ── Adult gate card ──
+            ViscondeGlassCard(
+              child: ListTile(
+                leading: Icon(
+                  unlockActive
+                      ? Icons.verified_user
+                      : Icons.lock_clock_outlined,
+                  color: unlockActive ? Colors.green : null,
+                ),
+                title: Text(
+                  unlockActive
+                      ? 'Área adulta liberada'
+                      : 'Área adulta bloqueada',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                subtitle: Text(
+                  unlockActive
+                      ? 'Liberada até ${dateFormat.format(gate.expiresAt!)} para compras e ações protegidas.'
+                      : 'Desbloqueie com PIN para evitar interrupções durante as compras.',
+                ),
+                trailing: OutlinedButton(
+                  onPressed: () {
+                    ref
+                        .read(parentalUnlockServiceProvider)
+                        .ensureUnlocked(
+                          context,
+                          forcePrompt: unlockActive,
+                          showSuccessMessage: true,
+                          source: unlockActive
+                              ? 'game_hub_unlock_renew'
+                              : 'game_hub_unlock_manual',
+                        );
+                  },
+                  child: Text(unlockActive ? 'Renovar' : 'Desbloquear'),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
+
+            // ── Weekly mission highlight ──
+            if (primaryMission != null) ...[
+              ViscondeGlassCard(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Meta da semana',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        primaryMission.title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(primaryMission.description),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: primaryMission.targetValue == 0
+                            ? 0
+                            : (primaryMission.progressValue /
+                                      primaryMission.targetValue)
+                                  .clamp(0, 1)
+                                  .toDouble(),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${primaryMission.progressValue}/${primaryMission.targetValue} • ${_missionStatusLabel(primaryMission.status)}',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // ── Child selector ──
+            if (_children.isNotEmpty) ...[
+              DropdownButtonFormField<String>(
+                initialValue: _selectedChildId,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Criança'),
+                items: _children
+                    .map(
+                      (child) => DropdownMenuItem<String>(
+                        value: child.id,
+                        child: Text(child.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) async {
+                  if (value == null) return;
+                  setState(() => _selectedChildId = value);
+                  await _loadData();
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // ── Wallet Card (illustrated) ──
+            _buildWalletCard(context, wallet),
+            const SizedBox(height: 12),
+
+            // ── Streak Card (illustrated) ──
+            _buildStreakCard(context, progression),
+            const SizedBox(height: 12),
+
+            // ── Weekly Missions Section ──
+            _buildWeeklyMissionsSection(context, progression),
+            const SizedBox(height: 12),
+
+            // ── Achievements Section ──
+            _buildAchievementsSection(context, dateFormat),
+            const SizedBox(height: 12),
+
+            // ── Collector Section ──
+            _buildCollectorSection(context),
+            const SizedBox(height: 12),
+
+            // ── Shop & Catalog ──
+            _buildShopSection(context),
+            const SizedBox(height: 12),
+
+            // ── Equipped Items ──
+            _buildEquippedItemsCard(context, progression),
           ],
-
-          // ── Wallet Card (illustrated) ──
-          _buildWalletCard(context, wallet),
-          const SizedBox(height: 12),
-
-          // ── Streak Card (illustrated) ──
-          _buildStreakCard(context, progression),
-          const SizedBox(height: 12),
-
-          // ── Weekly Missions Section ──
-          _buildWeeklyMissionsSection(context, progression),
-          const SizedBox(height: 12),
-
-          // ── Achievements Section ──
-          _buildAchievementsSection(context, dateFormat),
-          const SizedBox(height: 12),
-
-          // ── Collector Section ──
-          _buildCollectorSection(context),
-          const SizedBox(height: 12),
-
-          // ── Shop & Catalog ──
-          _buildShopSection(context),
-          const SizedBox(height: 12),
-
-          // ── Equipped Items ──
-          _buildEquippedItemsCard(context, progression),
         ],
       ),
     );
@@ -707,6 +737,12 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     ChildProgressionModel? progression,
   ) {
     final colors = context.viscondeColors;
+    final missions =
+        progression?.weeklyMissions ?? const <WeeklyMissionModel>[];
+    final showEmpty = missions.isEmpty;
+    if (showEmpty) {
+      _trackGameSectionState('empty_missions');
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,8 +787,17 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ],
           ),
         ),
-        if (progression != null)
-          ...progression.weeklyMissions.map(
+        if (showEmpty) ...[
+          const SizedBox(height: 8),
+          ViscondeContentState.empty(
+            title: UiStateCopy.gameMissionsEmptyTitle,
+            description: UiStateCopy.gameMissionsEmptyDescription,
+            primaryActionLabel: 'Ler histórias',
+            onPrimaryAction: _openStoriesHome,
+            mascotPose: ViscondeMascotPose.pointingScroll,
+          ),
+        ] else
+          ...missions.map(
             (mission) => Padding(
               padding: const EdgeInsets.only(top: 8),
               child: ViscondeGlassCard(
@@ -793,6 +838,10 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     DateFormat dateFormat,
   ) {
     final colors = context.viscondeColors;
+    final showEmpty = _achievements.isEmpty;
+    if (showEmpty) {
+      _trackGameSectionState('empty_achievements');
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -830,33 +879,47 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        ..._achievements.map(
-          (achievement) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: ViscondeGlassCard(
-              child: ListTile(
-                leading: Icon(
-                  achievement.unlocked
-                      ? Icons.emoji_events
-                      : Icons.lock_outline,
-                  color: achievement.unlocked ? Colors.amber.shade700 : null,
+        if (showEmpty) ...[
+          ViscondeContentState.empty(
+            title: UiStateCopy.gameAchievementsEmptyTitle,
+            description: UiStateCopy.gameAchievementsEmptyDescription,
+            primaryActionLabel: 'Criar história',
+            onPrimaryAction: _openCreateStory,
+            mascotPose: ViscondeMascotPose.enchantedHearts,
+          ),
+        ] else
+          ..._achievements.map(
+            (achievement) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: ViscondeGlassCard(
+                child: ListTile(
+                  leading: Icon(
+                    achievement.unlocked
+                        ? Icons.emoji_events
+                        : Icons.lock_outline,
+                    color: achievement.unlocked ? Colors.amber.shade700 : null,
+                  ),
+                  title: Text(achievement.title),
+                  subtitle: Text(
+                    '${achievement.description}\n+${achievement.rewardCoins} moedas / +${achievement.rewardStars}⭐'
+                    '${achievement.unlockedAt != null ? '\nDesbloqueada em ${dateFormat.format(achievement.unlockedAt!)}' : ''}',
+                  ),
+                  isThreeLine: true,
                 ),
-                title: Text(achievement.title),
-                subtitle: Text(
-                  '${achievement.description}\n+${achievement.rewardCoins} moedas / +${achievement.rewardStars}⭐'
-                  '${achievement.unlockedAt != null ? '\nDesbloqueada em ${dateFormat.format(achievement.unlockedAt!)}' : ''}',
-                ),
-                isThreeLine: true,
               ),
             ),
           ),
-        ),
       ],
     );
   }
 
   // ── Collector Section ──
   Widget _buildCollectorSection(BuildContext context) {
+    final showEmpty = _childInventory.isEmpty;
+    if (showEmpty) {
+      _trackGameSectionState('empty_collector');
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -865,15 +928,15 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
           subtitle: 'Seus itens e companheiros de aventura.',
         ),
         const SizedBox(height: 6),
-        if (_childInventory.isEmpty)
-          const ViscondeGlassCard(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'Você ainda não encontrou nenhum item. Continue lendo histórias!',
-              ),
-            ),
+        if (showEmpty) ...[
+          ViscondeContentState.empty(
+            title: UiStateCopy.gameCollectorEmptyTitle,
+            description: UiStateCopy.gameCollectorEmptyDescription,
+            primaryActionLabel: 'Ler histórias',
+            onPrimaryAction: _openStoriesHome,
+            mascotPose: ViscondeMascotPose.readingBook,
           ),
+        ],
         if (_childInventory.isNotEmpty)
           SizedBox(
             height: 140,
@@ -931,6 +994,11 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
 
   // ── Shop & Catalog Section ──
   Widget _buildShopSection(BuildContext context) {
+    final showEmpty = _catalog.isEmpty;
+    if (showEmpty) {
+      _trackGameSectionState('empty_catalog');
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -964,29 +1032,41 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        ..._catalog.map(
-          (item) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: ViscondeGlassCard(
-              child: ListTile(
-                title: Text(item.name),
-                subtitle: Text(
-                  '${item.description}\n${item.priceCoins} moedas / ${item.priceStars}⭐ · ${item.type.name.toUpperCase()}',
+        if (showEmpty) ...[
+          ViscondeContentState.empty(
+            title: UiStateCopy.gameCatalogEmptyTitle,
+            description: UiStateCopy.gameCatalogEmptyDescription,
+            primaryActionLabel: 'Tentar novamente',
+            onPrimaryAction: () {
+              _trackGameEmptyCta('retry_catalog');
+              _retryGameLoad();
+            },
+            mascotPose: ViscondeMascotPose.thumbsUpController,
+          ),
+        ] else
+          ..._catalog.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: ViscondeGlassCard(
+                child: ListTile(
+                  title: Text(item.name),
+                  subtitle: Text(
+                    '${item.description}\n${item.priceCoins} moedas / ${item.priceStars}⭐ · ${item.type.name.toUpperCase()}',
+                  ),
+                  trailing: item.unlocked
+                      ? OutlinedButton(
+                          onPressed: () => _toggleEquip(item),
+                          child: Text(item.equipped ? 'Desequipar' : 'Equipar'),
+                        )
+                      : FilledButton(
+                          onPressed: () => _unlockItem(item),
+                          child: const Text('Desbloquear'),
+                        ),
+                  isThreeLine: true,
                 ),
-                trailing: item.unlocked
-                    ? OutlinedButton(
-                        onPressed: () => _toggleEquip(item),
-                        child: Text(item.equipped ? 'Desequipar' : 'Equipar'),
-                      )
-                    : FilledButton(
-                        onPressed: () => _unlockItem(item),
-                        child: const Text('Desbloquear'),
-                      ),
-                isThreeLine: true,
               ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -996,22 +1076,38 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     BuildContext context,
     ChildProgressionModel? progression,
   ) {
+    final equipped = progression?.inventorySummary.equippedItems ?? const [];
+    final showEmpty = equipped.isEmpty;
+    if (showEmpty) {
+      _trackGameSectionState('empty_equipped');
+    }
+
     return ViscondeGlassCard(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Itens equipados',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            const ViscondeSectionTitle(
+              title: 'Itens equipados',
+              subtitle: 'Veja o que já está ativo para a criança.',
             ),
             const SizedBox(height: 6),
-            if ((progression?.inventorySummary.equippedItems.length ?? 0) == 0)
-              const Text('Nenhum item equipado.'),
-            ...?progression?.inventorySummary.equippedItems.map(
-              (item) => Text('- ${item.name} (${item.type.name})'),
-            ),
+            if (showEmpty) ...[
+              ViscondeContentState.empty(
+                title: UiStateCopy.gameEquippedEmptyTitle,
+                description: UiStateCopy.gameEquippedEmptyDescription,
+                primaryActionLabel: 'Abrir loja',
+                onPrimaryAction: () {
+                  _trackGameEmptyCta('open_shop');
+                  _retryGameLoad();
+                },
+                mascotPose: ViscondeMascotPose.studyingDesk,
+              ),
+            ] else
+              ...equipped.map(
+                (item) => Text('- ${item.name} (${item.type.name})'),
+              ),
           ],
         ),
       ),

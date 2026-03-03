@@ -8,6 +8,7 @@ import 'package:visconde_app/core/models/auth_session.dart';
 import 'package:visconde_app/core/network/api_client.dart';
 import 'package:visconde_app/features/auth/auth_api.dart';
 import 'package:visconde_app/features/auth/auth_controller.dart';
+import 'package:visconde_app/features/security/parental_gate_controller.dart';
 import 'package:visconde_app/shared/providers.dart';
 
 import '../../helpers/fake_dio_adapter.dart';
@@ -231,6 +232,59 @@ void main() {
       expect(authApi.refreshCalls, 1);
       expect(oldTokenCalls, 2);
       expect(newTokenCalls, 2);
+    });
+
+    test('401 parental unlock error does not expire auth session', () async {
+      final user = buildTestUser();
+      final authApi = InterceptorAuthApi(user: user);
+      final storage = MemorySessionStorage(buildStoredSession(user));
+
+      final container = ProviderContainer(
+        overrides: [
+          apiBaseUrlProvider.overrideWith((ref) => 'https://api.test/api/v1'),
+          dioHttpClientAdapterProvider.overrideWith(
+            (ref) => FakeDioAdapter((options) async {
+              if (options.path == '/protected-parental') {
+                return jsonResponse({
+                  'error': 'Área protegida por PIN.',
+                  'code': 'PARENTAL_UNLOCK_REQUIRED',
+                }, statusCode: 401);
+              }
+
+              return jsonResponse({
+                'error': 'Unexpected route',
+              }, statusCode: 404);
+            }),
+          ),
+          authApiProvider.overrideWith((ref) => authApi),
+          sessionStorageProvider.overrideWith((ref) => storage),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _waitAuthReady(container);
+      container
+          .read(parentalGateControllerProvider.notifier)
+          .setUnlocked(
+            token: 'unlock-token',
+            expiresAt: DateTime.now().add(const Duration(minutes: 9)),
+          );
+
+      final dio = container.read(sessionAwareDioProvider);
+      await expectLater(
+        dio.get<Map<String, dynamic>>('/protected-parental'),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(
+        container.read(authControllerProvider).status,
+        AuthStatus.authenticated,
+      );
+      expect(authApi.refreshCalls, 0);
+      expect(
+        container.read(parentalGateControllerProvider).isUnlocked,
+        isFalse,
+      );
     });
   });
 }

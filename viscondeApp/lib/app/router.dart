@@ -142,7 +142,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoute.home,
-        builder: (context, state) => const HomeShellScreen(),
+        builder: (context, state) => HomeShellScreen(
+          initialTab: AppRoute.parseHomeTab(state.uri.queryParameters['tab']),
+        ),
       ),
     ],
     redirect: (context, state) {

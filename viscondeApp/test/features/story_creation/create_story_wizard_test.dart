@@ -95,12 +95,14 @@ class WizardStoryApi extends StoryApi {
     required this.session,
     required this.virtues,
     required this.templates,
+    this.collections = const <StoryVaultCollectionItem>[],
   }) : super(Dio());
 
   StorySessionModel session;
   final List<VirtueModel> virtues;
 
   final List<ContentStoryTemplateModel> templates;
+  final List<StoryVaultCollectionItem> collections;
 
   int createSessionCalls = 0;
   int updateSetupCalls = 0;
@@ -112,6 +114,19 @@ class WizardStoryApi extends StoryApi {
     String accessToken,
   ) async {
     return templates;
+  }
+
+  @override
+  Future<List<StoryVaultCollectionItem>> listStoryVaultCollections(
+    String accessToken, {
+    String? childProfileId,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+    String? theme,
+    String? virtueId,
+    bool favoriteOnly = false,
+  }) async {
+    return collections;
   }
 
   @override
@@ -296,6 +311,105 @@ Future<void> _tapWizardControl(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
+  testWidgets('inicia pelo botão de sugestão em um toque', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+
+    final user = buildTestUser();
+    final draftStore = InMemoryCreateStoryDraftStore();
+    final children = <ChildProfile>[
+      ChildProfile(
+        id: 'child-1',
+        name: 'Lia',
+        birthDate: DateTime(2018, 1, 1),
+        favoriteThemes: const <String>['Aventura'],
+        isArchived: false,
+      ),
+    ];
+    final virtues = <VirtueModel>[
+      const VirtueModel(
+        id: 'virtue-1',
+        slug: 'coragem',
+        name: 'Coragem',
+        shortDescription: 'Seguir em frente',
+        iconKey: 'courage',
+        sortOrder: 1,
+      ),
+    ];
+    final templates = <ContentStoryTemplateModel>[
+      const ContentStoryTemplateModel(
+        id: 'tpl-1',
+        slug: 'template-inicial',
+        title: 'Template Inicial',
+        description: 'template',
+        ageBand: AgeBand.age6_8,
+        version: 1,
+        defaultScenario: 'Bosque encantado',
+        defaultObjective: 'Aprender algo novo com coragem e gentileza.',
+        theme: StoryNamedRef(id: 'theme-1', slug: 'aventura', name: 'Aventura'),
+        virtue: StoryNamedRef(id: 'virtue-1', slug: 'coragem', name: 'Coragem'),
+        nodesCount: 3,
+        charactersCount: 2,
+      ),
+    ];
+    final storyApi = WizardStoryApi(
+      virtues: virtues,
+      session: _buildSession(),
+      templates: templates,
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        ...authOverrides(user: user, authenticated: true),
+        childrenApiProvider.overrideWith(
+          (ref) => FakeChildrenApi(children: children),
+        ),
+        storyApiProvider.overrideWith((ref) => storyApi),
+        illustrationApiProvider.overrideWith(
+          (ref) => FakeIllustrationApi(const <ArtStyleModel>[
+            ArtStyleModel(
+              id: 'style-1',
+              name: 'Aquarela',
+              promptTemplate: 'watercolor',
+            ),
+          ]),
+        ),
+        createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: NoopUxStore(),
+            transport: NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const ViscondeApp(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final router = container.read(appRouterProvider);
+    router.go('/stories/new');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Para Lia'), findsOneWidget);
+    await _tapWizardControl(
+      tester,
+      find.byKey(const Key('wizard_recommendation_quick_start_button')),
+    );
+
+    expect(storyApi.createSessionCalls, 1);
+    expect(find.text('Passo 2 de 3'), findsOneWidget);
+  });
+
   testWidgets('autosave por passo e continuar depois salva rascunho local', (
     tester,
   ) async {
@@ -520,7 +634,10 @@ void main() {
     expect(storyApi.wizardPublishCalls, 1);
 
     expect(find.text('Capítulo publicado!'), findsOneWidget);
-    await tester.tap(find.text('Ir para início'));
+    expect(find.text('Continuar saga'), findsOneWidget);
+    expect(find.text('Ir para Game'), findsOneWidget);
+    expect(find.text('Voltar ao baú'), findsOneWidget);
+    await tester.tap(find.text('Voltar ao baú'));
     await tester.pumpAndSettle();
 
     expect(find.byType(StoryRoomScreen), findsNothing);

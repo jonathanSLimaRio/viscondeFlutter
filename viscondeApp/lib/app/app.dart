@@ -6,16 +6,31 @@ import 'router.dart';
 import '../shared/providers.dart';
 import '../shared/ux_analytics.dart';
 
-class ViscondeApp extends ConsumerWidget {
+class ViscondeApp extends ConsumerStatefulWidget {
   const ViscondeApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(appRouterProvider);
-    final analytics = ref.watch(uxAnalyticsServiceProvider);
+  ConsumerState<ViscondeApp> createState() => _ViscondeAppState();
+}
 
+class _ViscondeAppState extends ConsumerState<ViscondeApp> {
+  @override
+  void initState() {
+    super.initState();
+    final analytics = ref.read(uxAnalyticsServiceProvider);
     UxAnalytics.configure(sink: analytics.trackEvent);
     analytics.ensureStarted();
+  }
+
+  @override
+  void dispose() {
+    UxAnalytics.clearSink();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
       title: 'Visconde App',

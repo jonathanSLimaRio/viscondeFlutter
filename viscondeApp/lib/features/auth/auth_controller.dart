@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/models/app_user.dart';
 import '../../core/network/api_client.dart';
 import '../../core/storage/session_storage.dart';
+import '../../shared/logging/app_logger.dart';
 import '../../shared/api_error.dart';
 import '../../shared/ux_analytics.dart';
 import 'auth_api.dart';
@@ -81,7 +82,7 @@ class AuthController extends StateNotifier<AuthState> {
   Future<String?>? _refreshInFlight;
 
   Future<bool> _tryDevAutoLogin() async {
-    if (!kDebugMode || !devAutoLoginEnabled) {
+    if (!kDebugMode || !devAutoLoginEnabled || !hasExplicitDevCredentials) {
       return false;
     }
 
@@ -108,7 +109,13 @@ class AuthController extends StateNotifier<AuthState> {
       _logSessionStarted(source: 'dev_auto_login_success');
 
       return true;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha no auto-login de desenvolvimento.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'auth',
+      );
       state = AuthState(
         status: AuthStatus.unauthenticated,
         error: 'Auto-login dev falhou: ${parseDioError(error)}',
@@ -137,7 +144,13 @@ class AuthController extends StateNotifier<AuthState> {
         refreshToken: stored.refreshToken,
         user: user,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao restaurar sessão por /me. Tentando refresh.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'auth',
+      );
       final refreshed = await refreshSessionIfPossible(
         withUserFacingError: false,
         refreshTokenOverride: stored.refreshToken,
@@ -392,8 +405,14 @@ class AuthController extends StateNotifier<AuthState> {
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
       );
-    } catch (_) {
-      // Ignore logout failures in MVP and clear local session.
+    } catch (error, stackTrace) {
+      // Não bloquear logout local por falha remota.
+      AppLogger.warn(
+        'Falha ao invalidar sessão remota durante logout.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'auth',
+      );
     }
 
     await _clearSession();

@@ -10,6 +10,8 @@ import '../features/children/children_api.dart';
 import '../features/gamification/gamification_api.dart';
 import '../features/gamification/inventory_api.dart';
 import '../features/profile/profile_api.dart';
+import '../features/security/parental_gate_controller.dart';
+import '../features/security/parental_unlock_service.dart';
 import '../features/security/security_api.dart';
 import '../features/security/voice_api.dart';
 import '../features/story_room/illustration_api.dart';
@@ -38,7 +40,18 @@ final sessionAwareDioProvider = Provider<Dio>((ref) {
       onError: (error, handler) async {
         final requestOptions = error.requestOptions;
         final status = error.response?.statusCode;
+        final responseCode = _extractErrorCode(error.response?.data);
+        final isParentalUnlockError =
+            status == 401 &&
+            (responseCode == 'PARENTAL_UNLOCK_REQUIRED' ||
+                responseCode == 'PARENTAL_UNLOCK_INVALID');
         final authState = authNotifier.snapshot;
+
+        if (isParentalUnlockError) {
+          ref.read(parentalGateControllerProvider.notifier).clear();
+          handler.next(error);
+          return;
+        }
 
         if (shouldAttemptAuthRetry(requestOptions, status) &&
             authState.status == AuthStatus.authenticated) {
@@ -98,6 +111,13 @@ final childrenApiProvider = Provider<ChildrenApi>((ref) {
 
 final securityApiProvider = Provider<SecurityApi>((ref) {
   return SecurityApi(ref.watch(sessionAwareDioProvider));
+});
+
+final parentalUnlockServiceProvider = Provider<ParentalUnlockService>((ref) {
+  return ParentalUnlockService(
+    ref,
+    securityApi: ref.watch(securityApiProvider),
+  );
 });
 
 final voiceApiProvider = Provider<VoiceApi>((ref) {
@@ -166,3 +186,14 @@ final createStoryWizardDraftStoreProvider =
       });
       return store;
     });
+
+String? _extractErrorCode(Object? raw) {
+  if (raw is Map) {
+    final code = raw['code'];
+    if (code is String && code.trim().isNotEmpty) {
+      return code.trim();
+    }
+  }
+
+  return null;
+}

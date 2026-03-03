@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import 'logging/app_logger.dart';
+
 class UxAnalyticsEvent {
   const UxAnalyticsEvent({
     required this.eventId,
@@ -50,9 +52,24 @@ class UxAnalytics {
       try {
         final result = sink(uxEvent);
         if (result is Future<void>) {
-          unawaited(result.catchError((_) {}));
+          unawaited(
+            result.catchError((error, stackTrace) {
+              AppLogger.warn(
+                'Falha assíncrona ao enviar evento de analytics.',
+                error: error,
+                stackTrace: stackTrace,
+                scope: 'analytics',
+              );
+            }),
+          );
         }
-      } catch (_) {
+      } catch (error, stackTrace) {
+        AppLogger.warn(
+          'Falha síncrona ao processar evento de analytics.',
+          error: error,
+          stackTrace: stackTrace,
+          scope: 'analytics',
+        );
         // Never block product flows because of analytics.
       }
     }

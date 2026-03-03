@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,12 +24,18 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
   final _passwordController = TextEditingController();
 
   bool _hasPin = false;
-  bool _isUnlocked = false;
   bool _loading = false;
+  Timer? _clockTimer;
 
   @override
   void initState() {
     super.initState();
+    _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {});
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadStatus();
     });
@@ -35,6 +43,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
 
   @override
   void dispose() {
+    _clockTimer?.cancel();
     _pinController.dispose();
     _newPinController.dispose();
     _passwordController.dispose();
@@ -88,8 +97,8 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
 
       setState(() {
         _hasPin = true;
-        _isUnlocked = true;
       });
+      ref.read(parentalGateControllerProvider.notifier).clear();
       _newPinController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,10 +132,6 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
     try {
       final valid = await ref.read(securityApiProvider).verifyPin(token, pin);
       if (!mounted) return;
-
-      setState(() {
-        _isUnlocked = valid.verified;
-      });
 
       if (valid.verified &&
           valid.parentalUnlockToken != null &&
@@ -201,9 +206,32 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
     }
   }
 
+  Future<void> _lockNow() async {
+    await ref
+        .read(parentalUnlockServiceProvider)
+        .lockNow(source: 'adult_gate_lock_now');
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Área adulta bloqueada agora.')),
+    );
+  }
+
+  String _unlockStatusLabel(ParentalGateState gate) {
+    if (!gate.isUnlocked) {
+      return 'Área adulta bloqueada.';
+    }
+
+    final minutes = gate.remainingWholeMinutesAt(DateTime.now()) ?? 0;
+    return 'Área adulta desbloqueada por $minutes min.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
+    final gate = ref.watch(parentalGateControllerProvider);
+    final isUnlocked = gate.isUnlocked;
 
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
@@ -286,42 +314,42 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
         ],
         const SizedBox(height: 16),
         Text(
-          _isUnlocked
-              ? 'Área adulta liberada por 10 minutos.'
-              : 'Área adulta bloqueada.',
+          _unlockStatusLabel(gate),
           style: TextStyle(
-            color: _isUnlocked ? Colors.green : Colors.orange,
+            color: isUnlocked ? Colors.green : Colors.orange,
             fontWeight: FontWeight.w600,
           ),
         ),
+        if (isUnlocked) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _lockNow,
+            icon: const Icon(Icons.lock_clock_outlined),
+            label: const Text('Bloquear agora'),
+          ),
+        ],
         const SizedBox(height: 12),
         FilledButton.icon(
-          onPressed: _isUnlocked
-              ? () => context.push(AppRoute.adultVirtueReports)
-              : null,
+          onPressed: () => context.push(AppRoute.adultVirtueReports),
           icon: const Icon(Icons.insights_outlined),
           label: const Text('Relatório de virtudes'),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
-          onPressed: _isUnlocked
-              ? () => context.push(AppRoute.adultInteractions)
-              : null,
+          onPressed: () => context.push(AppRoute.adultInteractions),
           icon: const Icon(Icons.forum_outlined),
           label: const Text('Interações remotas'),
         ),
         const SizedBox(height: 8),
         FilledButton.icon(
-          onPressed: _isUnlocked
-              ? () => context.push(AppRoute.adultVoices)
-              : null,
+          onPressed: () => context.push(AppRoute.adultVoices),
           icon: const Icon(Icons.record_voice_over_outlined),
           label: const Text('Voz inesquecível'),
         ),
         if (auth.user?.isAdmin ?? false) ...[
           const SizedBox(height: 8),
           FilledButton.icon(
-            onPressed: _isUnlocked
+            onPressed: isUnlocked
                 ? () => context.push(AppRoute.adminHub)
                 : null,
             icon: const Icon(Icons.admin_panel_settings_outlined),

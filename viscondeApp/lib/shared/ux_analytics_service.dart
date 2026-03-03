@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'logging/app_logger.dart';
 import 'ux_analytics.dart';
 import 'ux_analytics_api.dart';
 import 'ux_analytics_queue.dart';
@@ -25,14 +26,28 @@ class UxAnalyticsService {
   final UxAnalyticsTransport _transport;
   final AccessTokenReader _readAccessToken;
   final String _appSessionId;
-  static const Set<String> _supportedEventNames = <String>{
+  static const Set<String> supportedEventNames = <String>{
     'session_started',
     'auth_error_shown',
+    'auth_refresh_success',
+    'auth_refresh_failed',
     'story_create_started',
     'story_create_step_completed',
     'story_create_abandoned',
     'story_published',
     'game_hub_opened',
+    'vault_state_shown',
+    'vault_retry_tapped',
+    'vault_empty_cta_tapped',
+    'game_state_shown',
+    'game_retry_tapped',
+    'game_empty_cta_tapped',
+    'post_publish_modal_opened',
+    'post_publish_cta_clicked',
+    'pin_prompt_shown',
+    'pin_prompt_success',
+    'pin_prompt_abandon',
+    'pin_lock_now_clicked',
   };
 
   bool _started = false;
@@ -59,7 +74,7 @@ class UxAnalyticsService {
       return;
     }
 
-    if (!_supportedEventNames.contains(event.name)) {
+    if (!supportedEventNames.contains(event.name)) {
       return;
     }
 
@@ -167,7 +182,13 @@ class UxAnalyticsService {
   String? _localeTag() {
     try {
       return WidgetsBinding.instance.platformDispatcher.locale.toLanguageTag();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao obter locale para analytics.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'analytics',
+      );
       return null;
     }
   }

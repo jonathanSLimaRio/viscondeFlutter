@@ -6,15 +6,17 @@ import 'package:go_router/go_router.dart';
 import '../../../app/app_route.dart';
 import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
+import '../../../shared/logging/app_logger.dart';
 import '../../../shared/providers.dart';
 import '../../../shared/ui/app_feedback.dart';
+import '../../../shared/ui/post_publish_celebration_dialog.dart';
 import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
+import '../../gamification/inventory_models.dart';
 import '../../story_creation/create_story_wizard_draft_store.dart';
 import '../../story_creation/quick_story_defaults.dart';
 import '../../story_room/models/illustration_models.dart';
 import '../../story_room/models/story_models.dart';
-import '../../story_room/story_api.dart';
 import '../../story_room/story_room_controller.dart';
 
 class CreateStoryScreen extends ConsumerStatefulWidget {
@@ -34,6 +36,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   final _charactersController = TextEditingController();
 
   List<ChildProfile> _children = const [];
+  List<StoryVaultCollectionItem> _recentCollections = const [];
   List<VirtueModel> _virtues = const [];
   List<ContentStoryTemplateModel> _templates = const [];
   List<ArtStyleModel> _artStyles = const [];
@@ -51,6 +54,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   bool _loadingVirtues = false;
   bool _loadingTemplates = false;
   bool _loadingArtStyles = false;
+  bool _loadingCollections = false;
   bool _applyingTemplate = false;
   bool _suggestingVirtue = false;
   bool _busyAction = false;
@@ -58,6 +62,9 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   bool _flowCompleted = false;
   bool _continuedLater = false;
   bool _step3Logged = false;
+  bool _stepOneUsedRecommendation = false;
+
+  String? _recommendationFeedback;
 
   int _currentStep = 0;
   DateTime _stepStartedAt = DateTime.now();
@@ -107,6 +114,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
     await Future.wait<void>([
       _loadChildren(showError: false),
+      _loadRecentCollections(showError: false),
       _loadVirtues(showError: false),
       _loadTemplates(showError: false),
       _loadArtStyles(showError: false),
@@ -145,7 +153,13 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     CreateStoryWizardDraft? draft;
     try {
       draft = await store.read(userId);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao ler rascunho local do wizard.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_creation',
+      );
       draft = null;
     }
     if (draft == null) {
@@ -159,10 +173,23 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         session = await ref
             .read(storyApiProvider)
             .getStorySession(token, loadedDraft.storyId!);
-      } catch (_) {
+      } catch (error, stackTrace) {
+        AppLogger.warn(
+          'Falha ao carregar sessão para retomar wizard. Limpando rascunho local.',
+          error: error,
+          stackTrace: stackTrace,
+          scope: 'story_creation',
+        );
         try {
           await store.clear(userId);
-        } catch (_) {}
+        } catch (clearError, clearStackTrace) {
+          AppLogger.warn(
+            'Falha ao limpar rascunho local após erro de retomada.',
+            error: clearError,
+            stackTrace: clearStackTrace,
+            scope: 'story_creation',
+          );
+        }
       }
     }
 
@@ -282,6 +309,42 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     } finally {
       if (mounted) {
         setState(() => _loadingVirtues = false);
+      }
+    }
+  }
+
+  Future<void> _loadRecentCollections({bool showError = true}) async {
+    final token = _accessToken();
+    if (token == null) {
+      return;
+    }
+
+    setState(() => _loadingCollections = true);
+
+    try {
+      final collections = await ref
+          .read(storyApiProvider)
+          .listStoryVaultCollections(token);
+      if (!mounted) {
+        return;
+      }
+
+      final sortedCollections = List<StoryVaultCollectionItem>.from(collections)
+        ..sort(
+          (left, right) =>
+              right.lastReferenceAt.compareTo(left.lastReferenceAt),
+        );
+      setState(() {
+        _recentCollections = sortedCollections;
+      });
+    } catch (error) {
+      if (!mounted || !showError) {
+        return;
+      }
+      context.showError(error);
+    } finally {
+      if (mounted) {
+        setState(() => _loadingCollections = false);
       }
     }
   }
@@ -518,10 +581,213 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   QuickStoryDefaults? _buildDefaults() {
     return buildQuickStoryDefaults(
       children: _children,
-      collections: const <StoryVaultCollectionItem>[],
+      collections: _recentCollections,
       templates: _templates,
       selectedChildId: _selectedChildId,
       suggestedVirtueId: _selectedVirtueId,
+    );
+  }
+
+  QuickStoryRecommendations? _buildRecommendations() {
+    return buildQuickStoryRecommendations(
+      children: _children,
+      collections: _recentCollections,
+      templates: _templates,
+      virtues: _virtues,
+      selectedChildId: _selectedChildId,
+    );
+  }
+
+  void _applyRecommendationSelection({
+    required QuickStoryRecommendations recommendation,
+    String? theme,
+    String? virtueId,
+    bool withFeedback = true,
+  }) {
+    final selectedTheme = (theme ?? '').trim();
+    final effectiveVirtueId = (virtueId ?? '').trim().isNotEmpty
+        ? virtueId!.trim()
+        : recommendation.virtueSuggestions.isNotEmpty
+        ? recommendation.virtueSuggestions.first.id
+        : _selectedVirtueId;
+    final defaults = buildQuickStoryDefaults(
+      children: _children,
+      collections: _recentCollections,
+      templates: _templates,
+      selectedChildId: recommendation.child.id,
+      suggestedVirtueId: effectiveVirtueId,
+    );
+
+    setState(() {
+      _selectedChildId = recommendation.child.id;
+      _selectedTemplateId =
+          _selectedTemplateId ?? recommendation.sourceTemplateId;
+      _selectedVirtueId = effectiveVirtueId ?? defaults?.virtueId;
+
+      if (selectedTheme.isNotEmpty) {
+        _themeController.text = selectedTheme;
+      } else if (_themeController.text.trim().isEmpty &&
+          recommendation.themeSuggestions.isNotEmpty) {
+        _themeController.text = recommendation.themeSuggestions.first;
+      }
+
+      if (_titleController.text.trim().isEmpty && defaults != null) {
+        _titleController.text = defaults.titleDraft;
+      }
+      if (_scenarioController.text.trim().isEmpty && defaults != null) {
+        _scenarioController.text = defaults.scenario;
+      }
+      if (_objectiveController.text.trim().isEmpty && defaults != null) {
+        _objectiveController.text = defaults.objective;
+      }
+      if (_charactersController.text.trim().isEmpty && defaults != null) {
+        _charactersController.text = defaults.characters
+            .map((item) => item['name'] ?? '')
+            .where((item) => item.trim().isNotEmpty)
+            .join(', ');
+      }
+
+      _stepOneUsedRecommendation = true;
+      if (withFeedback) {
+        _recommendationFeedback =
+            'Sugestão aplicada para ${recommendation.child.name}.';
+      }
+    });
+  }
+
+  Future<void> _startWithRecommendation(
+    QuickStoryRecommendations recommendation,
+  ) async {
+    if (_busyAction) {
+      return;
+    }
+
+    _applyRecommendationSelection(
+      recommendation: recommendation,
+      withFeedback: false,
+    );
+    await _goNextStep();
+  }
+
+  Widget _buildRecommendationsBlock(BuildContext context) {
+    final recommendation = _buildRecommendations();
+    if (recommendation == null || _children.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final selectedTheme = _themeController.text.trim();
+    final hasLoadingDependencies =
+        _loadingVirtues || _loadingTemplates || _loadingCollections;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
+        gradient: context.viscondeGradients.hero,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Para ${recommendation.child.name}',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            recommendation.reason,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (recommendation.fallbackUsed)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Quando houver mais histórico, as sugestões ficam ainda mais personalizadas.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          const SizedBox(height: 10),
+          Text(
+            'Temas recomendados',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: recommendation.themeSuggestions
+                .map(
+                  (theme) => ViscondePillChip(
+                    label: theme,
+                    selected:
+                        selectedTheme.isNotEmpty &&
+                        selectedTheme.toLowerCase() == theme.toLowerCase(),
+                    onTap: _busyAction
+                        ? null
+                        : () {
+                            _applyRecommendationSelection(
+                              recommendation: recommendation,
+                              theme: theme,
+                            );
+                          },
+                  ),
+                )
+                .toList(growable: false),
+          ),
+          if (recommendation.virtueSuggestions.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Virtudes recomendadas',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: recommendation.virtueSuggestions
+                  .map(
+                    (virtue) => ViscondePillChip(
+                      label: virtue.name,
+                      selected: _selectedVirtueId == virtue.id,
+                      onTap: _busyAction
+                          ? null
+                          : () {
+                              _applyRecommendationSelection(
+                                recommendation: recommendation,
+                                virtueId: virtue.id,
+                              );
+                            },
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            key: const Key('wizard_recommendation_quick_start_button'),
+            onPressed:
+                (_storyId != null || _busyAction || hasLoadingDependencies)
+                ? null
+                : () => _startWithRecommendation(recommendation),
+            icon: const Icon(Icons.flash_on),
+            label: const Text('Criar com sugestão rápida'),
+          ),
+          if (_recommendationFeedback != null &&
+              _recommendationFeedback!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                _recommendationFeedback!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -550,7 +816,14 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
     try {
       await ref.read(createStoryWizardDraftStoreProvider).save(draft);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao salvar rascunho local do wizard.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_creation',
+      );
+    }
   }
 
   Future<void> _clearLocalDraft() async {
@@ -560,7 +833,14 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     }
     try {
       await ref.read(createStoryWizardDraftStoreProvider).clear(userId);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao limpar rascunho local do wizard.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_creation',
+      );
+    }
   }
 
   void _logStepCompleted(int step, {String? reason}) {
@@ -719,6 +999,9 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
     setState(() => _busyAction = true);
 
+    final completionReason = _currentStep == 0 && _stepOneUsedRecommendation
+        ? 'recommendation_applied'
+        : null;
     var proceed = false;
     if (_currentStep == 0) {
       proceed = await _createDraftFromStepOne();
@@ -739,7 +1022,10 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
       return;
     }
 
-    _logStepCompleted(_currentStep + 1);
+    _logStepCompleted(_currentStep + 1, reason: completionReason);
+    if (_currentStep == 0) {
+      _stepOneUsedRecommendation = false;
+    }
     _enterStep(_currentStep + 1);
   }
 
@@ -922,7 +1208,41 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         return;
       }
 
-      await _showPublishFeedback(result);
+      ChildInventoryModel? reward;
+      try {
+        final token = _accessToken();
+        if (token != null) {
+          reward = await ref
+              .read(inventoryApiProvider)
+              .rewardRandomItem(result.story.id, token);
+        }
+      } catch (error, stackTrace) {
+        AppLogger.warn(
+          'Falha ao buscar recompensa pós-publicação no wizard.',
+          error: error,
+          stackTrace: stackTrace,
+          scope: 'story_creation',
+        );
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      final action = await showPostPublishCelebrationDialog(
+        context,
+        source: 'create_story_screen',
+        flow: 'wizard',
+        storyId: result.story.id,
+        gamification: result.gamification,
+        reward: reward,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      await _handlePostPublishAction(action, result.story.id);
     } catch (error) {
       if (mounted) {
         context.showError(error);
@@ -934,40 +1254,47 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     }
   }
 
-  Future<void> _showPublishFeedback(StoryFinalizeResult result) async {
-    final choice = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Capítulo publicado!'),
-          content: Text(
-            'Sua história já está no baú.\n\nMoedas: +${result.gamification?.deltaCoins ?? 0} · '
-            'Estrelas: +${result.gamification?.deltaStars ?? 0}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop('home'),
-              child: const Text('Ir para início'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop('next'),
-              child: const Text('Próxima aventura'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (!mounted) {
-      return;
+  Future<void> _handlePostPublishAction(
+    PostPublishAction action,
+    String storyId,
+  ) async {
+    switch (action) {
+      case PostPublishAction.continueSaga:
+        final token = _accessToken();
+        if (token == null) {
+          if (mounted) {
+            context.showMessage('Sua sessão expirou. Faça login novamente.');
+            context.go(AppRoute.homePath(tab: HomeTab.stories));
+          }
+          return;
+        }
+        try {
+          final session = await ref
+              .read(storyApiProvider)
+              .continueStory(token, storyId);
+          if (!mounted) {
+            return;
+          }
+          context.go(AppRoute.storyRoom(session.id));
+        } catch (error) {
+          if (!mounted) {
+            return;
+          }
+          context.showError(error);
+          context.go(AppRoute.homePath(tab: HomeTab.stories));
+        }
+        return;
+      case PostPublishAction.goGame:
+        if (mounted) {
+          context.go(AppRoute.homePath(tab: HomeTab.game));
+        }
+        return;
+      case PostPublishAction.backToVault:
+        if (mounted) {
+          context.go(AppRoute.homePath(tab: HomeTab.stories));
+        }
+        return;
     }
-
-    if (choice == 'next') {
-      context.go(AppRoute.storyCreate);
-      return;
-    }
-
-    context.go(AppRoute.home);
   }
 
   Widget _buildStepThreeActions() {
@@ -1113,6 +1440,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                                 'Cadastre ao menos uma criança na aba Crianças antes de iniciar.',
                               ),
                             ),
+                          _buildRecommendationsBlock(context),
                           DropdownButtonFormField<String>(
                             initialValue: _selectedChildId,
                             items: _children
@@ -1126,7 +1454,11 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                             onChanged: _storyId != null
                                 ? null
                                 : (value) {
-                                    setState(() => _selectedChildId = value);
+                                    setState(() {
+                                      _selectedChildId = value;
+                                      _stepOneUsedRecommendation = false;
+                                      _recommendationFeedback = null;
+                                    });
                                   },
                             decoration: InputDecoration(
                               labelText: 'Criança',

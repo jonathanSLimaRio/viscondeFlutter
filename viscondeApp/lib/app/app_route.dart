@@ -1,3 +1,5 @@
+enum HomeTab { stories, game, children, profile, adult }
+
 abstract final class AppRoute {
   static const loading = '/loading';
   static const login = '/login';
@@ -31,11 +33,53 @@ abstract final class AppRoute {
   static const _storyRoomSuffix = '/room';
   static const _storyRemoteSuffix = '/remote';
   static const _storySummarySuffix = '/summary';
+  static const _homeTabQuery = 'tab';
 
   static String vaultDetail(String collectionId) => '/vault/$collectionId';
   static String storyRoom(String storyId) => '/stories/$storyId/room';
   static String storyRemote(String storyId) => '/stories/$storyId/remote';
   static String storySummary(String storyId) => '/stories/$storyId/summary';
+  static String homePath({HomeTab tab = HomeTab.stories}) {
+    if (tab == HomeTab.stories) {
+      return home;
+    }
+    return Uri(
+      path: home,
+      queryParameters: {_homeTabQuery: _tabName(tab)},
+    ).toString();
+  }
+
+  static HomeTab parseHomeTab(String? raw) {
+    switch (raw?.trim().toLowerCase()) {
+      case 'game':
+        return HomeTab.game;
+      case 'children':
+        return HomeTab.children;
+      case 'profile':
+        return HomeTab.profile;
+      case 'adult':
+        return HomeTab.adult;
+      case 'stories':
+      default:
+        return HomeTab.stories;
+    }
+  }
+
+  static String _tabName(HomeTab tab) {
+    switch (tab) {
+      case HomeTab.stories:
+        return 'stories';
+      case HomeTab.game:
+        return 'game';
+      case HomeTab.children:
+        return 'children';
+      case HomeTab.profile:
+        return 'profile';
+      case HomeTab.adult:
+        return 'adult';
+    }
+  }
+
   static String storyCreatePath({bool resumeDraft = false}) {
     if (!resumeDraft) {
       return storyCreate;

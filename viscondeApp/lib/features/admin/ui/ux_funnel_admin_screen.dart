@@ -180,7 +180,13 @@ class _UxFunnelAdminScreenState extends ConsumerState<UxFunnelAdminScreen> {
               const SizedBox(height: 12),
               _FunnelCard(funnel: _overview!.funnel),
               const SizedBox(height: 12),
+              _PostPublishCard(postPublish: _overview!.postPublish),
+              const SizedBox(height: 12),
               _AuthErrorsCard(authErrors: _overview!.authErrors),
+              const SizedBox(height: 12),
+              _ScreenStatesCard(screenStates: _overview!.screenStates),
+              const SizedBox(height: 12),
+              _PinFrictionCard(pinFriction: _overview!.pinFriction),
             ],
           ],
         ),
@@ -335,6 +341,186 @@ class _AuthErrorsCard extends StatelessWidget {
           ...authErrors.breakdown.map(
             (item) => Text('${item.type}: ${item.count}'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PostPublishCard extends StatelessWidget {
+  const _PostPublishCard({required this.postPublish});
+
+  final AdminUxPostPublishModel postPublish;
+
+  @override
+  Widget build(BuildContext context) {
+    final continueRate = postPublish.continueSagaClickRatePct;
+    final reachedGoal = continueRate >= 30;
+    final statusLabel = reachedGoal ? 'Meta atingida' : 'Abaixo da meta';
+
+    Widget metric(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Text('$label: $value'),
+      );
+    }
+
+    return ViscondeGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ViscondeSectionTitle(
+            title: 'Pós-publicação',
+            subtitle: 'Celebração e continuidade após publicar capítulo.',
+          ),
+          const SizedBox(height: 8),
+          metric('Publicações', '${postPublish.publishedTotal}'),
+          metric('Modais abertos', '${postPublish.modalOpenedTotal}'),
+          metric(
+            'Taxa de abertura do modal',
+            '${postPublish.modalOpenRatePct.toStringAsFixed(2)}%',
+          ),
+          metric('Cliques em CTA', '${postPublish.ctaClicksTotal}'),
+          const SizedBox(height: 8),
+          Text(
+            'Distribuição de CTA',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          metric(
+            'Continuar saga',
+            '${postPublish.ctaClicksByTarget.continueSaga}',
+          ),
+          metric('Ir para Game', '${postPublish.ctaClicksByTarget.goGame}'),
+          metric(
+            'Voltar ao baú',
+            '${postPublish.ctaClicksByTarget.backToVault}',
+          ),
+          const SizedBox(height: 8),
+          metric(
+            'Taxa de clique em Continuar saga',
+            '${continueRate.toStringAsFixed(2)}%',
+          ),
+          metric(
+            'Conversão para próxima ação',
+            '${postPublish.nextActionConversionPct.toStringAsFixed(2)}%',
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Meta de continuidade (>= 30%): $statusLabel',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScreenStatesCard extends StatelessWidget {
+  const _ScreenStatesCard({required this.screenStates});
+
+  final AdminUxScreenStatesModel screenStates;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget metricRow(String label, int value) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Text('$label: $value'),
+      );
+    }
+
+    Widget section(String title, AdminUxScreenStateMetricsModel metrics) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          metricRow('Loading', metrics.loadingShown),
+          metricRow('Empty', metrics.emptyShown),
+          metricRow('Erro', metrics.errorShown),
+          metricRow('Conteúdo', metrics.contentShown),
+          metricRow('Retry tocado', metrics.retryTapped),
+          metricRow('CTA no vazio', metrics.emptyCtaTapped),
+        ],
+      );
+    }
+
+    return ViscondeGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ViscondeSectionTitle(
+            title: 'Saúde Baú/Game',
+            subtitle: 'Estados exibidos e interações de recuperação.',
+          ),
+          const SizedBox(height: 8),
+          section('Baú', screenStates.vault),
+          const SizedBox(height: 12),
+          section('Game', screenStates.game),
+        ],
+      ),
+    );
+  }
+}
+
+class _PinFrictionCard extends StatelessWidget {
+  const _PinFrictionCard({required this.pinFriction});
+
+  final AdminUxPinFrictionModel pinFriction;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget metric(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Text('$label: $value'),
+      );
+    }
+
+    return ViscondeGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ViscondeSectionTitle(
+            title: 'Fricção de PIN Adulto',
+            subtitle: 'Acompanha prompts, sucesso e abandono do desbloqueio.',
+          ),
+          const SizedBox(height: 8),
+          metric('Prompts exibidos', '${pinFriction.promptShownTotal}'),
+          metric('Prompts com sucesso', '${pinFriction.promptSuccessTotal}'),
+          metric('Prompts abandonados', '${pinFriction.promptAbandonTotal}'),
+          metric('Bloquear agora', '${pinFriction.lockNowTotal}'),
+          metric(
+            'Taxa de sucesso',
+            '${pinFriction.successRatePct.toStringAsFixed(2)}%',
+          ),
+          metric(
+            'Taxa de abandono',
+            '${pinFriction.abandonRatePct.toStringAsFixed(2)}%',
+          ),
+          if (pinFriction.abandonByReason.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Abandono por motivo',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            ...pinFriction.abandonByReason.map(
+              (item) => Text('${item.reason}: ${item.count}'),
+            ),
+          ],
         ],
       ),
     );

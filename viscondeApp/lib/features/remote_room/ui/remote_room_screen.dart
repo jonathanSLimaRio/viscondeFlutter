@@ -12,7 +12,6 @@ import '../../../shared/ui/app_feedback.dart';
 import '../../auth/auth_controller.dart';
 import '../../call/remote_call_controller.dart';
 import '../../realtime/realtime_socket_client.dart';
-import '../../security/parental_gate_controller.dart';
 import '../../story_room/models/story_models.dart';
 import '../../story_room/story_room_controller.dart';
 import '../../story_room/ui/child_choice_panel.dart';
@@ -436,16 +435,15 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
   Future<void> _openRemoteRoom() async {
     final story = _story;
     final accessToken = _accessToken();
-    final gate = ref.read(parentalGateControllerProvider);
 
     if (story == null || accessToken == null) {
       return;
     }
 
-    if (!gate.isUnlocked || gate.unlockToken == null) {
-      context.showMessage(
-        'Desbloqueie a área adulta com PIN antes de abrir sala remota.',
-      );
+    final unlockToken = await ref
+        .read(parentalUnlockServiceProvider)
+        .ensureUnlocked(context, source: 'remote_room_open');
+    if (unlockToken == null) {
       return;
     }
 
@@ -459,7 +457,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
           .openRemoteRoom(
             accessToken,
             story.id,
-            parentalUnlockToken: gate.unlockToken!,
+            parentalUnlockToken: unlockToken,
             callMode: RemoteCallMode.audio,
           );
 
@@ -501,14 +499,15 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
   Future<void> _regenerateCode() async {
     final story = _story;
     final accessToken = _accessToken();
-    final gate = ref.read(parentalGateControllerProvider);
 
     if (story == null || accessToken == null) {
       return;
     }
 
-    if (!gate.isUnlocked || gate.unlockToken == null) {
-      context.showMessage('PIN adulto necessário para regenerar código.');
+    final unlockToken = await ref
+        .read(parentalUnlockServiceProvider)
+        .ensureUnlocked(context, source: 'remote_room_regenerate_code');
+    if (unlockToken == null) {
       return;
     }
 
@@ -520,7 +519,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
           .regenerateRemoteCode(
             accessToken,
             story.id,
-            parentalUnlockToken: gate.unlockToken!,
+            parentalUnlockToken: unlockToken,
           );
 
       setState(() {

@@ -665,6 +665,165 @@ class AdminUxAuthErrorsModel {
   }
 }
 
+class AdminUxPostPublishCtaByTargetModel {
+  const AdminUxPostPublishCtaByTargetModel({
+    required this.continueSaga,
+    required this.goGame,
+    required this.backToVault,
+  });
+
+  final int continueSaga;
+  final int goGame;
+  final int backToVault;
+
+  factory AdminUxPostPublishCtaByTargetModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return AdminUxPostPublishCtaByTargetModel(
+      continueSaga: (json['continueSaga'] as num?)?.toInt() ?? 0,
+      goGame: (json['goGame'] as num?)?.toInt() ?? 0,
+      backToVault: (json['backToVault'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class AdminUxPostPublishModel {
+  const AdminUxPostPublishModel({
+    required this.publishedTotal,
+    required this.modalOpenedTotal,
+    required this.modalOpenRatePct,
+    required this.ctaClicksTotal,
+    required this.ctaClicksByTarget,
+    required this.continueSagaClickRatePct,
+    required this.nextActionConversionPct,
+  });
+
+  final int publishedTotal;
+  final int modalOpenedTotal;
+  final double modalOpenRatePct;
+  final int ctaClicksTotal;
+  final AdminUxPostPublishCtaByTargetModel ctaClicksByTarget;
+  final double continueSagaClickRatePct;
+  final double nextActionConversionPct;
+
+  factory AdminUxPostPublishModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxPostPublishModel(
+      publishedTotal: (json['publishedTotal'] as num?)?.toInt() ?? 0,
+      modalOpenedTotal: (json['modalOpenedTotal'] as num?)?.toInt() ?? 0,
+      modalOpenRatePct: (json['modalOpenRatePct'] as num?)?.toDouble() ?? 0,
+      ctaClicksTotal: (json['ctaClicksTotal'] as num?)?.toInt() ?? 0,
+      ctaClicksByTarget: AdminUxPostPublishCtaByTargetModel.fromJson(
+        (json['ctaClicksByTarget'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+      continueSagaClickRatePct:
+          (json['continueSagaClickRatePct'] as num?)?.toDouble() ?? 0,
+      nextActionConversionPct:
+          (json['nextActionConversionPct'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class AdminUxScreenStateMetricsModel {
+  const AdminUxScreenStateMetricsModel({
+    required this.loadingShown,
+    required this.emptyShown,
+    required this.errorShown,
+    required this.contentShown,
+    required this.retryTapped,
+    required this.emptyCtaTapped,
+  });
+
+  final int loadingShown;
+  final int emptyShown;
+  final int errorShown;
+  final int contentShown;
+  final int retryTapped;
+  final int emptyCtaTapped;
+
+  factory AdminUxScreenStateMetricsModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxScreenStateMetricsModel(
+      loadingShown: (json['loadingShown'] as num?)?.toInt() ?? 0,
+      emptyShown: (json['emptyShown'] as num?)?.toInt() ?? 0,
+      errorShown: (json['errorShown'] as num?)?.toInt() ?? 0,
+      contentShown: (json['contentShown'] as num?)?.toInt() ?? 0,
+      retryTapped: (json['retryTapped'] as num?)?.toInt() ?? 0,
+      emptyCtaTapped: (json['emptyCtaTapped'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class AdminUxScreenStatesModel {
+  const AdminUxScreenStatesModel({required this.vault, required this.game});
+
+  final AdminUxScreenStateMetricsModel vault;
+  final AdminUxScreenStateMetricsModel game;
+
+  factory AdminUxScreenStatesModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxScreenStatesModel(
+      vault: AdminUxScreenStateMetricsModel.fromJson(
+        (json['vault'] as Map<String, dynamic>?) ?? const <String, dynamic>{},
+      ),
+      game: AdminUxScreenStateMetricsModel.fromJson(
+        (json['game'] as Map<String, dynamic>?) ?? const <String, dynamic>{},
+      ),
+    );
+  }
+}
+
+class AdminUxPinAbandonReasonItemModel {
+  const AdminUxPinAbandonReasonItemModel({
+    required this.reason,
+    required this.count,
+  });
+
+  final String reason;
+  final int count;
+
+  factory AdminUxPinAbandonReasonItemModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxPinAbandonReasonItemModel(
+      reason: (json['reason'] as String?) ?? 'unknown',
+      count: (json['count'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class AdminUxPinFrictionModel {
+  const AdminUxPinFrictionModel({
+    required this.promptShownTotal,
+    required this.promptSuccessTotal,
+    required this.promptAbandonTotal,
+    required this.lockNowTotal,
+    required this.successRatePct,
+    required this.abandonRatePct,
+    required this.abandonByReason,
+  });
+
+  final int promptShownTotal;
+  final int promptSuccessTotal;
+  final int promptAbandonTotal;
+  final int lockNowTotal;
+  final double successRatePct;
+  final double abandonRatePct;
+  final List<AdminUxPinAbandonReasonItemModel> abandonByReason;
+
+  factory AdminUxPinFrictionModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxPinFrictionModel(
+      promptShownTotal: (json['promptShownTotal'] as num?)?.toInt() ?? 0,
+      promptSuccessTotal: (json['promptSuccessTotal'] as num?)?.toInt() ?? 0,
+      promptAbandonTotal: (json['promptAbandonTotal'] as num?)?.toInt() ?? 0,
+      lockNowTotal: (json['lockNowTotal'] as num?)?.toInt() ?? 0,
+      successRatePct: (json['successRatePct'] as num?)?.toDouble() ?? 0,
+      abandonRatePct: (json['abandonRatePct'] as num?)?.toDouble() ?? 0,
+      abandonByReason:
+          ((json['abandonByReason'] as List<dynamic>?) ?? <dynamic>[])
+              .whereType<Map<String, dynamic>>()
+              .map(AdminUxPinAbandonReasonItemModel.fromJson)
+              .toList(),
+    );
+  }
+}
+
 class AdminUxFunnelOverviewModel {
   const AdminUxFunnelOverviewModel({
     required this.generatedAt,
@@ -672,6 +831,9 @@ class AdminUxFunnelOverviewModel {
     required this.coverage,
     required this.funnel,
     required this.authErrors,
+    required this.postPublish,
+    required this.screenStates,
+    required this.pinFriction,
   });
 
   final DateTime? generatedAt;
@@ -679,6 +841,9 @@ class AdminUxFunnelOverviewModel {
   final AdminUxCoverageModel coverage;
   final AdminUxFunnelModel funnel;
   final AdminUxAuthErrorsModel authErrors;
+  final AdminUxPostPublishModel postPublish;
+  final AdminUxScreenStatesModel screenStates;
+  final AdminUxPinFrictionModel pinFriction;
 
   factory AdminUxFunnelOverviewModel.fromJson(Map<String, dynamic> json) {
     return AdminUxFunnelOverviewModel(
@@ -695,6 +860,18 @@ class AdminUxFunnelOverviewModel {
       ),
       authErrors: AdminUxAuthErrorsModel.fromJson(
         (json['authErrors'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+      postPublish: AdminUxPostPublishModel.fromJson(
+        (json['postPublish'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+      screenStates: AdminUxScreenStatesModel.fromJson(
+        (json['screenStates'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+      pinFriction: AdminUxPinFrictionModel.fromJson(
+        (json['pinFriction'] as Map<String, dynamic>?) ??
             const <String, dynamic>{},
       ),
     );

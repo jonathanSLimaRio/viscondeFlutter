@@ -5,9 +5,22 @@ import '../core/network/api_exception.dart';
 String _normalizeKnownMessage(ApiException error) {
   final message = error.message.trim();
   final normalized = message.toLowerCase();
+  final code = error.code?.trim();
+
+  if (code == 'PARENTAL_UNLOCK_REQUIRED') {
+    return 'Área protegida por PIN. Desbloqueie a área adulta para continuar.';
+  }
+
+  if (code == 'PARENTAL_UNLOCK_INVALID') {
+    return 'Seu desbloqueio da área adulta expirou. Digite o PIN novamente.';
+  }
 
   if (error.kind == ApiErrorKind.unauthorized) {
     return 'Sua sessão expirou. Faça login novamente.';
+  }
+
+  if (error.kind == ApiErrorKind.parentalUnlock) {
+    return 'Área protegida por PIN. Desbloqueie a área adulta para continuar.';
   }
 
   if (error.kind == ApiErrorKind.forbidden) {

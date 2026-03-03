@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/app_route.dart';
+import '../../../core/network/api_client.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/loading_screen.dart';
 import '../auth_controller.dart';
@@ -15,8 +17,19 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  bool get _shouldPrefillDevCredentials =>
+      kDebugMode && devLoginPrefillEnabled && hasExplicitDevCredentials;
+
+  final _emailController = TextEditingController(
+    text: kDebugMode && devLoginPrefillEnabled && hasExplicitDevCredentials
+        ? devAdminEmail
+        : '',
+  );
+  final _passwordController = TextEditingController(
+    text: kDebugMode && devLoginPrefillEnabled && hasExplicitDevCredentials
+        ? devAdminPassword
+        : '',
+  );
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -60,6 +73,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               _buildHeroCard(context),
               const SizedBox(height: 18),
               _buildFormCard(context),
+              if (kDebugMode && !_shouldPrefillDevCredentials) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Dica dev: use --dart-define=DEV_LOGIN_PREFILL=true com DEV_ADMIN_EMAIL/DEV_ADMIN_PASSWORD para autopreencher.',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+                  textAlign: TextAlign.center,
+                ),
+              ],
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => context.push(AppRoute.forgotPassword),

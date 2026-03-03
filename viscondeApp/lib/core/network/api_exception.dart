@@ -4,6 +4,7 @@ enum ApiErrorKind {
   network,
   timeout,
   unauthorized,
+  parentalUnlock,
   forbidden,
   notFound,
   conflict,
@@ -54,6 +55,16 @@ class ApiException implements Exception {
     }
 
     if (status == 401) {
+      if (_isParentalUnlockCode(code)) {
+        return ApiException(
+          kind: ApiErrorKind.parentalUnlock,
+          message: message ?? _parentalUnlockFallbackMessage(code),
+          statusCode: status,
+          code: code,
+          cause: error,
+        );
+      }
+
       return ApiException(
         kind: ApiErrorKind.unauthorized,
         message: message ?? 'Sessão expirada. Faça login novamente.',
@@ -142,6 +153,19 @@ class ApiException implements Exception {
     }
 
     return (null, null);
+  }
+
+  static bool _isParentalUnlockCode(String? code) {
+    return code == 'PARENTAL_UNLOCK_REQUIRED' ||
+        code == 'PARENTAL_UNLOCK_INVALID';
+  }
+
+  static String _parentalUnlockFallbackMessage(String? code) {
+    if (code == 'PARENTAL_UNLOCK_INVALID') {
+      return 'Seu desbloqueio da área adulta expirou. Digite o PIN novamente.';
+    }
+
+    return 'Área protegida por PIN. Desbloqueie a área adulta para continuar.';
   }
 
   @override

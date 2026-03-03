@@ -8,15 +8,21 @@ const devAutoLoginEnabled = bool.fromEnvironment(
   defaultValue: false,
 );
 
+const devLoginPrefillEnabled = bool.fromEnvironment(
+  'DEV_LOGIN_PREFILL',
+  defaultValue: false,
+);
+
 const devAdminEmail = String.fromEnvironment(
   'DEV_ADMIN_EMAIL',
-  defaultValue: 'admin@visconde.app',
 );
 
 const devAdminPassword = String.fromEnvironment(
   'DEV_ADMIN_PASSWORD',
-  defaultValue: 'admin123',
 );
+
+bool get hasExplicitDevCredentials =>
+    devAdminEmail.trim().isNotEmpty && devAdminPassword.trim().isNotEmpty;
 
 final apiBaseUrlProvider = Provider<String>((ref) {
   return const String.fromEnvironment(

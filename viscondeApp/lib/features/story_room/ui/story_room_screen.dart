@@ -56,9 +56,17 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
   Future<void> _showNarrateDialog(StoryStepModel step) async {
     final token = ref.read(authControllerProvider).accessToken;
     if (token == null) return;
+    final parentalUnlockToken = await ref
+        .read(parentalUnlockServiceProvider)
+        .ensureUnlocked(context, source: 'story_room_voice_narration');
+    if (parentalUnlockToken == null) {
+      return;
+    }
 
     try {
-      final profiles = await ref.read(voiceApiProvider).listProfiles();
+      final profiles = await ref
+          .read(voiceApiProvider)
+          .listProfiles(parentalUnlockToken: parentalUnlockToken);
       if (!mounted) return;
 
       final readyProfiles = profiles.where((p) => p.status == 'READY').toList();

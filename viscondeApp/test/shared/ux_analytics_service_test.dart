@@ -233,7 +233,7 @@ void main() {
       expect(store.countByStatus(UxAnalyticsQueueStatus.sent), 1);
     });
 
-    test('unsupported event name is ignored', () async {
+    test('post-publish events are accepted and flushed', () async {
       final store = _MemoryUxStore();
       final transport = _FakeUxTransport();
       final service = UxAnalyticsService(
@@ -243,11 +243,97 @@ void main() {
         appSessionId: 'app-test-4',
       );
 
-      await service.trackEvent(_event('reward_modal_opened'));
+      await service.trackEvent(
+        _event(
+          'post_publish_modal_opened',
+          params: const <String, Object?>{
+            'source': 'story_summary_screen',
+            'flow': 'summary',
+            'story_id': 'story-1',
+            'coins_delta': 10,
+            'stars_delta': 5,
+            'achievements_count': 1,
+          },
+        ),
+      );
+      await service.trackEvent(
+        _event(
+          'post_publish_cta_clicked',
+          params: const <String, Object?>{
+            'source': 'story_summary_screen',
+            'flow': 'summary',
+            'target': 'continue_saga',
+          },
+        ),
+      );
+      await service.flush();
+
+      expect(store.countByStatus(UxAnalyticsQueueStatus.sent), 2);
+      expect(transport.sendCalls, greaterThanOrEqualTo(1));
+    });
+
+    test('unsupported event name is ignored', () async {
+      final store = _MemoryUxStore();
+      final transport = _FakeUxTransport();
+      final service = UxAnalyticsService(
+        store: store,
+        transport: transport,
+        readAccessToken: () => null,
+        appSessionId: 'app-test-5',
+      );
+
+      await service.trackEvent(_event('reward_modal_opened_legacy'));
       await service.flush();
 
       expect(store.all, isEmpty);
       expect(transport.sendCalls, 0);
+    });
+
+    test('pin unlock events are accepted and flushed', () async {
+      final store = _MemoryUxStore();
+      final transport = _FakeUxTransport();
+      final service = UxAnalyticsService(
+        store: store,
+        transport: transport,
+        readAccessToken: () => null,
+        appSessionId: 'app-test-6',
+      );
+
+      await service.trackEvent(
+        _event(
+          'pin_prompt_shown',
+          params: const <String, Object?>{'source': 'game_hub_unlock_item'},
+        ),
+      );
+      await service.trackEvent(
+        _event(
+          'pin_prompt_success',
+          params: const <String, Object?>{
+            'source': 'game_hub_unlock_item',
+            'expires_at': '2026-03-03T18:00:00.000Z',
+          },
+        ),
+      );
+      await service.trackEvent(
+        _event(
+          'pin_prompt_abandon',
+          params: const <String, Object?>{
+            'source': 'remote_room_open',
+            'reason': 'cancel_or_invalid_length',
+          },
+        ),
+      );
+      await service.trackEvent(
+        _event(
+          'pin_lock_now_clicked',
+          params: const <String, Object?>{'source': 'home_appbar_lock_now'},
+        ),
+      );
+
+      await service.flush();
+
+      expect(store.countByStatus(UxAnalyticsQueueStatus.sent), 4);
+      expect(transport.sendCalls, greaterThanOrEqualTo(1));
     });
   });
 }

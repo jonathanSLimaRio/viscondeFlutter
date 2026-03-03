@@ -162,5 +162,9 @@ void main() {
     router.go('/');
     await tester.pumpAndSettle();
     expect(find.byType(StoryVaultScreen), findsOneWidget);
+
+    router.go('/?tab=game');
+    await tester.pumpAndSettle();
+    expect(find.text('Game'), findsWidgets);
   });
 }

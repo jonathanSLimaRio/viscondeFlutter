@@ -39,11 +39,14 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
 
   Future<void> _loadProfiles() async {
     final token = ref.read(authControllerProvider).accessToken;
-    if (token == null) return;
+    final gate = ref.read(parentalGateControllerProvider);
+    if (token == null || !gate.isUnlocked || gate.unlockToken == null) return;
 
     setState(() => _loading = true);
     try {
-      final list = await ref.read(voiceApiProvider).listProfiles();
+      final list = await ref
+          .read(voiceApiProvider)
+          .listProfiles(parentalUnlockToken: gate.unlockToken!);
       if (!mounted) return;
       setState(() => _profiles = list);
     } catch (error) {
@@ -56,12 +59,30 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
     }
   }
 
+  Future<String?> _ensureUnlocked({required String source}) async {
+    return ref
+        .read(parentalUnlockServiceProvider)
+        .ensureUnlocked(context, source: source);
+  }
+
+  Future<void> _unlockAndLoad() async {
+    final unlockToken = await _ensureUnlocked(source: 'adult_voices_unlock');
+    if (unlockToken == null || !mounted) {
+      return;
+    }
+    await _loadProfiles();
+  }
+
   Future<void> _createProfile() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) return;
 
     final token = ref.read(authControllerProvider).accessToken;
     if (token == null) return;
+    final unlockToken = await _ensureUnlocked(
+      source: 'adult_voices_create_profile',
+    );
+    if (unlockToken == null) return;
 
     setState(() => _loading = true);
     try {
@@ -70,6 +91,7 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
           .createProfile(
             name: name,
             relationship: _relationController.text.trim(),
+            parentalUnlockToken: unlockToken,
           );
       _nameController.clear();
       _relationController.clear();
@@ -86,11 +108,17 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
   Future<void> _trainProfile(String id) async {
     final token = ref.read(authControllerProvider).accessToken;
     if (token == null) return;
+    final unlockToken = await _ensureUnlocked(
+      source: 'adult_voices_train_profile',
+    );
+    if (unlockToken == null) return;
 
     setState(() => _loading = true);
     try {
       // MVP de treinamento (mock endpoint no backend muda o status pra READY).
-      await ref.read(voiceApiProvider).trainProfile(id);
+      await ref
+          .read(voiceApiProvider)
+          .trainProfile(id, parentalUnlockToken: unlockToken);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Voz treinada com sucesso!')),
@@ -114,11 +142,23 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
         appBar: AppBar(title: const Text('Voz Inesquecível')),
         body: ListView(
           padding: const EdgeInsets.all(16),
-          children: const [
+          children: [
             ViscondeGlassCard(
-              child: ViscondeSectionTitle(
-                title: 'Área protegida',
-                subtitle: 'Volte para a área adulta e desbloqueie via PIN.',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const ViscondeSectionTitle(
+                    title: 'Área protegida',
+                    subtitle:
+                        'Desbloqueie via PIN para acessar vozes da família.',
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _unlockAndLoad,
+                    icon: const Icon(Icons.lock_open_outlined),
+                    label: const Text('Desbloquear agora'),
+                  ),
+                ],
               ),
             ),
           ],

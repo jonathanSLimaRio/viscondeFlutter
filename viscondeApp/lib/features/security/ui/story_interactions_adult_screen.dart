@@ -63,6 +63,17 @@ class _StoryInteractionsAdultScreenState
     }
   }
 
+  Future<void> _unlockAndLoadStories() async {
+    final unlockToken = await ref
+        .read(parentalUnlockServiceProvider)
+        .ensureUnlocked(context, source: 'adult_interactions_unlock');
+    if (unlockToken == null || !mounted) {
+      return;
+    }
+
+    await _loadStories();
+  }
+
   Future<void> _openInteractions(StoryListItem story) async {
     final token = ref.read(authControllerProvider).accessToken;
     final gate = ref.read(parentalGateControllerProvider);
@@ -141,12 +152,23 @@ class _StoryInteractionsAdultScreenState
         appBar: AppBar(title: const Text('Interações remotas')),
         body: ListView(
           padding: const EdgeInsets.all(16),
-          children: const [
+          children: [
             ViscondeGlassCard(
-              child: ViscondeSectionTitle(
-                title: 'Área protegida',
-                subtitle:
-                    'Volte para a área adulta, faça desbloqueio por PIN e tente novamente.',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const ViscondeSectionTitle(
+                    title: 'Área protegida',
+                    subtitle:
+                        'Desbloqueie via PIN para acessar interações remotas.',
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _unlockAndLoadStories,
+                    icon: const Icon(Icons.lock_open_outlined),
+                    label: const Text('Desbloquear agora'),
+                  ),
+                ],
               ),
             ),
           ],
