@@ -8,6 +8,7 @@ import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/logging/app_logger.dart';
 import '../../auth/auth_controller.dart';
 import '../../story_room/models/story_models.dart';
 
@@ -56,7 +57,13 @@ class _StoryVaultDetailScreenState
         return;
       }
       setState(() => _children = children);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao carregar crianças no detalhe do Baú.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_vault',
+      );
       // Não bloqueia a tela de detalhe.
     }
   }

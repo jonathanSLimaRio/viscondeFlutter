@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:web_socket_channel/io.dart';
 
+import '../../shared/logging/app_logger.dart';
+
 class RealtimeSocketEvent {
   const RealtimeSocketEvent({required this.event, required this.payload});
 
@@ -61,7 +63,13 @@ class RealtimeSocketClient {
                   : <String, dynamic>{},
             ),
           );
-        } catch (_) {
+        } catch (error, stackTrace) {
+          AppLogger.warn(
+            'Mensagem inválida recebida no realtime socket.',
+            error: error,
+            stackTrace: stackTrace,
+            scope: 'realtime',
+          );
           _errorsController.add('Mensagem realtime inválida.');
         }
       },

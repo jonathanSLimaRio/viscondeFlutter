@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../../shared/logging/app_logger.dart';
 import '../realtime/realtime_socket_client.dart';
 import '../story_room/models/story_models.dart';
 
@@ -198,7 +199,13 @@ class RemoteCallController extends ChangeNotifier {
           await _createAndSendOffer(force: true);
           break;
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao preparar mídia local para chamada remota.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'remote_call',
+      );
       _errorMessage = "Falha ao preparar chamada de áudio/vídeo.";
       notifyListeners();
     }
@@ -236,7 +243,13 @@ class RemoteCallController extends ChangeNotifier {
         "sdp": {"type": offer.type, "sdp": offer.sdp},
       });
       _hostOfferSent = true;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao criar oferta WebRTC.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'remote_call',
+      );
       _errorMessage = "Falha ao iniciar oferta WebRTC.";
       notifyListeners();
     }
@@ -290,7 +303,13 @@ class RemoteCallController extends ChangeNotifier {
       sendSignal("rtc.answer", {
         "sdp": {"type": answer.type, "sdp": answer.sdp},
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao responder oferta WebRTC remota.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'remote_call',
+      );
       _errorMessage = "Falha ao responder chamada remota.";
       notifyListeners();
     }
@@ -316,7 +335,13 @@ class RemoteCallController extends ChangeNotifier {
 
     try {
       await peer.setRemoteDescription(RTCSessionDescription(description, type));
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao aplicar answer WebRTC remoto.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'remote_call',
+      );
       _errorMessage = "Falha ao concluir sinalização da chamada.";
       notifyListeners();
     }
@@ -351,7 +376,13 @@ class RemoteCallController extends ChangeNotifier {
       await peer.addCandidate(
         RTCIceCandidate(candidateValue, sdpMid, sdpMLineIndex),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'ICE candidate inválido ou fora de ordem ignorado.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'remote_call',
+      );
       // Ignora ICE candidates inválidos/fora de ordem.
     }
   }

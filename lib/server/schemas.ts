@@ -25,6 +25,8 @@ const moderationScopeSchema = z.enum([
 const uxEventNameSchema = z.enum([
   "session_started",
   "auth_error_shown",
+  "auth_refresh_success",
+  "auth_refresh_failed",
   "story_create_started",
   "story_create_step_completed",
   "story_create_abandoned",

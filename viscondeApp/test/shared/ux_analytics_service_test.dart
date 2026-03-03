@@ -289,6 +289,42 @@ void main() {
       expect(transport.sendCalls, 0);
     });
 
+    test('auth refresh events are accepted and flushed', () async {
+      final store = _MemoryUxStore();
+      final transport = _FakeUxTransport();
+      final service = UxAnalyticsService(
+        store: store,
+        transport: transport,
+        readAccessToken: () => null,
+        appSessionId: 'app-test-5b',
+      );
+
+      await service.trackEvent(
+        _event(
+          'auth_refresh_success',
+          params: const <String, Object?>{'source': 'interceptor'},
+        ),
+      );
+      await service.trackEvent(
+        _event(
+          'auth_refresh_failed',
+          params: const <String, Object?>{'reason': 'missing_refresh_token'},
+        ),
+      );
+      await service.flush();
+
+      expect(
+        UxAnalyticsService.supportedEventNames,
+        contains('auth_refresh_success'),
+      );
+      expect(
+        UxAnalyticsService.supportedEventNames,
+        contains('auth_refresh_failed'),
+      );
+      expect(store.countByStatus(UxAnalyticsQueueStatus.sent), 2);
+      expect(transport.sendCalls, greaterThanOrEqualTo(1));
+    });
+
     test('pin unlock events are accepted and flushed', () async {
       final store = _MemoryUxStore();
       final transport = _FakeUxTransport();

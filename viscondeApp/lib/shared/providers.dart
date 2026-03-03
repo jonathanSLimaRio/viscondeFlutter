@@ -10,7 +10,6 @@ import '../features/children/children_api.dart';
 import '../features/gamification/gamification_api.dart';
 import '../features/gamification/inventory_api.dart';
 import '../features/profile/profile_api.dart';
-import '../features/security/parental_gate_controller.dart';
 import '../features/security/parental_unlock_service.dart';
 import '../features/security/security_api.dart';
 import '../features/security/voice_api.dart';
@@ -19,6 +18,7 @@ import '../features/story_room/story_api.dart';
 import '../features/story_sync/story_sync_queue.dart';
 import '../features/story_vault/book_api.dart';
 import '../features/story_creation/create_story_wizard_draft_store.dart';
+import 'network/session_aware_dio_factory.dart';
 import 'ux_analytics_api.dart';
 import 'ux_analytics_queue.dart';
 import 'ux_analytics_service.dart';
@@ -26,75 +26,13 @@ import 'ux_analytics_service.dart';
 final sessionAwareDioProvider = Provider<Dio>((ref) {
   final baseUrl = ref.watch(apiBaseUrlProvider);
   final accessToken = ref.watch(authControllerProvider).accessToken;
-  final authNotifier = ref.read(authControllerProvider.notifier);
   final adapter = ref.watch(dioHttpClientAdapterProvider);
-  final dio = createApiDio(
+  return SessionAwareDioFactory.create(
+    ref: ref,
     baseUrl: baseUrl,
     accessToken: accessToken,
-    httpClientAdapter: adapter,
-    mapErrors: false,
+    adapter: adapter,
   );
-
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onError: (error, handler) async {
-        final requestOptions = error.requestOptions;
-        final status = error.response?.statusCode;
-        final responseCode = _extractErrorCode(error.response?.data);
-        final isParentalUnlockError =
-            status == 401 &&
-            (responseCode == 'PARENTAL_UNLOCK_REQUIRED' ||
-                responseCode == 'PARENTAL_UNLOCK_INVALID');
-        final authState = authNotifier.snapshot;
-
-        if (isParentalUnlockError) {
-          ref.read(parentalGateControllerProvider.notifier).clear();
-          handler.next(error);
-          return;
-        }
-
-        if (shouldAttemptAuthRetry(requestOptions, status) &&
-            authState.status == AuthStatus.authenticated) {
-          final refreshedToken = await authNotifier.refreshSessionIfPossible();
-          if (refreshedToken != null) {
-            try {
-              final retriedRequest = markRequestAuthRetried(
-                requestOptions,
-                accessToken: refreshedToken,
-              );
-              final response = await dio.fetch<dynamic>(retriedRequest);
-              handler.resolve(response);
-              return;
-            } on DioException catch (retryError) {
-              handler.next(retryError);
-              return;
-            } catch (retryError) {
-              handler.next(
-                DioException(
-                  requestOptions: requestOptions,
-                  type: DioExceptionType.unknown,
-                  error: retryError,
-                ),
-              );
-              return;
-            }
-          }
-        }
-
-        if (status == 401 &&
-            authState.status == AuthStatus.authenticated &&
-            !requestDisablesAuthRetry(requestOptions)) {
-          await authNotifier.expireSession(
-            reason: 'Sua sessão expirou. Faça login novamente.',
-          );
-        }
-
-        handler.next(error);
-      },
-    ),
-  );
-
-  return dio;
 });
 
 final authorizedApiClientProvider = Provider<AuthorizedApiClient>((ref) {
@@ -186,14 +124,3 @@ final createStoryWizardDraftStoreProvider =
       });
       return store;
     });
-
-String? _extractErrorCode(Object? raw) {
-  if (raw is Map) {
-    final code = raw['code'];
-    if (code is String && code.trim().isNotEmpty) {
-      return code.trim();
-    }
-  }
-
-  return null;
-}

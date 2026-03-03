@@ -9,6 +9,7 @@ import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../../shared/ui/app_feedback.dart';
+import '../../../shared/logging/app_logger.dart';
 import '../../auth/auth_controller.dart';
 import '../../call/remote_call_controller.dart';
 import '../../realtime/realtime_socket_client.dart';
@@ -273,7 +274,13 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
       ref
           .read(storyRoomControllerProvider.notifier)
           .setParticipantToken(state.participantToken);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao atualizar estado da sala remota em background.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'remote_room',
+      );
       // Falha de refresh não bloqueia a sessão já conectada.
     }
   }

@@ -13,13 +13,9 @@ const devLoginPrefillEnabled = bool.fromEnvironment(
   defaultValue: false,
 );
 
-const devAdminEmail = String.fromEnvironment(
-  'DEV_ADMIN_EMAIL',
-);
+const devAdminEmail = String.fromEnvironment('DEV_ADMIN_EMAIL');
 
-const devAdminPassword = String.fromEnvironment(
-  'DEV_ADMIN_PASSWORD',
-);
+const devAdminPassword = String.fromEnvironment('DEV_ADMIN_PASSWORD');
 
 bool get hasExplicitDevCredentials =>
     devAdminEmail.trim().isNotEmpty && devAdminPassword.trim().isNotEmpty;

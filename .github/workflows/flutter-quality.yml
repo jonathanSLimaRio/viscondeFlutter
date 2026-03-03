@@ -1,0 +1,42 @@
+name: Flutter Quality
+
+on:
+  push:
+    paths:
+      - 'viscondeApp/**'
+      - '.github/workflows/flutter-quality.yml'
+  pull_request:
+    paths:
+      - 'viscondeApp/**'
+      - '.github/workflows/flutter-quality.yml'
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: viscondeApp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test auth
+        run: flutter test test/features/auth/auth_controller_test.dart
+
+      - name: Test quick defaults
+        run: flutter test test/features/story_creation/quick_story_defaults_test.dart
+
+      - name: Test wizard
+        run: flutter test test/features/story_creation/create_story_wizard_test.dart

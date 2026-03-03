@@ -7,6 +7,7 @@ import '../../../design_system/visconde.dart';
 import '../../gamification/inventory_models.dart';
 import '../../auth/auth_controller.dart';
 import '../../story_vault/story_pdf_exporter.dart';
+import '../../../shared/logging/app_logger.dart';
 import '../../../shared/ui/app_feedback.dart';
 import '../../../shared/ui/post_publish_celebration_dialog.dart';
 import '../models/story_models.dart';
@@ -83,7 +84,14 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
             .read(inventoryApiProvider)
             .rewardRandomItem(finalized.story.id, token);
       }
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao buscar recompensa pós-publicação na tela de resumo.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_summary',
+      );
+    }
 
     if (!mounted) {
       return;

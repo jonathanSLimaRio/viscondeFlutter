@@ -10,6 +10,8 @@ import { ApiError } from "@/lib/server/errors";
 const UX_EVENT_NAME_MAP = {
   session_started: "SESSION_STARTED",
   auth_error_shown: "AUTH_ERROR_SHOWN",
+  auth_refresh_success: "AUTH_REFRESH_SUCCESS",
+  auth_refresh_failed: "AUTH_REFRESH_FAILED",
   story_create_started: "STORY_CREATE_STARTED",
   story_create_step_completed: "STORY_CREATE_STEP_COMPLETED",
   story_create_abandoned: "STORY_CREATE_ABANDONED",
@@ -71,6 +73,8 @@ const PARAM_ALLOWLIST: Record<keyof typeof UX_EVENT_NAME_MAP, readonly string[]>
     "code",
     "source",
   ],
+  auth_refresh_success: ["source"],
+  auth_refresh_failed: ["reason", "message", "source"],
   story_create_started: ["step", "source", "flow", "duration_ms", "reason"],
   story_create_step_completed: ["step", "source", "flow", "duration_ms", "reason"],
   story_create_abandoned: ["step", "source", "flow", "duration_ms", "reason"],

@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/api_error.dart';
+import '../../shared/logging/app_logger.dart';
 import '../../shared/providers.dart';
 import '../auth/auth_controller.dart';
 import '../story_sync/story_sync_queue.dart';
@@ -542,7 +543,13 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
           state = state.copyWith(submittingStep: false, session: refreshed);
           await _refreshPendingCount();
           return;
-        } catch (_) {
+        } catch (refreshError, refreshStackTrace) {
+          AppLogger.warn(
+            'Falha ao recarregar sessão após conflito de etapa (409).',
+            error: refreshError,
+            stackTrace: refreshStackTrace,
+            scope: 'story_room',
+          );
           // Keep original error below.
         }
       }

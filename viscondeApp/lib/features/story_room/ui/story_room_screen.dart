@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/logging/app_logger.dart';
 import '../../../shared/ui/app_feedback.dart';
 import '../../auth/auth_controller.dart';
 import '../illustration_api.dart';
@@ -160,7 +161,13 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
     List<VirtueModel> virtues = const <VirtueModel>[];
     try {
       virtues = await ref.read(storyApiProvider).listVirtues(token);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao carregar virtudes para edição de detalhes da história.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_room',
+      );
       virtues = const <VirtueModel>[];
     }
 
