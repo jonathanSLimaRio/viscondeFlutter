@@ -11,6 +11,8 @@ import '../../helpers/test_harness.dart';
 
 void main() {
   testWidgets('navigates to signup when tapping "Criar conta"', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+
     final router = GoRouter(
       initialLocation: AppRoute.login,
       routes: [
@@ -32,7 +34,12 @@ void main() {
           debugShowCheckedModeBanner: false,
           theme: ViscondeTheme.buildLightTheme(),
           builder: (context, child) => ViscondeScaffoldBackground(
-            child: child ?? const SizedBox.shrink(),
+            child: MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(0.8)),
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
           routerConfig: router,
         ),
@@ -41,6 +48,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Não tem conta? Criar conta'));
     await tester.tap(find.text('Não tem conta? Criar conta'));
     await tester.pumpAndSettle();
 
@@ -50,6 +58,8 @@ void main() {
   testWidgets('renders Google and Apple social buttons disabled', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+
     await tester.pumpWidget(
       wrapTestApp(
         const LoginScreen(),

@@ -53,12 +53,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Entrar no Visconde',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: context.viscondeColors.textStrong,
-                  fontWeight: FontWeight.w800,
+              Center(
+                child: Image.asset(
+                  ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
+                  height: 112,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox(height: 72),
                 ),
               ),
               const SizedBox(height: 18),
@@ -158,7 +159,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final colors = context.viscondeColors;
     final radius = BorderRadius.circular(context.viscondeRadii.xl);
 
-    return DecoratedBox(
+    return Container(
+      constraints: const BoxConstraints(minHeight: 188),
       decoration: BoxDecoration(
         borderRadius: radius,
         gradient: LinearGradient(
@@ -176,59 +178,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         boxShadow: context.viscondeElevations.card,
       ),
-      child: SizedBox(
-        height: 188,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: radius,
-                child: Image.asset(
-                  ViscondeArtRegistry.resolve(ViscondeArtKey.paperTexture),
-                  fit: BoxFit.cover,
-                  opacity: const AlwaysStoppedAnimation<double>(0.28),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: radius,
+              child: Image.asset(
+                ViscondeArtRegistry.resolve(ViscondeArtKey.paperTexture),
+                fit: BoxFit.cover,
+                opacity: const AlwaysStoppedAnimation<double>(0.28),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 146, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Criando com o Papai!',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: colors.textStrong,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 146, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Criando com o Papai!',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: colors.textStrong,
-                      fontWeight: FontWeight.w900,
-                    ),
+                const SizedBox(height: 8),
+                Text(
+                  'Transforme tempo em\nmemórias mágicas.',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: colors.textStrong.withValues(alpha: 0.9),
+                    height: 1.15,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Transforme tempo em\nmemórias mágicas.',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: colors.textStrong.withValues(alpha: 0.9),
-                      height: 1.15,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              right: 8,
-              bottom: 4,
-              child: SizedBox(
-                width: 132,
-                height: 132,
-                child: Image.asset(
-                  ViscondeArtRegistry.resolve(
-                    ViscondeArtKey.mascotWavingControllerBook,
-                  ),
-                  fit: BoxFit.contain,
                 ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 8,
+            bottom: 4,
+            child: SizedBox(
+              width: 132,
+              height: 132,
+              child: Image.asset(
+                ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.mascotWavingControllerBook,
+                ),
+                fit: BoxFit.contain,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
