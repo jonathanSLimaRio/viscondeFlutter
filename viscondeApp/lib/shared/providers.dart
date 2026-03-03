@@ -16,6 +16,7 @@ import '../features/story_room/illustration_api.dart';
 import '../features/story_room/story_api.dart';
 import '../features/story_sync/story_sync_queue.dart';
 import '../features/story_vault/book_api.dart';
+import '../features/story_creation/create_story_wizard_draft_store.dart';
 import 'ux_analytics_api.dart';
 import 'ux_analytics_queue.dart';
 import 'ux_analytics_service.dart';
@@ -156,3 +157,12 @@ final uxAnalyticsServiceProvider = Provider<UxAnalyticsService>((ref) {
   });
   return service;
 });
+
+final createStoryWizardDraftStoreProvider =
+    Provider<CreateStoryWizardDraftStore>((ref) {
+      final store = SQLiteCreateStoryWizardDraftStore();
+      ref.onDispose(() {
+        unawaited(store.dispose());
+      });
+      return store;
+    });

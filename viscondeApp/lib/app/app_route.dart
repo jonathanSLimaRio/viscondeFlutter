@@ -36,6 +36,13 @@ abstract final class AppRoute {
   static String storyRoom(String storyId) => '/stories/$storyId/room';
   static String storyRemote(String storyId) => '/stories/$storyId/remote';
   static String storySummary(String storyId) => '/stories/$storyId/summary';
+  static String storyCreatePath({bool resumeDraft = false}) {
+    if (!resumeDraft) {
+      return storyCreate;
+    }
+    return Uri(path: storyCreate, queryParameters: const {'resume': '1'})
+        .toString();
+  }
 
   static bool isAuthRoute(String location) {
     return location == login ||

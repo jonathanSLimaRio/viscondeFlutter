@@ -154,6 +154,7 @@ export const createStorySessionSchema = z.object({
   startMode: storyModeSchema.default("PARENT_NARRATOR"),
   virtueId: z.string().trim().min(1).max(120).optional(),
   sourceTemplateId: z.string().trim().min(1).max(120).optional(),
+  artStyleId: z.string().trim().min(1).max(120).optional(),
 });
 
 export const updateStorySessionSetupSchema = z
@@ -164,6 +165,8 @@ export const updateStorySessionSetupSchema = z
     objective: z.string().trim().min(1).max(200).optional(),
     characters: z.array(storyCharacterInputSchema).min(1).max(8).optional(),
     virtueId: z.string().trim().min(1).max(120).optional().nullable(),
+    sourceTemplateId: z.string().trim().min(1).max(120).optional().nullable(),
+    artStyleId: z.string().trim().min(1).max(120).optional().nullable(),
     mode: storyModeSchema.optional(),
   })
   .superRefine((value, context) => {
@@ -174,6 +177,8 @@ export const updateStorySessionSetupSchema = z
       value.objective === undefined &&
       value.characters === undefined &&
       value.virtueId === undefined &&
+      value.sourceTemplateId === undefined &&
+      value.artStyleId === undefined &&
       value.mode === undefined
     ) {
       context.addIssue({
@@ -223,6 +228,10 @@ export const createStoryStepSchema = z
   });
 
 export const finalizeStorySessionSchema = z.object({
+  titleFinal: z.string().trim().min(1).max(140).optional(),
+});
+
+export const wizardPublishStorySessionSchema = z.object({
   titleFinal: z.string().trim().min(1).max(140).optional(),
 });
 

@@ -223,8 +223,10 @@ class _FunnelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dropoff = funnel.dropoffByProgression;
     final abandoned = funnel.explicitAbandonedByStep;
+    final rates = funnel.completionRates;
+    final avgDuration = funnel.avgDurationMs;
 
-    Widget metric(String label, int value) {
+    Widget metric(String label, Object value) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 4),
         child: Text('$label: $value'),
@@ -271,6 +273,41 @@ class _FunnelCard extends StatelessWidget {
           metric('Passo 2', abandoned.step2),
           metric('Passo 3', abandoned.step3),
           metric('Sem etapa', abandoned.unknown),
+          const SizedBox(height: 12),
+          Text(
+            'Taxa de conclusão',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          metric(
+            'Passo 1 / início',
+            '${rates.step1FromStartedPct.toStringAsFixed(2)}%',
+          ),
+          metric(
+            'Passo 2 / passo 1',
+            '${rates.step2FromStep1Pct.toStringAsFixed(2)}%',
+          ),
+          metric(
+            'Passo 3 / passo 2',
+            '${rates.step3FromStep2Pct.toStringAsFixed(2)}%',
+          ),
+          metric(
+            'Publicado / passo 3',
+            '${rates.publishedFromStep3Pct.toStringAsFixed(2)}%',
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Tempo médio por passo',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          metric('Passo 1', '${avgDuration.step1} ms'),
+          metric('Passo 2', '${avgDuration.step2} ms'),
+          metric('Passo 3', '${avgDuration.step3} ms'),
         ],
       ),
     );

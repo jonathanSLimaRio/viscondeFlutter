@@ -110,6 +110,10 @@ class StoryApi {
     required String objective,
     required List<Map<String, String?>> characters,
     String? virtueId,
+    String? sourceTemplateId,
+    bool updateSourceTemplate = false,
+    String? artStyleId,
+    bool updateArtStyle = false,
     StoryMode? mode,
     bool applyAutoVirtue = false,
   }) async {
@@ -125,6 +129,12 @@ class StoryApi {
           'virtueId': null
         else if (virtueId != null && virtueId.trim().isNotEmpty)
           'virtueId': virtueId.trim(),
+        if (updateSourceTemplate)
+          'sourceTemplateId': sourceTemplateId == null
+              ? null
+              : sourceTemplateId.trim(),
+        if (updateArtStyle)
+          'artStyleId': artStyleId == null ? null : artStyleId.trim(),
         if (mode != null) 'mode': storyModeToApi(mode),
       },
       options: authOptions(accessToken),
@@ -222,6 +232,33 @@ class StoryApi {
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/story-sessions/$storyId/finalize',
+      data: {
+        if (titleFinal != null && titleFinal.trim().isNotEmpty)
+          'titleFinal': titleFinal.trim(),
+      },
+      options: authOptions(accessToken),
+    );
+
+    final payload = response.data ?? <String, dynamic>{};
+    final storyPayload = payload['story'] as Map<String, dynamic>?;
+    final gamificationPayload =
+        payload['gamification'] as Map<String, dynamic>?;
+
+    return StoryFinalizeResult(
+      story: StorySessionModel.fromJson(storyPayload ?? <String, dynamic>{}),
+      gamification: gamificationPayload == null
+          ? null
+          : PublishGamificationSummaryModel.fromJson(gamificationPayload),
+    );
+  }
+
+  Future<StoryFinalizeResult> wizardPublishStory(
+    String accessToken,
+    String storyId, {
+    String? titleFinal,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/story-sessions/$storyId/wizard-publish',
       data: {
         if (titleFinal != null && titleFinal.trim().isNotEmpty)
           'titleFinal': titleFinal.trim(),

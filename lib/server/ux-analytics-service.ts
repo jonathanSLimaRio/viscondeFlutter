@@ -250,6 +250,11 @@ export async function getUxFunnelOverview(input: UxDateRangeInput) {
 
   const authErrorCountByType = new Map<string, number>();
   const trackedNewAuthSessions = new Set<string>();
+  const stepDurationTotals = {
+    step1: { totalMs: 0, count: 0 },
+    step2: { totalMs: 0, count: 0 },
+    step3: { totalMs: 0, count: 0 },
+  };
 
   function readFlags(sessionId: string) {
     const existing = funnelBySession.get(sessionId);
@@ -282,17 +287,35 @@ export async function getUxFunnelOverview(input: UxDateRangeInput) {
     }
 
     if (event.eventName === "STORY_CREATE_STEP_COMPLETED") {
-      const rawStep =
-        event.params && typeof event.params === "object" ? (event.params as Record<string, unknown>).step : null;
+      const params =
+        event.params && typeof event.params === "object"
+          ? (event.params as Record<string, unknown>)
+          : null;
+      const rawStep = params?.step;
       const step = normalizeStep(rawStep);
+      const rawDuration = params?.duration_ms;
+      const durationMs =
+        typeof rawDuration === "number" ? Math.trunc(rawDuration) : Number(rawDuration ?? Number.NaN);
       if (step === 1) {
         flags.step1 = true;
+        if (Number.isFinite(durationMs) && durationMs > 0) {
+          stepDurationTotals.step1.totalMs += durationMs;
+          stepDurationTotals.step1.count += 1;
+        }
       }
       if (step === 2) {
         flags.step2 = true;
+        if (Number.isFinite(durationMs) && durationMs > 0) {
+          stepDurationTotals.step2.totalMs += durationMs;
+          stepDurationTotals.step2.count += 1;
+        }
       }
       if (step === 3) {
         flags.step3 = true;
+        if (Number.isFinite(durationMs) && durationMs > 0) {
+          stepDurationTotals.step3.totalMs += durationMs;
+          stepDurationTotals.step3.count += 1;
+        }
       }
       continue;
     }
@@ -380,6 +403,10 @@ export async function getUxFunnelOverview(input: UxDateRangeInput) {
 
   const coveragePct =
     newAuthSessions > 0 ? Number(((trackedNewAuthSessions.size / newAuthSessions) * 100).toFixed(2)) : 0;
+  const toRate = (value: number, base: number) =>
+    base > 0 ? Number(((value / base) * 100).toFixed(2)) : 0;
+  const toAvgDuration = (totalMs: number, count: number) =>
+    count > 0 ? Math.round(totalMs / count) : 0;
 
   return {
     generatedAt: new Date(),
@@ -397,6 +424,17 @@ export async function getUxFunnelOverview(input: UxDateRangeInput) {
       ...totals,
       dropoffByProgression,
       explicitAbandonedByStep,
+      completionRates: {
+        step1FromStartedPct: toRate(totals.step1, totals.started),
+        step2FromStep1Pct: toRate(totals.step2, totals.step1),
+        step3FromStep2Pct: toRate(totals.step3, totals.step2),
+        publishedFromStep3Pct: toRate(totals.published, totals.step3),
+      },
+      avgDurationMs: {
+        step1: toAvgDuration(stepDurationTotals.step1.totalMs, stepDurationTotals.step1.count),
+        step2: toAvgDuration(stepDurationTotals.step2.totalMs, stepDurationTotals.step2.count),
+        step3: toAvgDuration(stepDurationTotals.step3.totalMs, stepDurationTotals.step3.count),
+      },
     },
     authErrors: {
       total: authErrors.reduce((sum, item) => sum + item.count, 0),

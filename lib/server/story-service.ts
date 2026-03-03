@@ -154,6 +154,31 @@ function calculateAgeYears(birthDate: Date) {
   return Math.max(years, 0);
 }
 
+async function resolveArtStyleIdOrThrow(artStyleId?: string | null) {
+  if (artStyleId === undefined) {
+    return undefined;
+  }
+
+  if (artStyleId === null) {
+    return null;
+  }
+
+  const artStyle = await prisma.artStyle.findUnique({
+    where: {
+      id: artStyleId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!artStyle) {
+    throw new ApiError("Estilo de ilustracao nao encontrado.", 404, "ART_STYLE_NOT_FOUND");
+  }
+
+  return artStyle.id;
+}
+
 function parseChildOptionsJson(value: unknown) {
   if (!Array.isArray(value)) {
     return null;
@@ -220,6 +245,7 @@ export function toStorySessionDTO(story: {
   childProfileId: string;
   collectionId: string;
   sourceTemplateId: string | null;
+  artStyleId: string | null;
   episodeNumber: number;
   continuedFromStoryId: string | null;
   sessionKind: StorySessionKind;
@@ -296,6 +322,7 @@ export function toStorySessionDTO(story: {
     childProfileId: story.childProfileId,
     collectionId: story.collectionId,
     sourceTemplateId: story.sourceTemplateId,
+    artStyleId: story.artStyleId,
     episodeNumber: story.episodeNumber,
     continuedFromStoryId: story.continuedFromStoryId,
     sessionKind: story.sessionKind,
@@ -444,6 +471,7 @@ export async function createStorySession(
     startMode: StoryMode;
     virtueId?: string;
     sourceTemplateId?: string;
+    artStyleId?: string;
   }
 ) {
   const normalizedTitleDraft = await moderateTextInput({
@@ -516,6 +544,7 @@ export async function createStorySession(
 
   const child = await getOwnedChildOrThrow(userId, input.childProfileId);
   const sourceTemplate = await resolveTemplateForStoryCreation(input.sourceTemplateId);
+  const resolvedArtStyleId = await resolveArtStyleIdOrThrow(input.artStyleId);
   const resolvedVirtueId = input.virtueId ?? sourceTemplate?.virtueId ?? undefined;
 
   const resolvedVirtue = await resolveVirtueForStoryCreation({
@@ -553,6 +582,7 @@ export async function createStorySession(
         childProfileId: child.id,
         collectionId: collection.id,
         sourceTemplateId: sourceTemplate?.id ?? null,
+        artStyleId: resolvedArtStyleId ?? null,
         episodeNumber: 1,
         virtueId: resolvedVirtue.virtue.id,
         titleDraft: normalizedTitleDraft,
@@ -597,6 +627,8 @@ export async function updateStorySessionSetup(
     objective?: string;
     characters?: Array<{ name: string; role?: string }>;
     virtueId?: string | null;
+    sourceTemplateId?: string | null;
+    artStyleId?: string | null;
     mode?: StoryMode;
   }
 ) {
@@ -615,6 +647,8 @@ export async function updateStorySessionSetup(
       scenario: true,
       objective: true,
       virtueId: true,
+      sourceTemplateId: true,
+      artStyleId: true,
       currentMode: true,
       characters: {
         orderBy: {
@@ -715,6 +749,22 @@ export async function updateStorySessionSetup(
     }
   }
 
+  let nextSourceTemplateId = story.sourceTemplateId;
+  if (input.sourceTemplateId !== undefined) {
+    if (input.sourceTemplateId === null) {
+      nextSourceTemplateId = null;
+    } else {
+      const resolvedTemplate = await resolveTemplateForStoryCreation(input.sourceTemplateId);
+      nextSourceTemplateId = resolvedTemplate?.id ?? null;
+    }
+  }
+
+  let nextArtStyleId = story.artStyleId;
+  const resolvedArtStyle = await resolveArtStyleIdOrThrow(input.artStyleId);
+  if (resolvedArtStyle !== undefined) {
+    nextArtStyleId = resolvedArtStyle;
+  }
+
   assertSafeContext([
     { field: "titulo", value: normalizedTitleDraft },
     { field: "tema", value: normalizedTheme },
@@ -740,6 +790,8 @@ export async function updateStorySessionSetup(
         scenario: normalizedScenario,
         objective: normalizedObjective,
         virtueId: nextVirtueId,
+        sourceTemplateId: nextSourceTemplateId,
+        artStyleId: nextArtStyleId,
         currentMode: mode,
       },
     });
@@ -1197,6 +1249,87 @@ export async function finalizeStorySession(
     story: await getStoryById(userId, storyId),
     gamification,
   };
+}
+
+function buildWizardAutoPrompt(input: {
+  titleDraft: string;
+  theme: string;
+  scenario: string;
+  objective: string;
+  stepIndex: number;
+}) {
+  return `Etapa ${input.stepIndex}: avance a historia "${input.titleDraft}" com foco em ${input.theme}, no cenario ${input.scenario}, rumo ao objetivo ${input.objective}.`;
+}
+
+export async function wizardPublishStorySession(
+  userId: string,
+  storyId: string,
+  input: {
+    titleFinal?: string;
+  }
+) {
+  const story = await prisma.story.findFirst({
+    where: {
+      id: storyId,
+      userId,
+    },
+    select: {
+      id: true,
+      status: true,
+      titleDraft: true,
+      theme: true,
+      scenario: true,
+      objective: true,
+      steps: {
+        select: {
+          stepIndex: true,
+        },
+        orderBy: {
+          stepIndex: "asc",
+        },
+      },
+    },
+  });
+
+  if (!story) {
+    throw new ApiError("Sessao de historia nao encontrada.", 404, "STORY_NOT_FOUND");
+  }
+
+  if (story.status !== "DRAFT") {
+    throw new ApiError("A sessao ja foi publicada.", 409, "STORY_ALREADY_FINALIZED");
+  }
+
+  const existingStepIndexes = new Set(story.steps.map((step) => step.stepIndex));
+
+  for (let stepIndex = 1; stepIndex <= MIN_STORY_STEPS_TO_PUBLISH; stepIndex += 1) {
+    if (existingStepIndexes.has(stepIndex)) {
+      continue;
+    }
+
+    try {
+      await createStoryStep(userId, storyId, {
+        kind: "NARRATION",
+        stepIndex,
+        narratorPrompt: buildWizardAutoPrompt({
+          titleDraft: story.titleDraft,
+          theme: story.theme,
+          scenario: story.scenario,
+          objective: story.objective,
+          stepIndex,
+        }),
+        localEventId: `wizard-auto-${storyId}-${stepIndex}`,
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.code === "STEP_ALREADY_EXISTS" || error.code === "STEP_OUT_OF_ORDER") {
+          continue;
+        }
+      }
+      throw error;
+    }
+  }
+
+  return finalizeStorySession(userId, storyId, input);
 }
 
 export async function listStories(

@@ -417,6 +417,7 @@ class StorySessionModel {
     required this.episodeNumber,
     this.continuedFromStoryId,
     this.sourceTemplateId,
+    this.artStyleId,
     required this.sessionKind,
     required this.titleDraft,
     this.titleFinal,
@@ -445,6 +446,7 @@ class StorySessionModel {
   final int episodeNumber;
   final String? continuedFromStoryId;
   final String? sourceTemplateId;
+  final String? artStyleId;
   final StorySessionKind sessionKind;
   final String titleDraft;
   final String? titleFinal;
@@ -474,6 +476,7 @@ class StorySessionModel {
       episodeNumber: (json['episodeNumber'] as num?)?.toInt() ?? 1,
       continuedFromStoryId: json['continuedFromStoryId'] as String?,
       sourceTemplateId: json['sourceTemplateId'] as String?,
+      artStyleId: json['artStyleId'] as String?,
       sessionKind: storySessionKindFromApi(json['sessionKind'] as String?),
       titleDraft: (json['titleDraft'] as String?) ?? '',
       titleFinal: json['titleFinal'] as String?,
@@ -517,6 +520,7 @@ class StorySessionModel {
     int? episodeNumber,
     String? continuedFromStoryId,
     String? sourceTemplateId,
+    String? artStyleId,
     String? titleDraft,
     String? titleFinal,
     String? title,
@@ -539,6 +543,7 @@ class StorySessionModel {
       episodeNumber: episodeNumber ?? this.episodeNumber,
       continuedFromStoryId: continuedFromStoryId ?? this.continuedFromStoryId,
       sourceTemplateId: sourceTemplateId ?? this.sourceTemplateId,
+      artStyleId: artStyleId ?? this.artStyleId,
       sessionKind: sessionKind,
       titleDraft: titleDraft ?? this.titleDraft,
       titleFinal: titleFinal ?? this.titleFinal,

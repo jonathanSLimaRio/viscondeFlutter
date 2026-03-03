@@ -536,6 +536,51 @@ class AdminUxAbandonedByStepModel {
   }
 }
 
+class AdminUxCompletionRatesModel {
+  const AdminUxCompletionRatesModel({
+    required this.step1FromStartedPct,
+    required this.step2FromStep1Pct,
+    required this.step3FromStep2Pct,
+    required this.publishedFromStep3Pct,
+  });
+
+  final double step1FromStartedPct;
+  final double step2FromStep1Pct;
+  final double step3FromStep2Pct;
+  final double publishedFromStep3Pct;
+
+  factory AdminUxCompletionRatesModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxCompletionRatesModel(
+      step1FromStartedPct:
+          (json['step1FromStartedPct'] as num?)?.toDouble() ?? 0,
+      step2FromStep1Pct: (json['step2FromStep1Pct'] as num?)?.toDouble() ?? 0,
+      step3FromStep2Pct: (json['step3FromStep2Pct'] as num?)?.toDouble() ?? 0,
+      publishedFromStep3Pct:
+          (json['publishedFromStep3Pct'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class AdminUxAvgDurationModel {
+  const AdminUxAvgDurationModel({
+    required this.step1,
+    required this.step2,
+    required this.step3,
+  });
+
+  final int step1;
+  final int step2;
+  final int step3;
+
+  factory AdminUxAvgDurationModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxAvgDurationModel(
+      step1: (json['step1'] as num?)?.toInt() ?? 0,
+      step2: (json['step2'] as num?)?.toInt() ?? 0,
+      step3: (json['step3'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class AdminUxFunnelModel {
   const AdminUxFunnelModel({
     required this.started,
@@ -546,6 +591,8 @@ class AdminUxFunnelModel {
     required this.gameHubOpened,
     required this.dropoffByProgression,
     required this.explicitAbandonedByStep,
+    required this.completionRates,
+    required this.avgDurationMs,
   });
 
   final int started;
@@ -556,6 +603,8 @@ class AdminUxFunnelModel {
   final int gameHubOpened;
   final AdminUxDropoffModel dropoffByProgression;
   final AdminUxAbandonedByStepModel explicitAbandonedByStep;
+  final AdminUxCompletionRatesModel completionRates;
+  final AdminUxAvgDurationModel avgDurationMs;
 
   factory AdminUxFunnelModel.fromJson(Map<String, dynamic> json) {
     return AdminUxFunnelModel(
@@ -571,6 +620,14 @@ class AdminUxFunnelModel {
       ),
       explicitAbandonedByStep: AdminUxAbandonedByStepModel.fromJson(
         (json['explicitAbandonedByStep'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+      completionRates: AdminUxCompletionRatesModel.fromJson(
+        (json['completionRates'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+      avgDurationMs: AdminUxAvgDurationModel.fromJson(
+        (json['avgDurationMs'] as Map<String, dynamic>?) ??
             const <String, dynamic>{},
       ),
     );

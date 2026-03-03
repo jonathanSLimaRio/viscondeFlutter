@@ -73,6 +73,10 @@ class QueueTestStoryApi extends StoryApi {
     required String objective,
     required List<Map<String, String?>> characters,
     String? virtueId,
+    String? sourceTemplateId,
+    bool updateSourceTemplate = false,
+    String? artStyleId,
+    bool updateArtStyle = false,
     StoryMode? mode,
     bool applyAutoVirtue = false,
   }) async {

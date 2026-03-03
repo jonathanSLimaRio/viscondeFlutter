@@ -115,7 +115,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoute.storyCreate,
-        builder: (context, state) => const CreateStoryScreen(),
+        builder: (context, state) => CreateStoryScreen(
+          resumeDraft: state.uri.queryParameters['resume'] == '1',
+        ),
       ),
       GoRoute(
         path: AppRoute.storyRemotePattern,

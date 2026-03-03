@@ -97,6 +97,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(CreateStoryScreen), findsOneWidget);
 
+    router.go('/stories/new?resume=1');
+    await tester.pumpAndSettle();
+    expect(find.byType(CreateStoryScreen), findsOneWidget);
+
     router.go('/stories/story-test/room');
     await tester.pumpAndSettle();
     expect(find.byType(StoryRoomScreen), findsOneWidget);

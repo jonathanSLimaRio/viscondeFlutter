@@ -10,6 +10,7 @@ import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
 import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
+import '../../story_creation/create_story_wizard_draft_store.dart';
 import '../../story_creation/quick_story_defaults.dart';
 import '../../story_room/models/story_models.dart';
 import '../../story_room/story_room_controller.dart';
@@ -31,6 +32,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
   bool _loadingFilters = false;
   bool _favoriteOnly = false;
   bool _quickCreating = false;
+  CreateStoryWizardDraft? _resumeDraft;
 
   String? _selectedChildId;
   String? _selectedVirtueId;
@@ -58,6 +60,53 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
 
   Future<void> _bootstrap() async {
     await _loadFiltersData();
+    await _loadCollections();
+    await _loadResumeDraft();
+  }
+
+  Future<void> _loadResumeDraft() async {
+    final userId = ref.read(authControllerProvider).user?.id;
+    if (userId == null) {
+      return;
+    }
+
+    CreateStoryWizardDraft? draft;
+    try {
+      draft = await ref.read(createStoryWizardDraftStoreProvider).read(userId);
+    } catch (_) {
+      draft = null;
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _resumeDraft = draft;
+    });
+  }
+
+  Future<void> _discardResumeDraft() async {
+    final userId = ref.read(authControllerProvider).user?.id;
+    if (userId == null) {
+      return;
+    }
+    try {
+      await ref.read(createStoryWizardDraftStoreProvider).clear(userId);
+    } catch (_) {}
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _resumeDraft = null;
+    });
+    _showSnackMessage('Rascunho local descartado.');
+  }
+
+  Future<void> _openCreateWithResume({required bool resume}) async {
+    await context.push(AppRoute.storyCreatePath(resumeDraft: resume));
+    if (!mounted) {
+      return;
+    }
+    await _loadResumeDraft();
     await _loadCollections();
   }
 
@@ -386,6 +435,17 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
         },
       );
       context.push(AppRoute.storyRoom(created.id));
+      final userId = ref.read(authControllerProvider).user?.id;
+      if (userId != null) {
+        try {
+          await ref.read(createStoryWizardDraftStoreProvider).clear(userId);
+        } catch (_) {}
+      }
+      if (mounted) {
+        setState(() {
+          _resumeDraft = null;
+        });
+      }
     } catch (error) {
       final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
       UxAnalytics.log(
@@ -424,11 +484,52 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
         OutlinedButton.icon(
           onPressed: _quickCreating
               ? null
-              : () => context.push(AppRoute.storyCreate),
+              : () => _openCreateWithResume(resume: false),
           icon: const Icon(Icons.tune),
           label: const Text('Criar com detalhes'),
         ),
       ],
+    );
+  }
+
+  Widget _buildResumeDraftCard() {
+    final draft = _resumeDraft;
+    if (draft == null) {
+      return const SizedBox.shrink();
+    }
+
+    return ViscondeGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ViscondeSectionTitle(
+            title: 'Rascunho em andamento',
+            subtitle: 'Retome sua criação de onde parou.',
+          ),
+          const SizedBox(height: 8),
+          Text('Passo ${draft.currentStep + 1} de 3'),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => _openCreateWithResume(resume: true),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Continuar'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _discardResumeDraft,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Descartar'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -567,6 +668,10 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          if (_resumeDraft != null) ...[
+            _buildResumeDraftCard(),
+            const SizedBox(height: 12),
+          ],
           _buildCreationActions(),
           if (_selectedChildId != null) ...[
             const SizedBox(height: 12),
