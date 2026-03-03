@@ -17,6 +17,7 @@ abstract final class AppRoute {
   static const adminPrompts = '/adult/admin/prompts';
   static const adminTemplates = '/adult/admin/templates';
   static const adminModeration = '/adult/admin/moderation';
+  static const adminUxFunnel = '/adult/admin/ux/funnel';
 
   static const remoteJoin = '/remote/join';
   static const remoteRoom = '/remote/room';

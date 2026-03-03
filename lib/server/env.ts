@@ -26,6 +26,7 @@ const envSchema = z
     OPENAI_API_KEY: z.string().min(1).optional(),
     OPENAI_IDEAS_MODEL: z.string().min(1).optional(),
     OPENAI_BASE_URL: z.string().url().optional(),
+    UX_ANALYTICS_HASH_SALT: z.string().min(1).optional(),
 
     REALTIME_GATEWAY_PUBLIC_WS_URL: z.string().url().optional(),
     REALTIME_GATEWAY_INTERNAL_HTTP_URL: z.string().url().optional(),
@@ -83,6 +84,7 @@ export const env = {
   openaiApiKey: raw.OPENAI_API_KEY,
   openaiIdeasModel: raw.OPENAI_IDEAS_MODEL ?? "gpt-4.1-mini",
   openaiBaseUrl: raw.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+  uxAnalyticsHashSalt: raw.UX_ANALYTICS_HASH_SALT ?? fallbackJwtSecret,
 
   realtimeGatewayPublicWsUrl: raw.REALTIME_GATEWAY_PUBLIC_WS_URL,
   realtimeGatewayInternalHttpUrl: raw.REALTIME_GATEWAY_INTERNAL_HTTP_URL,

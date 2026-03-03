@@ -25,9 +25,17 @@ final apiBaseUrlProvider = Provider<String>((ref) {
   );
 });
 
+const authRetriedExtraKey = 'authRetried';
+const disableAuthRetryExtraKey = 'disableAuthRetry';
+
+final dioHttpClientAdapterProvider = Provider<HttpClientAdapter?>((ref) {
+  return null;
+});
+
 final dioProvider = Provider<Dio>((ref) {
   final baseUrl = ref.watch(apiBaseUrlProvider);
-  return createApiDio(baseUrl: baseUrl);
+  final adapter = ref.watch(dioHttpClientAdapterProvider);
+  return createApiDio(baseUrl: baseUrl, httpClientAdapter: adapter);
 });
 
 final apiClientProvider = Provider<ApiClient>((ref) {
@@ -48,7 +56,70 @@ class AuthorizedApiClient extends ApiClient {
   AuthorizedApiClient(super.dio);
 }
 
-Dio createApiDio({required String baseUrl, String? accessToken}) {
+bool requestHasAuthRetried(RequestOptions options) {
+  return options.extra[authRetriedExtraKey] == true;
+}
+
+bool requestDisablesAuthRetry(RequestOptions options) {
+  return options.extra[disableAuthRetryExtraKey] == true;
+}
+
+bool isAuthEndpointPath(String path) {
+  final normalized = path.toLowerCase();
+  return normalized.contains('/auth/login') ||
+      normalized.contains('/auth/signup') ||
+      normalized.contains('/auth/refresh') ||
+      normalized.contains('/auth/logout') ||
+      normalized.contains('/auth/forgot-password') ||
+      normalized.contains('/auth/reset-password');
+}
+
+bool shouldAttemptAuthRetry(RequestOptions options, int? statusCode) {
+  if (statusCode != 401) {
+    return false;
+  }
+
+  if (requestHasAuthRetried(options) || requestDisablesAuthRetry(options)) {
+    return false;
+  }
+
+  final path = _normalizedRequestPath(options.path);
+  if (isAuthEndpointPath(path)) {
+    return false;
+  }
+
+  return true;
+}
+
+RequestOptions markRequestAuthRetried(
+  RequestOptions options, {
+  required String accessToken,
+}) {
+  final headers = Map<String, dynamic>.from(options.headers)
+    ..removeWhere(
+      (key, value) => key.toString().toLowerCase() == 'authorization',
+    )
+    ..['Authorization'] = 'Bearer $accessToken';
+  final extra = Map<String, dynamic>.from(options.extra)
+    ..[authRetriedExtraKey] = true;
+
+  return options.copyWith(headers: headers, extra: extra);
+}
+
+String _normalizedRequestPath(String rawPath) {
+  final uri = Uri.tryParse(rawPath);
+  if (uri != null && uri.path.isNotEmpty) {
+    return uri.path;
+  }
+  return rawPath;
+}
+
+Dio createApiDio({
+  required String baseUrl,
+  String? accessToken,
+  HttpClientAdapter? httpClientAdapter,
+  bool mapErrors = true,
+}) {
   final dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
@@ -63,31 +134,43 @@ Dio createApiDio({required String baseUrl, String? accessToken}) {
     ),
   );
 
+  if (httpClientAdapter != null) {
+    dio.httpClientAdapter = httpClientAdapter;
+  }
+
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) {
         final token = accessToken?.trim();
         if (token != null &&
             token.isNotEmpty &&
-            options.headers['Authorization'] == null) {
+            !_hasAuthorizationHeader(options.headers)) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         handler.next(options);
       },
-      onError: (error, handler) {
-        final mapped = ApiException.fromDio(error);
-        handler.reject(
-          DioException(
-            requestOptions: error.requestOptions,
-            response: error.response,
-            type: error.type,
-            message: mapped.message,
-            error: mapped,
-          ),
-        );
-      },
+      onError: mapErrors
+          ? (error, handler) {
+              final mapped = ApiException.fromDio(error);
+              handler.reject(
+                DioException(
+                  requestOptions: error.requestOptions,
+                  response: error.response,
+                  type: error.type,
+                  message: mapped.message,
+                  error: mapped,
+                ),
+              );
+            }
+          : null,
     ),
   );
 
   return dio;
+}
+
+bool _hasAuthorizationHeader(Map<String, dynamic> headers) {
+  return headers.keys.any(
+    (key) => key.toString().toLowerCase() == 'authorization',
+  );
 }

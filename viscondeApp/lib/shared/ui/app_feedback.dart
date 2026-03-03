@@ -19,6 +19,12 @@ extension AppFeedbackContext on BuildContext {
       params: <String, Object?>{
         'session_expired': presentation.sessionExpired,
         'message': message,
+        if (presentation.kind != null) 'error_kind': presentation.kind!.name,
+        if (presentation.statusCode != null)
+          'status_code': presentation.statusCode!,
+        if (presentation.code != null && presentation.code!.trim().isNotEmpty)
+          'code': presentation.code!.trim(),
+        'source': 'app_feedback',
       },
     );
     if (message.trim().isEmpty &&

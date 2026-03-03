@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../design_system/visconde.dart';
 import 'router.dart';
+import '../shared/providers.dart';
+import '../shared/ux_analytics.dart';
 
 class ViscondeApp extends ConsumerWidget {
   const ViscondeApp({super.key});
@@ -10,6 +12,10 @@ class ViscondeApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final analytics = ref.watch(uxAnalyticsServiceProvider);
+
+    UxAnalytics.configure(sink: analytics.trackEvent);
+    analytics.ensureStarted();
 
     return MaterialApp.router(
       title: 'Visconde App',

@@ -30,6 +30,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
   String? _selectedChildId;
   CatalogItemType? _selectedCatalogType;
   String? _loadError;
+  bool _gameHubOpenedLogged = false;
 
   String? _accessToken() {
     return ref.read(authControllerProvider).accessToken;
@@ -88,6 +89,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             (children.isNotEmpty ? children.first.id : null);
         _loadError = null;
       });
+      _logGameHubOpenedIfNeeded();
 
       await _loadData();
     } catch (error) {
@@ -105,6 +107,23 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  void _logGameHubOpenedIfNeeded() {
+    if (_gameHubOpenedLogged) {
+      return;
+    }
+
+    _gameHubOpenedLogged = true;
+    final childId = _selectedChildId;
+    UxAnalytics.log(
+      'game_hub_opened',
+      params: <String, Object?>{
+        'child_id': childId,
+        'selected_child': childId,
+        'source': 'game_hub_screen',
+      },
+    );
   }
 
   Future<void> _loadData() async {

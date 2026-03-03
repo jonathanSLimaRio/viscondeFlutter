@@ -444,3 +444,202 @@ class AdminModerationTermModel {
     );
   }
 }
+
+class AdminUxFunnelRangeModel {
+  const AdminUxFunnelRangeModel({
+    required this.dateFrom,
+    required this.dateTo,
+    required this.timezone,
+  });
+
+  final DateTime? dateFrom;
+  final DateTime? dateTo;
+  final String timezone;
+
+  factory AdminUxFunnelRangeModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxFunnelRangeModel(
+      dateFrom: DateTime.tryParse((json['dateFrom'] as String?) ?? ''),
+      dateTo: DateTime.tryParse((json['dateTo'] as String?) ?? ''),
+      timezone: (json['timezone'] as String?) ?? 'UTC',
+    );
+  }
+}
+
+class AdminUxCoverageModel {
+  const AdminUxCoverageModel({
+    required this.newAuthSessions,
+    required this.trackedNewAuthSessions,
+    required this.coveragePct,
+  });
+
+  final int newAuthSessions;
+  final int trackedNewAuthSessions;
+  final double coveragePct;
+
+  factory AdminUxCoverageModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxCoverageModel(
+      newAuthSessions: (json['newAuthSessions'] as num?)?.toInt() ?? 0,
+      trackedNewAuthSessions:
+          (json['trackedNewAuthSessions'] as num?)?.toInt() ?? 0,
+      coveragePct: (json['coveragePct'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class AdminUxDropoffModel {
+  const AdminUxDropoffModel({
+    required this.startedToStep1,
+    required this.step1ToStep2,
+    required this.step2ToStep3,
+    required this.step3ToPublished,
+    required this.publishedToGameHubOpened,
+  });
+
+  final int startedToStep1;
+  final int step1ToStep2;
+  final int step2ToStep3;
+  final int step3ToPublished;
+  final int publishedToGameHubOpened;
+
+  factory AdminUxDropoffModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxDropoffModel(
+      startedToStep1: (json['startedToStep1'] as num?)?.toInt() ?? 0,
+      step1ToStep2: (json['step1ToStep2'] as num?)?.toInt() ?? 0,
+      step2ToStep3: (json['step2ToStep3'] as num?)?.toInt() ?? 0,
+      step3ToPublished: (json['step3ToPublished'] as num?)?.toInt() ?? 0,
+      publishedToGameHubOpened:
+          (json['publishedToGameHubOpened'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class AdminUxAbandonedByStepModel {
+  const AdminUxAbandonedByStepModel({
+    required this.step1,
+    required this.step2,
+    required this.step3,
+    required this.unknown,
+  });
+
+  final int step1;
+  final int step2;
+  final int step3;
+  final int unknown;
+
+  factory AdminUxAbandonedByStepModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxAbandonedByStepModel(
+      step1: (json['step1'] as num?)?.toInt() ?? 0,
+      step2: (json['step2'] as num?)?.toInt() ?? 0,
+      step3: (json['step3'] as num?)?.toInt() ?? 0,
+      unknown: (json['unknown'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class AdminUxFunnelModel {
+  const AdminUxFunnelModel({
+    required this.started,
+    required this.step1,
+    required this.step2,
+    required this.step3,
+    required this.published,
+    required this.gameHubOpened,
+    required this.dropoffByProgression,
+    required this.explicitAbandonedByStep,
+  });
+
+  final int started;
+  final int step1;
+  final int step2;
+  final int step3;
+  final int published;
+  final int gameHubOpened;
+  final AdminUxDropoffModel dropoffByProgression;
+  final AdminUxAbandonedByStepModel explicitAbandonedByStep;
+
+  factory AdminUxFunnelModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxFunnelModel(
+      started: (json['started'] as num?)?.toInt() ?? 0,
+      step1: (json['step1'] as num?)?.toInt() ?? 0,
+      step2: (json['step2'] as num?)?.toInt() ?? 0,
+      step3: (json['step3'] as num?)?.toInt() ?? 0,
+      published: (json['published'] as num?)?.toInt() ?? 0,
+      gameHubOpened: (json['gameHubOpened'] as num?)?.toInt() ?? 0,
+      dropoffByProgression: AdminUxDropoffModel.fromJson(
+        (json['dropoffByProgression'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+      explicitAbandonedByStep: AdminUxAbandonedByStepModel.fromJson(
+        (json['explicitAbandonedByStep'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+    );
+  }
+}
+
+class AdminUxAuthErrorItemModel {
+  const AdminUxAuthErrorItemModel({required this.type, required this.count});
+
+  final String type;
+  final int count;
+
+  factory AdminUxAuthErrorItemModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxAuthErrorItemModel(
+      type: (json['type'] as String?) ?? 'unknown',
+      count: (json['count'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class AdminUxAuthErrorsModel {
+  const AdminUxAuthErrorsModel({required this.total, required this.breakdown});
+
+  final int total;
+  final List<AdminUxAuthErrorItemModel> breakdown;
+
+  factory AdminUxAuthErrorsModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxAuthErrorsModel(
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      breakdown: ((json['breakdown'] as List<dynamic>?) ?? <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(AdminUxAuthErrorItemModel.fromJson)
+          .toList(),
+    );
+  }
+}
+
+class AdminUxFunnelOverviewModel {
+  const AdminUxFunnelOverviewModel({
+    required this.generatedAt,
+    required this.range,
+    required this.coverage,
+    required this.funnel,
+    required this.authErrors,
+  });
+
+  final DateTime? generatedAt;
+  final AdminUxFunnelRangeModel range;
+  final AdminUxCoverageModel coverage;
+  final AdminUxFunnelModel funnel;
+  final AdminUxAuthErrorsModel authErrors;
+
+  factory AdminUxFunnelOverviewModel.fromJson(Map<String, dynamic> json) {
+    return AdminUxFunnelOverviewModel(
+      generatedAt: DateTime.tryParse((json['generatedAt'] as String?) ?? ''),
+      range: AdminUxFunnelRangeModel.fromJson(
+        (json['range'] as Map<String, dynamic>?) ?? const <String, dynamic>{},
+      ),
+      coverage: AdminUxCoverageModel.fromJson(
+        (json['coverage'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+      funnel: AdminUxFunnelModel.fromJson(
+        (json['funnel'] as Map<String, dynamic>?) ?? const <String, dynamic>{},
+      ),
+      authErrors: AdminUxAuthErrorsModel.fromJson(
+        (json['authErrors'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{},
+      ),
+    );
+  }
+}

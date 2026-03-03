@@ -318,6 +318,47 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     }
   }
 
+  Future<StorySessionModel?> updateSessionSetup({
+    required String titleDraft,
+    required String theme,
+    required String scenario,
+    required List<Map<String, String?>> characters,
+    required String objective,
+    String? virtueId,
+    StoryMode? mode,
+    bool applyAutoVirtue = false,
+  }) async {
+    final token = _accessToken();
+    final session = state.session;
+    if (token == null || session == null) {
+      state = state.copyWith(error: 'Sessão expirada. Faça login novamente.');
+      return null;
+    }
+
+    state = state.copyWith(loading: true, clearError: true);
+    try {
+      final updated = await _api.updateStorySessionSetup(
+        token,
+        session.id,
+        titleDraft: titleDraft,
+        theme: theme,
+        scenario: scenario,
+        objective: objective,
+        characters: characters,
+        virtueId: virtueId,
+        mode: mode,
+        applyAutoVirtue: applyAutoVirtue,
+      );
+
+      await _refreshPendingCount();
+      state = state.copyWith(loading: false, session: updated);
+      return updated;
+    } catch (error) {
+      state = state.copyWith(loading: false, error: parseDioError(error));
+      return null;
+    }
+  }
+
   Future<void> loadSession(String storyId) async {
     final token = _accessToken();
     if (token == null) {

@@ -31,3 +31,16 @@ export async function requireAuth(request: Request): Promise<AuthContext> {
     throw new ApiError("Token de acesso invalido ou expirado.", 401, "UNAUTHORIZED");
   }
 }
+
+export async function tryAuth(request: Request): Promise<AuthContext | null> {
+  const token = getBearerToken(request);
+  if (!token) {
+    return null;
+  }
+
+  try {
+    return await verifyAccessToken(token);
+  } catch {
+    return null;
+  }
+}

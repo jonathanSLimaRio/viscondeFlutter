@@ -59,6 +59,12 @@ class AdminHubScreen extends StatelessWidget {
             subtitle: 'Bloqueie termos impróprios por escopo.',
             onTap: () => context.push(AppRoute.adminModeration),
           ),
+          _AdminMenuTile(
+            icon: Icons.analytics_outlined,
+            title: 'Funil UX',
+            subtitle: 'Acompanhe sessões, abandono e erros de autenticação.',
+            onTap: () => context.push(AppRoute.adminUxFunnel),
+          ),
         ],
       ),
     );

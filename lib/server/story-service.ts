@@ -489,16 +489,30 @@ export async function createStorySession(
     }))
   );
 
-  assertSafeContext([
-    { field: "titulo", value: normalizedTitleDraft },
-    { field: "tema", value: normalizedTheme },
-    { field: "cenario", value: normalizedScenario },
-    { field: "objetivo", value: normalizedObjective },
-    ...normalizedCharacters.map((character) => ({
-      field: "personagem",
-      value: `${character.name} ${character.role ?? ""}`,
-    })),
-  ]);
+  const safetyContext: Array<{ field: string; value?: string | null }> = [];
+  if (input.titleDraft !== undefined) {
+    safetyContext.push({ field: "titulo", value: normalizedTitleDraft });
+  }
+  if (input.theme !== undefined) {
+    safetyContext.push({ field: "tema", value: normalizedTheme });
+  }
+  if (input.scenario !== undefined) {
+    safetyContext.push({ field: "cenario", value: normalizedScenario });
+  }
+  if (input.objective !== undefined) {
+    safetyContext.push({ field: "objetivo", value: normalizedObjective });
+  }
+  if (input.characters !== undefined) {
+    safetyContext.push(
+      ...normalizedCharacters.map((character) => ({
+        field: "personagem",
+        value: `${character.name} ${character.role ?? ""}`,
+      }))
+    );
+  }
+  if (safetyContext.length > 0) {
+    assertSafeContext(safetyContext);
+  }
 
   const child = await getOwnedChildOrThrow(userId, input.childProfileId);
   const sourceTemplate = await resolveTemplateForStoryCreation(input.sourceTemplateId);
@@ -571,6 +585,195 @@ export async function createStorySession(
 export async function getStorySession(userId: string, storyId: string) {
   const story = await getOwnedStoryOrThrow(userId, storyId);
   return toStorySessionDTO(story);
+}
+
+export async function updateStorySessionSetup(
+  userId: string,
+  storyId: string,
+  input: {
+    titleDraft?: string;
+    theme?: string;
+    scenario?: string;
+    objective?: string;
+    characters?: Array<{ name: string; role?: string }>;
+    virtueId?: string | null;
+    mode?: StoryMode;
+  }
+) {
+  const story = await prisma.story.findFirst({
+    where: {
+      id: storyId,
+      userId,
+    },
+    select: {
+      id: true,
+      status: true,
+      childProfileId: true,
+      collectionId: true,
+      titleDraft: true,
+      theme: true,
+      scenario: true,
+      objective: true,
+      virtueId: true,
+      currentMode: true,
+      characters: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: {
+          name: true,
+          role: true,
+        },
+      },
+    },
+  });
+
+  if (!story) {
+    throw new ApiError("Sessao de historia nao encontrada.", 404, "STORY_NOT_FOUND");
+  }
+
+  if (story.status !== "DRAFT") {
+    throw new ApiError("Apenas sessoes em rascunho podem ser editadas.", 409, "STORY_NOT_DRAFT");
+  }
+
+  const normalizedTitleDraft =
+    input.titleDraft !== undefined
+      ? await moderateTextInput({
+          value: input.titleDraft,
+          scope: "STORY_TEXT",
+          field: "titleDraft",
+          userId,
+        })
+      : story.titleDraft;
+  const normalizedTheme =
+    input.theme !== undefined
+      ? await moderateTextInput({
+          value: input.theme,
+          scope: "STORY_TEXT",
+          field: "theme",
+          userId,
+        })
+      : story.theme;
+  const normalizedScenario =
+    input.scenario !== undefined
+      ? await moderateTextInput({
+          value: input.scenario,
+          scope: "STORY_TEXT",
+          field: "scenario",
+          userId,
+        })
+      : story.scenario;
+  const normalizedObjective =
+    input.objective !== undefined
+      ? await moderateTextInput({
+          value: input.objective,
+          scope: "STORY_TEXT",
+          field: "objective",
+          userId,
+        })
+      : story.objective;
+  const normalizedCharacters =
+    input.characters !== undefined
+      ? await Promise.all(
+          input.characters.map(async (character) => ({
+            name: await moderateTextInput({
+              value: character.name,
+              scope: "STORY_TEXT",
+              field: "characterName",
+              userId,
+            }),
+            role: character.role
+              ? await moderateTextInput({
+                  value: character.role,
+                  scope: "STORY_TEXT",
+                  field: "characterRole",
+                  userId,
+                })
+              : undefined,
+          }))
+        )
+      : story.characters.map((character) => ({
+          name: character.name,
+          role: character.role ?? undefined,
+        }));
+
+  let nextVirtueId = story.virtueId;
+  if (input.virtueId !== undefined) {
+    if (input.virtueId === null) {
+      const resolved = await resolveVirtueForStoryCreation({
+        userId,
+        childProfileId: story.childProfileId,
+      });
+      nextVirtueId = resolved.virtue.id;
+    } else {
+      const resolved = await resolveVirtueForStoryCreation({
+        userId,
+        childProfileId: story.childProfileId,
+        virtueId: input.virtueId,
+      });
+      nextVirtueId = resolved.virtue.id;
+    }
+  }
+
+  assertSafeContext([
+    { field: "titulo", value: normalizedTitleDraft },
+    { field: "tema", value: normalizedTheme },
+    { field: "cenario", value: normalizedScenario },
+    { field: "objetivo", value: normalizedObjective },
+    ...normalizedCharacters.map((character) => ({
+      field: "personagem",
+      value: `${character.name} ${character.role ?? ""}`,
+    })),
+  ]);
+
+  const mode = input.mode ?? story.currentMode;
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.story.update({
+      where: {
+        id: story.id,
+      },
+      data: {
+        titleDraft: normalizedTitleDraft,
+        theme: normalizedTheme,
+        scenario: normalizedScenario,
+        objective: normalizedObjective,
+        virtueId: nextVirtueId,
+        currentMode: mode,
+      },
+    });
+
+    if (input.characters !== undefined) {
+      await tx.storyCharacter.deleteMany({
+        where: {
+          storyId: story.id,
+        },
+      });
+
+      await tx.storyCharacter.createMany({
+        data: normalizedCharacters.map((character) => ({
+          storyId: story.id,
+          name: character.name,
+          role: character.role ?? null,
+        })),
+      });
+    }
+
+    await tx.storyCollection.update({
+      where: {
+        id: story.collectionId,
+      },
+      data: {
+        title: normalizedTitleDraft,
+        theme: normalizedTheme,
+        virtueId: nextVirtueId,
+        lastReferenceAt: now,
+      },
+    });
+  });
+
+  return getStorySession(userId, storyId);
 }
 
 export async function updateStoryMode(userId: string, storyId: string, mode: StoryMode) {
@@ -856,10 +1059,14 @@ export async function requestStoryIdeas(
     .filter((item): item is string => Boolean(item))
     .at(0);
 
-  const inventory = await getChildInventory(story.childProfileId);
-  const memory = await getLatestStoryMemory(story.childProfileId);
-  const inventoryItems = inventory.filter((i: any) => i.item.category === 'ITEM').map((i: any) => i.item.name);
-  const companions = inventory.filter((i: any) => i.item.category === 'COMPANION').map((i: any) => i.item.name);
+  const inventory = await getChildInventory(userId, story.childProfileId);
+  const memory = await getLatestStoryMemory(userId, story.childProfileId);
+  const inventoryItems = inventory
+    .filter((item) => item.item.category === "ITEM")
+    .map((item) => item.item.name);
+  const companions = inventory
+    .filter((item) => item.item.category === "COMPANION")
+    .map((item) => item.item.name);
 
   const ideaResult = await generateStoryIdeas({
     theme: story.virtue?.name ? `${story.theme} (${story.virtue.name})` : story.theme,

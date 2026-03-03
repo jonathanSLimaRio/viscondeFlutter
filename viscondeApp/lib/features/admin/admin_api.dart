@@ -621,4 +621,33 @@ class AdminApi {
       response.data ?? <String, dynamic>{},
     );
   }
+
+  Future<AdminUxFunnelOverviewModel> fetchUxFunnel(
+    String accessToken, {
+    DateTime? dateFrom,
+    DateTime? dateTo,
+    String? timezone,
+  }) async {
+    String formatDate(DateTime value) {
+      final year = value.year.toString().padLeft(4, '0');
+      final month = value.month.toString().padLeft(2, '0');
+      final day = value.day.toString().padLeft(2, '0');
+      return '$year-$month-$day';
+    }
+
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/admin/ux/funnel',
+      queryParameters: {
+        if (dateFrom != null) 'dateFrom': formatDate(dateFrom),
+        if (dateTo != null) 'dateTo': formatDate(dateTo),
+        if (timezone != null && timezone.trim().isNotEmpty)
+          'timezone': timezone.trim(),
+      },
+      options: authOptions(accessToken),
+    );
+
+    return AdminUxFunnelOverviewModel.fromJson(
+      response.data ?? const <String, dynamic>{},
+    );
+  }
 }

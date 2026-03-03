@@ -71,6 +71,8 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       params: <String, Object?>{
         'story_id': finalized.story.id,
         'steps': finalized.story.steps.length,
+        'child_id': finalized.story.childProfileId,
+        'source': 'story_summary_screen',
       },
     );
 

@@ -1,33 +1,28 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAuth } from "@/lib/server/auth-context";
 import { createMonthlyBookProject } from "@/lib/server/book-service";
-import { ApiError, handleApiError } from "@/lib/server/error";
+import { handleRouteError, ok } from "@/lib/server/http";
 import { z } from "zod";
+
+export const runtime = "nodejs";
 
 const createBookSchema = z.object({
   monthStr: z.string().regex(/^\d{4}-\d{2}$/, "Invalid month format. Expected YYYY-MM"),
 });
 
-export async function POST(
-  request: Request,
-  { params }: { params: { childId: string } }
-) {
+type Params = {
+  params: Promise<{ childId: string }>;
+};
+
+export async function POST(request: Request, context: Params) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { childId } = params;
+    const auth = await requireAuth(request);
+    const { childId } = await context.params;
     const body = await request.json();
     const { monthStr } = createBookSchema.parse(body);
 
-    const project = await createMonthlyBookProject(session.user.id, childId, monthStr);
-    return NextResponse.json(project);
-
+    const project = await createMonthlyBookProject(auth.userId, childId, monthStr);
+    return ok(project);
   } catch (error) {
-    return handleApiError(error);
+    return handleRouteError(error);
   }
 }

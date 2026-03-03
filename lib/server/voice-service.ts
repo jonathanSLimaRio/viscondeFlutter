@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/server/db";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 export const createVoiceProfileSchema = z.object({

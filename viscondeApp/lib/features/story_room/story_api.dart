@@ -101,6 +101,38 @@ class StoryApi {
     return StorySessionModel.fromJson(response.data ?? <String, dynamic>{});
   }
 
+  Future<StorySessionModel> updateStorySessionSetup(
+    String accessToken,
+    String storyId, {
+    required String titleDraft,
+    required String theme,
+    required String scenario,
+    required String objective,
+    required List<Map<String, String?>> characters,
+    String? virtueId,
+    StoryMode? mode,
+    bool applyAutoVirtue = false,
+  }) async {
+    final response = await _dio.patch<Map<String, dynamic>>(
+      '/story-sessions/$storyId',
+      data: {
+        'titleDraft': titleDraft,
+        'theme': theme,
+        'scenario': scenario,
+        'objective': objective,
+        'characters': characters,
+        if (applyAutoVirtue)
+          'virtueId': null
+        else if (virtueId != null && virtueId.trim().isNotEmpty)
+          'virtueId': virtueId.trim(),
+        if (mode != null) 'mode': storyModeToApi(mode),
+      },
+      options: authOptions(accessToken),
+    );
+
+    return StorySessionModel.fromJson(response.data ?? <String, dynamic>{});
+  }
+
   Future<StorySessionModel> getStorySession(
     String accessToken,
     String storyId,

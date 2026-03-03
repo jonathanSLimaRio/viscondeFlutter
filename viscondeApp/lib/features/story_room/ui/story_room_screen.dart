@@ -142,6 +142,264 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
     }
   }
 
+  Future<void> _openEditDetailsSheet(StorySessionModel story) async {
+    final token = ref.read(authControllerProvider).accessToken;
+    if (token == null) {
+      context.showMessage('Sua sessão expirou. Faça login novamente.');
+      return;
+    }
+
+    List<VirtueModel> virtues = const <VirtueModel>[];
+    try {
+      virtues = await ref.read(storyApiProvider).listVirtues(token);
+    } catch (_) {
+      virtues = const <VirtueModel>[];
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final titleController = TextEditingController(text: story.titleDraft);
+    final themeController = TextEditingController(text: story.theme);
+    final scenarioController = TextEditingController(text: story.scenario);
+    final objectiveController = TextEditingController(text: story.objective);
+    final charactersController = TextEditingController(
+      text: story.characters.map((character) => character.name).join(', '),
+    );
+
+    final roleByName = <String, String?>{
+      for (final character in story.characters)
+        character.name.trim().toLowerCase(): character.role,
+    };
+
+    String? selectedVirtueId = story.virtue?.id;
+    if (selectedVirtueId != null &&
+        virtues.every((virtue) => virtue.id != selectedVirtueId)) {
+      selectedVirtueId = null;
+    }
+    StoryMode selectedMode = story.currentMode;
+    var submitting = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setModalState) {
+            Future<void> handleSave() async {
+              final title = titleController.text.trim();
+              final theme = themeController.text.trim();
+              final scenario = scenarioController.text.trim();
+              final objective = objectiveController.text.trim();
+
+              if (title.isEmpty ||
+                  theme.isEmpty ||
+                  scenario.isEmpty ||
+                  objective.isEmpty) {
+                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Preencha título, tema, cenário e objetivo antes de salvar.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              final characterNames = charactersController.text
+                  .split(',')
+                  .map((item) => item.trim())
+                  .where((item) => item.isNotEmpty)
+                  .toList();
+
+              if (characterNames.isEmpty) {
+                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Informe ao menos um personagem (separados por vírgula).',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              final characters = characterNames
+                  .take(8)
+                  .map(
+                    (name) => <String, String?>{
+                      'name': name,
+                      'role':
+                          roleByName[name.toLowerCase()] ??
+                          (name.toLowerCase() == 'visconde' ? 'guia' : null),
+                    },
+                  )
+                  .toList(growable: false);
+
+              setModalState(() => submitting = true);
+              final updated = await ref
+                  .read(storyRoomControllerProvider.notifier)
+                  .updateSessionSetup(
+                    titleDraft: title,
+                    theme: theme,
+                    scenario: scenario,
+                    characters: characters,
+                    objective: objective,
+                    virtueId: selectedVirtueId,
+                    mode: selectedMode,
+                    applyAutoVirtue: selectedVirtueId == null,
+                  );
+              if (!mounted || !sheetContext.mounted) {
+                return;
+              }
+              setModalState(() => submitting = false);
+
+              if (updated == null) {
+                final error = ref.read(storyRoomControllerProvider).error;
+                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      error ?? 'Não foi possível atualizar os detalhes.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.of(sheetContext).pop();
+              context.showMessage('Detalhes da história atualizados.');
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Editar detalhes',
+                    style: Theme.of(sheetContext).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'Título'),
+                    enabled: !submitting,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: themeController,
+                    decoration: const InputDecoration(labelText: 'Tema'),
+                    enabled: !submitting,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: scenarioController,
+                    decoration: const InputDecoration(labelText: 'Cenário'),
+                    enabled: !submitting,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: objectiveController,
+                    decoration: const InputDecoration(
+                      labelText: 'Objetivo da aventura',
+                    ),
+                    enabled: !submitting,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: charactersController,
+                    decoration: const InputDecoration(
+                      labelText: 'Personagens (separados por vírgula)',
+                    ),
+                    enabled: !submitting,
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String?>(
+                    initialValue: selectedVirtueId,
+                    decoration: const InputDecoration(
+                      labelText: 'Virtude (opcional)',
+                    ),
+                    isExpanded: true,
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Automática (por idade)'),
+                      ),
+                      ...virtues.map(
+                        (virtue) => DropdownMenuItem<String?>(
+                          value: virtue.id,
+                          child: Text(virtue.name),
+                        ),
+                      ),
+                    ],
+                    onChanged: submitting
+                        ? null
+                        : (value) {
+                            setModalState(() => selectedVirtueId = value);
+                          },
+                  ),
+                  const SizedBox(height: 10),
+                  SegmentedButton<StoryMode>(
+                    segments: const [
+                      ButtonSegment<StoryMode>(
+                        value: StoryMode.parentNarrator,
+                        label: Text('Pai narrador'),
+                      ),
+                      ButtonSegment<StoryMode>(
+                        value: StoryMode.childChooser,
+                        label: Text('Criança escolhe'),
+                      ),
+                    ],
+                    selected: <StoryMode>{selectedMode},
+                    onSelectionChanged: submitting
+                        ? null
+                        : (values) {
+                            setModalState(() => selectedMode = values.first);
+                          },
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: submitting
+                              ? null
+                              : () => Navigator.of(sheetContext).pop(),
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: submitting ? null : handleSave,
+                          icon: const Icon(Icons.save_outlined),
+                          label: Text(submitting ? 'Salvando...' : 'Salvar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    titleController.dispose();
+    themeController.dispose();
+    scenarioController.dispose();
+    objectiveController.dispose();
+    charactersController.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<StoryRoomState>(storyRoomControllerProvider, (previous, next) {
@@ -209,6 +467,19 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
               showMascot: true,
               mascotPose: ViscondeMascotPose.speakingMic,
             ),
+            if (story.status == StoryStatus.draft) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: state.loading
+                      ? null
+                      : () => _openEditDetailsSheet(story),
+                  icon: const Icon(Icons.edit_note_rounded),
+                  label: const Text('Editar detalhes'),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             illustrationAsync.when(
               data: (illustration) {

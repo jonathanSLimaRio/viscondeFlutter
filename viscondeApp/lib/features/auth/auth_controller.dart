@@ -6,6 +6,7 @@ import '../../core/models/app_user.dart';
 import '../../core/network/api_client.dart';
 import '../../core/storage/session_storage.dart';
 import '../../shared/api_error.dart';
+import '../../shared/ux_analytics.dart';
 import 'auth_api.dart';
 
 enum AuthStatus { loading, unauthenticated, authenticated }
@@ -77,6 +78,7 @@ class AuthController extends StateNotifier<AuthState> {
 
   final AuthApi _api;
   final SessionStorage _sessionStorage;
+  Future<String?>? _refreshInFlight;
 
   Future<bool> _tryDevAutoLogin() async {
     if (!kDebugMode || !devAutoLoginEnabled) {
@@ -103,6 +105,7 @@ class AuthController extends StateNotifier<AuthState> {
         refreshToken: session.refreshToken,
         user: session.user,
       );
+      _logSessionStarted(source: 'dev_auto_login_success');
 
       return true;
     } catch (error) {
@@ -135,27 +138,126 @@ class AuthController extends StateNotifier<AuthState> {
         user: user,
       );
     } catch (_) {
-      try {
-        final refreshed = await _api.refresh(refreshToken: stored.refreshToken);
-        await _sessionStorage.save(
-          StoredSession(
-            accessToken: refreshed.accessToken,
-            refreshToken: refreshed.refreshToken,
-            user: refreshed.user,
-          ),
-        );
-
-        state = AuthState(
-          status: AuthStatus.authenticated,
-          accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken,
-          user: refreshed.user,
-        );
-      } catch (_) {
-        await _sessionStorage.clear();
+      final refreshed = await refreshSessionIfPossible(
+        withUserFacingError: false,
+        refreshTokenOverride: stored.refreshToken,
+      );
+      if (refreshed == null) {
         state = const AuthState(status: AuthStatus.unauthenticated);
       }
     }
+  }
+
+  Future<String?> refreshSessionIfPossible({
+    bool withUserFacingError = true,
+    String? refreshTokenOverride,
+  }) async {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final refreshFuture = _refreshSessionInternal(
+      withUserFacingError: withUserFacingError,
+      refreshTokenOverride: refreshTokenOverride,
+    );
+    _refreshInFlight = refreshFuture;
+
+    try {
+      return await refreshFuture;
+    } finally {
+      if (identical(_refreshInFlight, refreshFuture)) {
+        _refreshInFlight = null;
+      }
+    }
+  }
+
+  Future<String?> _refreshSessionInternal({
+    required bool withUserFacingError,
+    String? refreshTokenOverride,
+  }) async {
+    final refreshToken = refreshTokenOverride ?? state.refreshToken;
+    if (refreshToken == null || refreshToken.trim().isEmpty) {
+      await _clearSession(
+        userFacingReason: withUserFacingError
+            ? 'Sua sessão expirou. Faça login novamente.'
+            : null,
+      );
+      UxAnalytics.log(
+        'auth_refresh_failed',
+        params: const <String, Object?>{'reason': 'missing_refresh_token'},
+      );
+      return null;
+    }
+
+    try {
+      final refreshed = await _api.refresh(refreshToken: refreshToken);
+      await _sessionStorage.save(
+        StoredSession(
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken,
+          user: refreshed.user,
+        ),
+      );
+
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        accessToken: refreshed.accessToken,
+        refreshToken: refreshed.refreshToken,
+        user: refreshed.user,
+      );
+
+      UxAnalytics.log(
+        'auth_refresh_success',
+        params: const <String, Object?>{'source': 'interceptor'},
+      );
+      return refreshed.accessToken;
+    } catch (error) {
+      UxAnalytics.log(
+        'auth_refresh_failed',
+        params: <String, Object?>{'message': parseDioError(error)},
+      );
+      await _clearSession(
+        userFacingReason: withUserFacingError
+            ? 'Sua sessão expirou. Faça login novamente.'
+            : null,
+      );
+      return null;
+    }
+  }
+
+  Future<void> _clearSession({String? userFacingReason}) async {
+    await _sessionStorage.clear();
+    state = userFacingReason == null
+        ? const AuthState(status: AuthStatus.unauthenticated)
+        : AuthState(
+            status: AuthStatus.unauthenticated,
+            error: userFacingReason,
+          );
+  }
+
+  void _logSessionStarted({required String source}) {
+    UxAnalytics.log(
+      'session_started',
+      params: <String, Object?>{'source': source, 'user_id': state.user?.id},
+    );
+  }
+
+  void _logAuthError(Object error, {required String source}) {
+    final presentation = describeApiError(error);
+    UxAnalytics.log(
+      'auth_error_shown',
+      params: <String, Object?>{
+        'session_expired': presentation.sessionExpired,
+        'message': presentation.message,
+        if (presentation.kind != null) 'error_kind': presentation.kind!.name,
+        if (presentation.statusCode != null)
+          'status_code': presentation.statusCode!,
+        if (presentation.code != null && presentation.code!.trim().isNotEmpty)
+          'code': presentation.code!.trim(),
+        'source': source,
+      },
+    );
   }
 
   Future<void> login({required String email, required String password}) async {
@@ -176,7 +278,9 @@ class AuthController extends StateNotifier<AuthState> {
         refreshToken: session.refreshToken,
         user: session.user,
       );
+      _logSessionStarted(source: 'login_success');
     } catch (error) {
+      _logAuthError(error, source: 'login_submit');
       state = AuthState(
         status: AuthStatus.unauthenticated,
         error: parseDioError(error),
@@ -212,7 +316,9 @@ class AuthController extends StateNotifier<AuthState> {
         refreshToken: session.refreshToken,
         user: session.user,
       );
+      _logSessionStarted(source: 'signup_success');
     } catch (error) {
+      _logAuthError(error, source: 'signup_submit');
       state = AuthState(
         status: AuthStatus.unauthenticated,
         error: parseDioError(error),
@@ -238,7 +344,9 @@ class AuthController extends StateNotifier<AuthState> {
         refreshToken: session.refreshToken,
         user: session.user,
       );
+      _logSessionStarted(source: 'google_login_success');
     } catch (error) {
+      _logAuthError(error, source: 'google_login_submit');
       state = AuthState(
         status: AuthStatus.unauthenticated,
         error: parseDioError(error),
@@ -264,7 +372,9 @@ class AuthController extends StateNotifier<AuthState> {
         refreshToken: session.refreshToken,
         user: session.user,
       );
+      _logSessionStarted(source: 'apple_login_success');
     } catch (error) {
+      _logAuthError(error, source: 'apple_login_submit');
       state = AuthState(
         status: AuthStatus.unauthenticated,
         error: parseDioError(error),
@@ -286,8 +396,7 @@ class AuthController extends StateNotifier<AuthState> {
       // Ignore logout failures in MVP and clear local session.
     }
 
-    await _sessionStorage.clear();
-    state = const AuthState(status: AuthStatus.unauthenticated);
+    await _clearSession();
   }
 
   Future<void> expireSession({
@@ -297,8 +406,7 @@ class AuthController extends StateNotifier<AuthState> {
       return;
     }
 
-    await _sessionStorage.clear();
-    state = AuthState(status: AuthStatus.unauthenticated, error: reason);
+    await _clearSession(userFacingReason: reason);
   }
 
   void updateUser(AppUser user) {
@@ -310,4 +418,5 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   String? get accessToken => state.accessToken;
+  AuthState get snapshot => state;
 }

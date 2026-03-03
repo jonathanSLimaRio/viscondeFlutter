@@ -1,26 +1,20 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAuth } from "@/lib/server/auth-context";
 import { getBookProject } from "@/lib/server/book-service";
-import { handleApiError } from "@/lib/server/error";
+import { handleRouteError, ok } from "@/lib/server/http";
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export const runtime = "nodejs";
+
+type Params = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(request: Request, context: Params) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = params;
-
-    const project = await getBookProject(session.user.id, id);
-    return NextResponse.json(project);
-
+    const auth = await requireAuth(request);
+    const { id } = await context.params;
+    const project = await getBookProject(auth.userId, id);
+    return ok(project);
   } catch (error) {
-    return handleApiError(error);
+    return handleRouteError(error);
   }
 }

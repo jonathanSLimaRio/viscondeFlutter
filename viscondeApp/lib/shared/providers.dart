@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,24 +16,65 @@ import '../features/story_room/illustration_api.dart';
 import '../features/story_room/story_api.dart';
 import '../features/story_sync/story_sync_queue.dart';
 import '../features/story_vault/book_api.dart';
+import 'ux_analytics_api.dart';
+import 'ux_analytics_queue.dart';
+import 'ux_analytics_service.dart';
 
 final sessionAwareDioProvider = Provider<Dio>((ref) {
   final baseUrl = ref.watch(apiBaseUrlProvider);
   final accessToken = ref.watch(authControllerProvider).accessToken;
-  final dio = createApiDio(baseUrl: baseUrl, accessToken: accessToken);
+  final authNotifier = ref.read(authControllerProvider.notifier);
+  final adapter = ref.watch(dioHttpClientAdapterProvider);
+  final dio = createApiDio(
+    baseUrl: baseUrl,
+    accessToken: accessToken,
+    httpClientAdapter: adapter,
+    mapErrors: false,
+  );
 
   dio.interceptors.add(
     InterceptorsWrapper(
       onError: (error, handler) async {
+        final requestOptions = error.requestOptions;
         final status = error.response?.statusCode;
-        final auth = ref.read(authControllerProvider);
-        if (status == 401 && auth.status == AuthStatus.authenticated) {
-          await ref
-              .read(authControllerProvider.notifier)
-              .expireSession(
-                reason: 'Sua sessão expirou. Faça login novamente.',
+        final authState = authNotifier.snapshot;
+
+        if (shouldAttemptAuthRetry(requestOptions, status) &&
+            authState.status == AuthStatus.authenticated) {
+          final refreshedToken = await authNotifier.refreshSessionIfPossible();
+          if (refreshedToken != null) {
+            try {
+              final retriedRequest = markRequestAuthRetried(
+                requestOptions,
+                accessToken: refreshedToken,
               );
+              final response = await dio.fetch<dynamic>(retriedRequest);
+              handler.resolve(response);
+              return;
+            } on DioException catch (retryError) {
+              handler.next(retryError);
+              return;
+            } catch (retryError) {
+              handler.next(
+                DioException(
+                  requestOptions: requestOptions,
+                  type: DioExceptionType.unknown,
+                  error: retryError,
+                ),
+              );
+              return;
+            }
+          }
         }
+
+        if (status == 401 &&
+            authState.status == AuthStatus.authenticated &&
+            !requestDisablesAuthRetry(requestOptions)) {
+          await authNotifier.expireSession(
+            reason: 'Sua sessão expirou. Faça login novamente.',
+          );
+        }
+
         handler.next(error);
       },
     ),
@@ -88,4 +131,28 @@ final storySyncQueueProvider = Provider<StorySyncQueue>((ref) {
   final queue = StorySyncQueue();
   ref.onDispose(queue.dispose);
   return queue;
+});
+
+final uxAnalyticsQueueProvider = Provider<UxAnalyticsQueue>((ref) {
+  final queue = UxAnalyticsQueue();
+  ref.onDispose(() {
+    unawaited(queue.dispose());
+  });
+  return queue;
+});
+
+final uxAnalyticsApiProvider = Provider<UxAnalyticsApi>((ref) {
+  return UxAnalyticsApi(ref.watch(dioProvider));
+});
+
+final uxAnalyticsServiceProvider = Provider<UxAnalyticsService>((ref) {
+  final service = UxAnalyticsService(
+    store: ref.watch(uxAnalyticsQueueProvider),
+    transport: ref.watch(uxAnalyticsApiProvider),
+    readAccessToken: () => ref.read(authControllerProvider).accessToken,
+  );
+  ref.onDispose(() {
+    unawaited(service.dispose());
+  });
+  return service;
 });

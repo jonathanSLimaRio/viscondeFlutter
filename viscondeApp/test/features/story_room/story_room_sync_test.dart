@@ -34,7 +34,9 @@ class QueueTestStoryApi extends StoryApi {
 
   StorySessionModel session;
   Object? createStepError;
+  Object? updateSessionSetupError;
   int createStepCalls = 0;
+  int updateSessionSetupCalls = 0;
 
   @override
   Future<StorySessionModel> createStorySession(
@@ -58,6 +60,75 @@ class QueueTestStoryApi extends StoryApi {
     String accessToken,
     String storyId,
   ) async {
+    return session;
+  }
+
+  @override
+  Future<StorySessionModel> updateStorySessionSetup(
+    String accessToken,
+    String storyId, {
+    required String titleDraft,
+    required String theme,
+    required String scenario,
+    required String objective,
+    required List<Map<String, String?>> characters,
+    String? virtueId,
+    StoryMode? mode,
+    bool applyAutoVirtue = false,
+  }) async {
+    updateSessionSetupCalls += 1;
+    final error = updateSessionSetupError;
+    if (error != null) {
+      throw error;
+    }
+
+    final nextCharacters = characters
+        .map(
+          (item) => StoryCharacterModel(
+            id: 'ch-${item['name']}',
+            name: item['name'] ?? '',
+            role: item['role'],
+          ),
+        )
+        .toList();
+
+    session = StorySessionModel(
+      id: session.id,
+      childProfileId: session.childProfileId,
+      collectionId: session.collectionId,
+      episodeNumber: session.episodeNumber,
+      continuedFromStoryId: session.continuedFromStoryId,
+      sourceTemplateId: session.sourceTemplateId,
+      sessionKind: session.sessionKind,
+      titleDraft: titleDraft,
+      titleFinal: session.titleFinal,
+      title: titleDraft,
+      theme: theme,
+      scenario: scenario,
+      objective: objective,
+      ageBand: session.ageBand,
+      virtueSource: session.virtueSource,
+      dilemmaText: session.dilemmaText,
+      endQuestionText: session.endQuestionText,
+      virtue: virtueId == null
+          ? session.virtue
+          : const VirtueModel(
+              id: 'virtue-edited',
+              slug: 'coragem',
+              name: 'Coragem',
+              shortDescription: 'Seguir em frente',
+              iconKey: 'courage',
+              sortOrder: 1,
+            ),
+      status: session.status,
+      currentMode: mode ?? session.currentMode,
+      currentStepIndex: session.currentStepIndex,
+      ageSnapshotYears: session.ageSnapshotYears,
+      remote: session.remote,
+      child: session.child,
+      characters: nextCharacters,
+      steps: session.steps,
+    );
     return session;
   }
 
@@ -320,6 +391,115 @@ void main() {
       expect(counts.conflict, 1);
       expect(counts.unsynced, 1);
     });
+
+    test('updates session setup with edited details', () async {
+      final queue = FakeStorySyncQueue();
+      final api = QueueTestStoryApi(_sampleSession());
+      final connectivity = FakeConnectivity();
+
+      final container = ProviderContainer(
+        overrides: <Override>[
+          ...authOverrides(user: buildTestUser()),
+          storySyncQueueProvider.overrideWith((ref) => queue),
+          storyRoomControllerProvider.overrideWith((ref) {
+            return StoryRoomController(
+              ref: ref,
+              api: api,
+              syncQueue: queue,
+              connectivity: connectivity,
+            );
+          }),
+        ],
+      );
+
+      addTearDown(() async {
+        await connectivity.disposeFake();
+        container.dispose();
+      });
+
+      await _waitAuthReady(container);
+
+      final controller = container.read(storyRoomControllerProvider.notifier);
+      await controller.loadSession('story-1');
+
+      final result = await controller.updateSessionSetup(
+        titleDraft: 'Aventura Editada',
+        theme: 'Montanhas',
+        scenario: 'Caverna de cristal',
+        objective: 'Trabalhar em equipe',
+        characters: const <Map<String, String?>>[
+          <String, String?>{'name': 'Luna', 'role': 'protagonista'},
+          <String, String?>{'name': 'Visconde', 'role': 'guia'},
+        ],
+        mode: StoryMode.childChooser,
+      );
+
+      expect(api.updateSessionSetupCalls, 1);
+      expect(result, isNotNull);
+      expect(result!.titleDraft, 'Aventura Editada');
+      expect(result.theme, 'Montanhas');
+      expect(result.currentMode, StoryMode.childChooser);
+      expect(result.characters.length, 2);
+    });
+
+    test(
+      'returns null and exposes error when session setup update fails',
+      () async {
+        final queue = FakeStorySyncQueue();
+        final api = QueueTestStoryApi(_sampleSession());
+        final connectivity = FakeConnectivity();
+
+        final container = ProviderContainer(
+          overrides: <Override>[
+            ...authOverrides(user: buildTestUser()),
+            storySyncQueueProvider.overrideWith((ref) => queue),
+            storyRoomControllerProvider.overrideWith((ref) {
+              return StoryRoomController(
+                ref: ref,
+                api: api,
+                syncQueue: queue,
+                connectivity: connectivity,
+              );
+            }),
+          ],
+        );
+
+        addTearDown(() async {
+          await connectivity.disposeFake();
+          container.dispose();
+        });
+
+        await _waitAuthReady(container);
+
+        final controller = container.read(storyRoomControllerProvider.notifier);
+        await controller.loadSession('story-1');
+
+        api.updateSessionSetupError = DioException(
+          requestOptions: RequestOptions(path: '/story-sessions/story-1'),
+          type: DioExceptionType.badResponse,
+          response: Response<Object?>(
+            requestOptions: RequestOptions(path: '/story-sessions/story-1'),
+            statusCode: 409,
+            data: <String, dynamic>{'error': 'Conflito'},
+          ),
+        );
+
+        final result = await controller.updateSessionSetup(
+          titleDraft: 'Falha',
+          theme: 'Tema',
+          scenario: 'Cenário',
+          objective: 'Objetivo',
+          characters: const <Map<String, String?>>[
+            <String, String?>{'name': 'Luna', 'role': null},
+          ],
+        );
+
+        final state = container.read(storyRoomControllerProvider);
+        expect(api.updateSessionSetupCalls, 1);
+        expect(result, isNull);
+        expect(state.error, isNotNull);
+      },
+    );
 
     test(
       'handles createSession, mode change, ideas and finalize flows',

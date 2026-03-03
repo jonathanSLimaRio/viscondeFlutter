@@ -1,20 +1,28 @@
-// @ts-nocheck
-import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-// @ts-ignore - Ignore type errors if Prisma Client hasn't been generated yet for the new models
-import { RarityLevel, ItemCategory } from '@prisma/client';
+import { ApiError } from '@/lib/server/errors';
+import { ItemCategory, RarityLevel } from '@prisma/client';
 
-export const INVENTORY_SEED_DATA = [
-  { key: 'escudo_papelao', name: 'Escudo de Papelão', description: 'Protege contra vilões imaginários.', rarity: 'COMMON', category: 'ITEM', icon: '🛡️', tags: ['coragem', 'protecao'] },
-  { key: 'espada_madeira', name: 'Espada de Madeira', description: 'Uma espada leve e ágil.', rarity: 'COMMON', category: 'ITEM', icon: '🗡️', tags: ['coragem', 'aventura'] },
-  { key: 'pocao_alegria', name: 'Poção da Alegria', description: 'Garante boas risadas.', rarity: 'RARE', category: 'ITEM', icon: '🧪', tags: ['alegria', 'magia'] },
-  { key: 'mapa_tesouro', name: 'Mapa do Tesouro', description: 'Mostra o caminho para coisas legais.', rarity: 'EPIC', category: 'ITEM', icon: '🗺️', tags: ['curiosidade', 'exploracao'] },
-  { key: 'bussola_dourada', name: 'Bússola Dourada', description: 'Sempre aponta para o caminho certo.', rarity: 'LEGENDARY', category: 'ITEM', icon: '🧭', tags: ['sabedoria', 'direcao'] },
+type InventorySeedItem = {
+  key: string;
+  name: string;
+  description: string;
+  rarity: RarityLevel;
+  category: ItemCategory;
+  icon: string;
+  tags: string[];
+};
 
-  { key: 'coruja_sabia', name: 'Corujinha Sábia', description: 'Dá bons conselhos.', rarity: 'RARE', category: 'COMPANION', icon: '🦉', tags: ['sabedoria', 'companhia'] },
-  { key: 'sapo_saltitante', name: 'Sapo Saltitante', description: 'Pula muito alto!', rarity: 'COMMON', category: 'COMPANION', icon: '🐸', tags: ['alegria', 'natureza'] },
-  { key: 'fada_cores', name: 'Fadinha das Cores', description: 'Deixa tudo mais bonito.', rarity: 'EPIC', category: 'COMPANION', icon: '🧚', tags: ['criatividade', 'magia'] },
-  { key: 'cachorro_leal', name: 'Cachorrinho Leal', description: 'O melhor amigo para a aventura.', rarity: 'COMMON', category: 'COMPANION', icon: '🐶', tags: ['lealdade', 'amizade'] },
+export const INVENTORY_SEED_DATA: InventorySeedItem[] = [
+  { key: 'escudo_papelao', name: 'Escudo de Papelão', description: 'Protege contra vilões imaginários.', rarity: RarityLevel.COMMON, category: ItemCategory.ITEM, icon: '🛡️', tags: ['coragem', 'protecao'] },
+  { key: 'espada_madeira', name: 'Espada de Madeira', description: 'Uma espada leve e ágil.', rarity: RarityLevel.COMMON, category: ItemCategory.ITEM, icon: '🗡️', tags: ['coragem', 'aventura'] },
+  { key: 'pocao_alegria', name: 'Poção da Alegria', description: 'Garante boas risadas.', rarity: RarityLevel.RARE, category: ItemCategory.ITEM, icon: '🧪', tags: ['alegria', 'magia'] },
+  { key: 'mapa_tesouro', name: 'Mapa do Tesouro', description: 'Mostra o caminho para coisas legais.', rarity: RarityLevel.EPIC, category: ItemCategory.ITEM, icon: '🗺️', tags: ['curiosidade', 'exploracao'] },
+  { key: 'bussola_dourada', name: 'Bússola Dourada', description: 'Sempre aponta para o caminho certo.', rarity: RarityLevel.LEGENDARY, category: ItemCategory.ITEM, icon: '🧭', tags: ['sabedoria', 'direcao'] },
+
+  { key: 'coruja_sabia', name: 'Corujinha Sábia', description: 'Dá bons conselhos.', rarity: RarityLevel.RARE, category: ItemCategory.COMPANION, icon: '🦉', tags: ['sabedoria', 'companhia'] },
+  { key: 'sapo_saltitante', name: 'Sapo Saltitante', description: 'Pula muito alto!', rarity: RarityLevel.COMMON, category: ItemCategory.COMPANION, icon: '🐸', tags: ['alegria', 'natureza'] },
+  { key: 'fada_cores', name: 'Fadinha das Cores', description: 'Deixa tudo mais bonito.', rarity: RarityLevel.EPIC, category: ItemCategory.COMPANION, icon: '🧚', tags: ['criatividade', 'magia'] },
+  { key: 'cachorro_leal', name: 'Cachorrinho Leal', description: 'O melhor amigo para a aventura.', rarity: RarityLevel.COMMON, category: ItemCategory.COMPANION, icon: '🐶', tags: ['lealdade', 'amizade'] },
 ];
 
 export async function ensureInventorySeeded() {
@@ -26,8 +34,8 @@ export async function ensureInventorySeeded() {
           key: item.key,
           name: item.name,
           description: item.description,
-          rarity: item.rarity as any,
-          category: item.category as any,
+          rarity: item.rarity,
+          category: item.category,
           icon: item.icon,
           tags: item.tags,
         })),
@@ -40,9 +48,41 @@ export async function ensureInventorySeeded() {
   }
 }
 
-export async function getChildInventory(childProfileId: string) {
+async function requireOwnedChild(userId: string, childProfileId: string) {
+  const child = await prisma.childProfile.findFirst({
+    where: {
+      id: childProfileId,
+      userId,
+      isArchived: false,
+    },
+    select: { id: true },
+  });
+
+  if (!child) {
+    throw new ApiError('Perfil infantil nao encontrado.', 404, 'CHILD_NOT_FOUND');
+  }
+}
+
+async function requireOwnedStory(userId: string, storyId: string) {
+  const story = await prisma.story.findFirst({
+    where: {
+      id: storyId,
+      userId,
+    },
+    select: { id: true, childProfileId: true },
+  });
+
+  if (!story) {
+    throw new ApiError('Historia nao encontrada.', 404, 'STORY_NOT_FOUND');
+  }
+
+  return story;
+}
+
+export async function getChildInventory(userId: string, childProfileId: string) {
   // Try to seed first so that we have items available
   await ensureInventorySeeded();
+  await requireOwnedChild(userId, childProfileId);
 
   const inventory = await prisma.childInventory.findMany({
     where: { childProfileId },
@@ -53,7 +93,9 @@ export async function getChildInventory(childProfileId: string) {
   return inventory;
 }
 
-export async function getLatestStoryMemory(childProfileId: string) {
+export async function getLatestStoryMemory(userId: string, childProfileId: string) {
+  await requireOwnedChild(userId, childProfileId);
+
   const memory = await prisma.storyMemory.findFirst({
     where: { childProfileId },
     orderBy: { createdAt: 'desc' },
@@ -62,16 +104,11 @@ export async function getLatestStoryMemory(childProfileId: string) {
   return memory;
 }
 
-export async function rewardRandomItem(storyId: string) {
+export async function rewardRandomItem(userId: string, storyId: string) {
   await ensureInventorySeeded();
 
-  // Find the story to get the child
-  const story = await prisma.story.findUnique({
-    where: { id: storyId },
-    select: { id: true, childProfileId: true }
-  });
-
-  if (!story) throw new Error('Story not found');
+  // Find owned story to get the child profile.
+  const story = await requireOwnedStory(userId, storyId);
 
   // Get all items not yet owned by the child
   const ownedInventories = await prisma.childInventory.findMany({

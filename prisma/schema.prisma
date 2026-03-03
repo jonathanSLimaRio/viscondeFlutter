@@ -186,6 +186,16 @@ enum ItemCategory {
   BADGE
 }
 
+enum UxEventName {
+  SESSION_STARTED
+  AUTH_ERROR_SHOWN
+  STORY_CREATE_STARTED
+  STORY_CREATE_STEP_COMPLETED
+  STORY_CREATE_ABANDONED
+  STORY_PUBLISHED
+  GAME_HUB_OPENED
+}
+
 model User {
   id            String   @id @default(cuid())
   name          String?
@@ -224,6 +234,7 @@ model User {
   moderationEvents      ModerationEvent[]
   voiceProfiles         VoiceProfile[]
   bookProjects          BookProject[]
+  uxAnalyticsEvents     UxAnalyticsEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -907,6 +918,33 @@ model AuditEvent {
 
   @@index([userId, action])
   @@index([createdAt])
+}
+
+model UxAnalyticsEvent {
+  id              String      @id @default(cuid())
+  eventId         String      @unique
+  eventName       UxEventName
+  appSessionId    String
+  userId          String?
+  mobileSessionId String?
+  childHash       String?
+  occurredAt      DateTime
+  receivedAt      DateTime    @default(now())
+  source          String?
+  params          Json?
+  platform        String?
+  appVersion      String?
+  appBuild        String?
+  locale          String?
+  timezone        String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventName, occurredAt])
+  @@index([appSessionId, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([mobileSessionId, occurredAt])
+  @@index([childHash, occurredAt])
 }
 
 model VoiceProfile {

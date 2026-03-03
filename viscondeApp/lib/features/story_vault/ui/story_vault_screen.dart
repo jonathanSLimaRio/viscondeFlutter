@@ -8,8 +8,11 @@ import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
+import '../../story_creation/quick_story_defaults.dart';
 import '../../story_room/models/story_models.dart';
+import '../../story_room/story_room_controller.dart';
 import '../story_pdf_exporter.dart';
 
 class StoryVaultScreen extends ConsumerStatefulWidget {
@@ -27,6 +30,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
   bool _loading = false;
   bool _loadingFilters = false;
   bool _favoriteOnly = false;
+  bool _quickCreating = false;
 
   String? _selectedChildId;
   String? _selectedVirtueId;
@@ -218,6 +222,216 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     await _loadCollections();
   }
 
+  void _showSnackMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _createQuickStory() async {
+    if (_quickCreating) {
+      return;
+    }
+
+    final token = _accessToken();
+    if (token == null) {
+      return;
+    }
+
+    final startedAt = DateTime.now();
+    setState(() => _quickCreating = true);
+
+    UxAnalytics.log(
+      'story_create_started',
+      params: const <String, Object?>{
+        'source': 'story_vault_quick',
+        'flow': 'quick',
+      },
+    );
+
+    try {
+      if (_children.isEmpty) {
+        await _loadFiltersData();
+      }
+      if (!mounted) {
+        return;
+      }
+
+      final selectedChild = selectQuickStoryChild(
+        children: _children,
+        collections: _collections,
+        selectedChildId: _selectedChildId,
+      );
+      if (selectedChild == null) {
+        final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
+        UxAnalytics.log(
+          'story_create_abandoned',
+          params: <String, Object?>{
+            'step': 1,
+            'source': 'story_vault_quick',
+            'flow': 'quick',
+            'reason': 'no_child',
+            'duration_ms': elapsed,
+          },
+        );
+        _showSnackMessage(
+          'Cadastre uma criança na aba Crianças para começar a aventura.',
+        );
+        return;
+      }
+
+      final templates = await ref
+          .read(storyApiProvider)
+          .listPublishedStoryTemplates(token);
+
+      String? suggestedVirtueId;
+      try {
+        final suggestion = await ref
+            .read(storyApiProvider)
+            .suggestVirtue(token, childProfileId: selectedChild.id);
+        suggestedVirtueId = suggestion.virtue.id;
+      } catch (_) {
+        // O backend já resolve virtude automaticamente quando necessário.
+      }
+
+      final defaults = buildQuickStoryDefaults(
+        children: _children,
+        collections: _collections,
+        templates: templates,
+        selectedChildId: _selectedChildId,
+        suggestedVirtueId: suggestedVirtueId,
+      );
+
+      if (defaults == null) {
+        final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
+        UxAnalytics.log(
+          'story_create_abandoned',
+          params: <String, Object?>{
+            'step': 1,
+            'source': 'story_vault_quick',
+            'flow': 'quick',
+            'reason': 'defaults_unavailable',
+            'duration_ms': elapsed,
+          },
+        );
+        _showSnackMessage('Não foi possível montar uma história rápida agora.');
+        return;
+      }
+
+      UxAnalytics.log(
+        'story_create_step_completed',
+        params: <String, Object?>{
+          'step': 1,
+          'source': 'story_vault_quick',
+          'flow': 'quick',
+          'child_id': defaults.child.id,
+        },
+      );
+
+      final created = await ref
+          .read(storyRoomControllerProvider.notifier)
+          .createSession(
+            childProfileId: defaults.child.id,
+            titleDraft: defaults.titleDraft,
+            theme: defaults.theme,
+            scenario: defaults.scenario,
+            characters: defaults.characters,
+            objective: defaults.objective,
+            startMode: StoryMode.parentNarrator,
+            virtueId: defaults.virtueId,
+            sourceTemplateId: defaults.sourceTemplateId,
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (created == null) {
+        final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
+        UxAnalytics.log(
+          'story_create_abandoned',
+          params: <String, Object?>{
+            'step': 2,
+            'source': 'story_vault_quick',
+            'flow': 'quick',
+            'reason': 'create_failed',
+            'child_id': defaults.child.id,
+            'duration_ms': elapsed,
+          },
+        );
+        final error = ref.read(storyRoomControllerProvider).error;
+        _showSnackMessage(error ?? 'Não foi possível criar a história rápida.');
+        return;
+      }
+
+      UxAnalytics.log(
+        'story_create_step_completed',
+        params: <String, Object?>{
+          'step': 2,
+          'source': 'story_vault_quick',
+          'flow': 'quick',
+          'child_id': defaults.child.id,
+        },
+      );
+
+      final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
+      UxAnalytics.log(
+        'story_create_step_completed',
+        params: <String, Object?>{
+          'step': 3,
+          'source': 'story_vault_quick',
+          'flow': 'quick',
+          'child_id': defaults.child.id,
+          'duration_ms': elapsed,
+        },
+      );
+      context.push(AppRoute.storyRoom(created.id));
+    } catch (error) {
+      final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
+      UxAnalytics.log(
+        'story_create_abandoned',
+        params: <String, Object?>{
+          'step': 1,
+          'source': 'story_vault_quick',
+          'flow': 'quick',
+          'reason': 'request_error',
+          'duration_ms': elapsed,
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      _showSnackMessage(parseDioError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _quickCreating = false);
+      }
+    }
+  }
+
+  Widget _buildCreationActions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ViscondePrimaryCta(
+          onPressed: _quickCreating ? null : _createQuickStory,
+          icon: Icons.flash_on_rounded,
+          label: _quickCreating
+              ? 'Criando história rápida...'
+              : 'Criar história rápida',
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _quickCreating
+              ? null
+              : () => context.push(AppRoute.storyCreate),
+          icon: const Icon(Icons.tune),
+          label: const Text('Criar com detalhes'),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');
@@ -353,11 +567,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          ViscondePrimaryCta(
-            onPressed: () => context.push(AppRoute.storyCreate),
-            icon: Icons.auto_stories_outlined,
-            label: 'Criar nova história',
-          ),
+          _buildCreationActions(),
           if (_selectedChildId != null) ...[
             const SizedBox(height: 12),
             ViscondePrimaryCta(
@@ -394,11 +604,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
-                    ViscondePrimaryCta(
-                      onPressed: () => context.push(AppRoute.storyCreate),
-                      icon: Icons.menu_book_outlined,
-                      label: 'Criar nova história',
-                    ),
+                    _buildCreationActions(),
                   ],
                 ),
               ),

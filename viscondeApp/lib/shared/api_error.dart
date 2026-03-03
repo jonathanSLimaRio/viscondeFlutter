@@ -6,13 +6,11 @@ String _normalizeKnownMessage(ApiException error) {
   final message = error.message.trim();
   final normalized = message.toLowerCase();
 
-  if (error.kind == ApiErrorKind.unauthorized ||
-      normalized == 'unauthorized' ||
-      normalized == 'not authorized') {
+  if (error.kind == ApiErrorKind.unauthorized) {
     return 'Sua sessão expirou. Faça login novamente.';
   }
 
-  if (error.kind == ApiErrorKind.forbidden || normalized == 'forbidden') {
+  if (error.kind == ApiErrorKind.forbidden) {
     return 'Você não tem permissão para esta ação.';
   }
 
@@ -22,6 +20,14 @@ String _normalizeKnownMessage(ApiException error) {
 
   if (error.kind == ApiErrorKind.timeout) {
     return 'A conexão demorou mais que o esperado. Tente novamente.';
+  }
+
+  if (normalized == 'unauthorized' || normalized == 'not authorized') {
+    return 'Sua sessão expirou. Faça login novamente.';
+  }
+
+  if (normalized == 'forbidden') {
+    return 'Você não tem permissão para esta ação.';
   }
 
   if (message.isEmpty) {
@@ -35,10 +41,16 @@ class ApiErrorPresentation {
   const ApiErrorPresentation({
     required this.message,
     this.sessionExpired = false,
+    this.kind,
+    this.statusCode,
+    this.code,
   });
 
   final String message;
   final bool sessionExpired;
+  final ApiErrorKind? kind;
+  final int? statusCode;
+  final String? code;
 }
 
 bool isSessionExpiredError(Object error) {
@@ -74,6 +86,9 @@ ApiErrorPresentation describeApiError(Object error) {
     return ApiErrorPresentation(
       message: message,
       sessionExpired: error.kind == ApiErrorKind.unauthorized,
+      kind: error.kind,
+      statusCode: error.statusCode,
+      code: error.code,
     );
   }
 
@@ -83,6 +98,9 @@ ApiErrorPresentation describeApiError(Object error) {
       return ApiErrorPresentation(
         message: _normalizeKnownMessage(nested),
         sessionExpired: nested.kind == ApiErrorKind.unauthorized,
+        kind: nested.kind,
+        statusCode: nested.statusCode,
+        code: nested.code,
       );
     }
 
@@ -90,6 +108,9 @@ ApiErrorPresentation describeApiError(Object error) {
     return ApiErrorPresentation(
       message: _normalizeKnownMessage(mapped),
       sessionExpired: mapped.kind == ApiErrorKind.unauthorized,
+      kind: mapped.kind,
+      statusCode: mapped.statusCode,
+      code: mapped.code,
     );
   }
 
@@ -98,6 +119,8 @@ ApiErrorPresentation describeApiError(Object error) {
       return const ApiErrorPresentation(
         message: 'Sua sessão expirou. Faça login novamente.',
         sessionExpired: true,
+        kind: ApiErrorKind.unauthorized,
+        statusCode: 401,
       );
     }
     return ApiErrorPresentation(message: error.trim());

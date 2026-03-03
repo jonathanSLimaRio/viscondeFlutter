@@ -22,6 +22,15 @@ const moderationScopeSchema = z.enum([
   "CHAT_TEXT",
   "TEMPLATE_TEXT",
 ]);
+const uxEventNameSchema = z.enum([
+  "session_started",
+  "auth_error_shown",
+  "story_create_started",
+  "story_create_step_completed",
+  "story_create_abandoned",
+  "story_published",
+  "game_hub_opened",
+]);
 
 const optionalString = z
   .string()
@@ -30,6 +39,38 @@ const optionalString = z
   .max(120)
   .optional()
   .nullable();
+
+const uxClientInfoSchema = z
+  .object({
+    platform: z.string().trim().min(1).max(40).optional(),
+    appVersion: z.string().trim().min(1).max(80).optional(),
+    appBuild: z.string().trim().min(1).max(40).optional(),
+    locale: z.string().trim().min(1).max(40).optional(),
+    timezone: z.string().trim().min(1).max(80).optional(),
+  })
+  .strict()
+  .optional();
+
+export const uxEventSchema = z.object({
+  eventId: z.string().trim().min(1).max(140),
+  name: uxEventNameSchema,
+  occurredAt: z.coerce.date(),
+  source: z.string().trim().min(1).max(120).optional(),
+  childId: z.string().trim().min(1).max(120).optional(),
+  params: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const uxEventsBatchSchema = z.object({
+  appSessionId: z.string().trim().min(1).max(140),
+  client: uxClientInfoSchema,
+  events: z.array(uxEventSchema).min(1).max(50),
+});
+
+export const uxFunnelQuerySchema = z.object({
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  timezone: z.string().trim().min(1).max(80).optional(),
+});
 
 export const signUpSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -98,25 +139,49 @@ export const resetPinSchema = z.object({
   appleIdentityToken: z.string().min(1).optional(),
 });
 
+const storyCharacterInputSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  role: z.string().trim().min(1).max(80).optional(),
+});
+
 export const createStorySessionSchema = z.object({
   childProfileId: z.string().trim().min(1).max(120),
   titleDraft: z.string().trim().min(1).max(140),
   theme: z.string().trim().min(1).max(120),
   scenario: z.string().trim().min(1).max(160),
-  characters: z
-    .array(
-      z.object({
-        name: z.string().trim().min(1).max(80),
-        role: z.string().trim().min(1).max(80).optional(),
-      })
-    )
-    .min(1)
-    .max(8),
+  characters: z.array(storyCharacterInputSchema).min(1).max(8),
   objective: z.string().trim().min(1).max(200),
   startMode: storyModeSchema.default("PARENT_NARRATOR"),
   virtueId: z.string().trim().min(1).max(120).optional(),
   sourceTemplateId: z.string().trim().min(1).max(120).optional(),
 });
+
+export const updateStorySessionSetupSchema = z
+  .object({
+    titleDraft: z.string().trim().min(1).max(140).optional(),
+    theme: z.string().trim().min(1).max(120).optional(),
+    scenario: z.string().trim().min(1).max(160).optional(),
+    objective: z.string().trim().min(1).max(200).optional(),
+    characters: z.array(storyCharacterInputSchema).min(1).max(8).optional(),
+    virtueId: z.string().trim().min(1).max(120).optional().nullable(),
+    mode: storyModeSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.titleDraft === undefined &&
+      value.theme === undefined &&
+      value.scenario === undefined &&
+      value.objective === undefined &&
+      value.characters === undefined &&
+      value.virtueId === undefined &&
+      value.mode === undefined
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Informe ao menos um campo para atualizar a sessao.",
+      });
+    }
+  });
 
 export const updateStoryModeSchema = z.object({
   mode: storyModeSchema,

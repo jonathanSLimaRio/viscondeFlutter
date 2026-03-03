@@ -1,10 +1,24 @@
-import prisma from "@/lib/server/prisma";
-import { BookProjectStatus } from "@prisma/client";
-import { moderateTextInput } from "@/lib/server/moderation-service";
-import { ApiError } from "@/lib/server/error";
+import { prisma } from "@/lib/prisma";
+import { ApiError } from "@/lib/server/errors";
 import { storySessionInclude, toStorySessionDTO } from "@/lib/server/story-service";
 
 export async function createMonthlyBookProject(userId: string, childProfileId: string, monthStr: string) {
+  const child = await prisma.childProfile.findFirst({
+    where: {
+      id: childProfileId,
+      userId,
+      isArchived: false,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (!child) {
+    throw new ApiError("Perfil infantil nao encontrado.", 404, "CHILD_NOT_FOUND");
+  }
+
   // Check if an existing book project for this month already exists
   const existingProject = await prisma.bookProject.findUnique({
     where: {
@@ -27,6 +41,7 @@ export async function createMonthlyBookProject(userId: string, childProfileId: s
   // Fetch stories completed in this month
   const stories = await prisma.story.findMany({
     where: {
+      userId,
       childProfileId,
       status: "PUBLISHED",
       createdAt: {
@@ -38,10 +53,8 @@ export async function createMonthlyBookProject(userId: string, childProfileId: s
   });
 
   if (stories.length === 0) {
-    throw new ApiError("No published stories found for this month.", 400, "NO_STORIES_FOUND");
+    throw new ApiError("Nenhuma historia publicada encontrada para este mes.", 400, "NO_STORIES_FOUND");
   }
-
-  const child = await prisma.childProfile.findUnique({ where: { id: childProfileId } });
 
   // Create the BookProject
   const newBook = await prisma.bookProject.create({
@@ -64,11 +77,11 @@ export async function getBookProject(userId: string, bookProjectId: string) {
   });
 
   if (!project) {
-    throw new ApiError("Book project not found.", 404, "NOT_FOUND");
+    throw new ApiError("Projeto de livro nao encontrado.", 404, "BOOK_PROJECT_NOT_FOUND");
   }
 
   if (project.userId !== userId) {
-    throw new ApiError("Unauthorized", 403, "UNAUTHORIZED");
+    throw new ApiError("Voce nao tem permissao para acessar este livro.", 403, "BOOK_FORBIDDEN");
   }
 
   const fullStories = await prisma.story.findMany({

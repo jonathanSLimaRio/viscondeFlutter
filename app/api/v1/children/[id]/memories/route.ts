@@ -1,26 +1,20 @@
-import { NextResponse } from 'next/server';
-import { getLatestStoryMemory } from '@/lib/server/inventory-service';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAuth } from "@/lib/server/auth-context";
+import { handleRouteError, ok } from "@/lib/server/http";
+import { getLatestStoryMemory } from "@/lib/server/inventory-service";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export const runtime = "nodejs";
+
+type Params = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(request: Request, context: Params) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const memory = await getLatestStoryMemory(params.id);
-    return NextResponse.json(memory);
+    const auth = await requireAuth(request);
+    const { id } = await context.params;
+    const memory = await getLatestStoryMemory(auth.userId, id);
+    return ok(memory);
   } catch (error) {
-    console.error('Error fetching memory:', error);
-    return NextResponse.json(
-      { error: 'Internal server error while fetching memory' },
-      { status: 500 }
-    );
+    return handleRouteError(error);
   }
 }

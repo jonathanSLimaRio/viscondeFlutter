@@ -12,6 +12,7 @@ import '../features/admin/ui/moderation_admin_screen.dart';
 import '../features/admin/ui/prompt_admin_screen.dart';
 import '../features/admin/ui/template_admin_screen.dart';
 import '../features/admin/ui/theme_admin_screen.dart';
+import '../features/admin/ui/ux_funnel_admin_screen.dart';
 import '../features/admin/ui/virtue_admin_screen.dart';
 import '../features/profile/ui/home_shell_screen.dart';
 import '../features/remote_room/ui/remote_join_screen.dart';
@@ -85,6 +86,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoute.adminModeration,
         builder: (context, state) => const ModerationAdminScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.adminUxFunnel,
+        builder: (context, state) => const UxFunnelAdminScreen(),
       ),
       GoRoute(
         path: AppRoute.remoteJoin,

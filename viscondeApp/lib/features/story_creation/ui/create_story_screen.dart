@@ -52,7 +52,10 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      UxAnalytics.log('story_create_started');
+      UxAnalytics.log(
+        'story_create_started',
+        params: const <String, Object?>{'source': 'create_story_screen'},
+      );
       _loadChildren();
       _loadVirtues();
       _loadTemplates();
@@ -65,7 +68,11 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     if (!_storyCreated) {
       UxAnalytics.log(
         'story_create_abandoned',
-        params: <String, Object?>{'step': _currentStep + 1},
+        params: <String, Object?>{
+          'step': _currentStep + 1,
+          'child_id': _selectedChildId,
+          'source': 'create_story_screen',
+        },
       );
     }
     _titleController.dispose();
@@ -346,7 +353,11 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     final next = _currentStep + 1;
     UxAnalytics.log(
       'story_create_step_completed',
-      params: <String, Object?>{'step': _currentStep + 1},
+      params: <String, Object?>{
+        'step': _currentStep + 1,
+        'child_id': _selectedChildId,
+        'source': 'create_story_screen',
+      },
     );
     setState(() => _currentStep = next);
   }
@@ -426,7 +437,11 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     _storyCreated = true;
     UxAnalytics.log(
       'story_create_step_completed',
-      params: <String, Object?>{'step': 3},
+      params: <String, Object?>{
+        'step': 3,
+        'child_id': childId,
+        'source': 'create_story_screen',
+      },
     );
     context.go(AppRoute.storyRoom(created.id));
   }

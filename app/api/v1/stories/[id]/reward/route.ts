@@ -1,26 +1,20 @@
-import { NextResponse } from 'next/server';
-import { rewardRandomItem } from '@/lib/server/inventory-service';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAuth } from "@/lib/server/auth-context";
+import { handleRouteError, ok } from "@/lib/server/http";
+import { rewardRandomItem } from "@/lib/server/inventory-service";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export const runtime = "nodejs";
+
+type Params = {
+  params: Promise<{ id: string }>;
+};
+
+export async function POST(request: Request, context: Params) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const reward = await rewardRandomItem(params.id);
-    return NextResponse.json({ reward });
+    const auth = await requireAuth(request);
+    const { id } = await context.params;
+    const reward = await rewardRandomItem(auth.userId, id);
+    return ok({ reward });
   } catch (error) {
-    console.error('Error rewarding item:', error);
-    return NextResponse.json(
-      { error: 'Internal server error while processing reward' },
-      { status: 500 }
-    );
+    return handleRouteError(error);
   }
 }
