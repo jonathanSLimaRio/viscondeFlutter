@@ -88,7 +88,7 @@ ApiErrorPresentation describeApiError(Object error) {
 
     final mapped = ApiException.fromDio(error);
     return ApiErrorPresentation(
-      message: mapped.message,
+      message: _normalizeKnownMessage(mapped),
       sessionExpired: mapped.kind == ApiErrorKind.unauthorized,
     );
   }
