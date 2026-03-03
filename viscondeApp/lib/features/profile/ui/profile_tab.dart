@@ -156,7 +156,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
             child: ViscondeMascot(
               pose: ViscondeMascotPose.readingBookClose,
               size: 72,
-              opacity: 0.85,
               glow: true,
             ),
           ),

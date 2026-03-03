@@ -226,7 +226,6 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
               ViscondeMascot(
                 pose: ViscondeMascotPose.seriousController,
                 size: 72,
-                opacity: 0.85,
                 glow: true,
               ),
             ],

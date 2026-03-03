@@ -26,7 +26,6 @@ class LoadingScreen extends StatelessWidget {
                   pose: ViscondeMascotPose.wavingControllerBook,
                   size: 88,
                   glow: true,
-                  opacity: 0.92,
                 ),
                 const SizedBox(height: 24),
                 const Row(

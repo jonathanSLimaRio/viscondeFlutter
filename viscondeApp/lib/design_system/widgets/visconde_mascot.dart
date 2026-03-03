@@ -25,6 +25,7 @@ class ViscondeMascot extends StatelessWidget {
     this.opacity = 1,
     this.glow = false,
     this.fit = BoxFit.contain,
+    this.enhanceHighlights = true,
     this.semanticLabel,
   });
 
@@ -33,6 +34,7 @@ class ViscondeMascot extends StatelessWidget {
   final double opacity;
   final bool glow;
   final BoxFit fit;
+  final bool enhanceHighlights;
   final String? semanticLabel;
 
   static String resolvePose(ViscondeMascotPose pose) {
@@ -70,19 +72,51 @@ class ViscondeMascot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mascotImage = Image.asset(
+      resolvePose(pose),
+      fit: fit,
+      filterQuality: FilterQuality.high,
+      isAntiAlias: true,
+      gaplessPlayback: true,
+    );
+
+    final enhancedMascot = enhanceHighlights
+        ? ColorFiltered(
+            colorFilter: const ColorFilter.matrix(<double>[
+              1.06,
+              0,
+              0,
+              0,
+              2,
+              0,
+              1.06,
+              0,
+              0,
+              2,
+              0,
+              0,
+              1.06,
+              0,
+              2,
+              0,
+              0,
+              0,
+              1,
+              0,
+            ]),
+            child: ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                Colors.white.withValues(alpha: 0.06),
+                BlendMode.screen,
+              ),
+              child: mascotImage,
+            ),
+          )
+        : mascotImage;
+
     final mascot = Opacity(
       opacity: opacity.clamp(0, 1),
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: Image.asset(
-          resolvePose(pose),
-          fit: fit,
-          filterQuality: FilterQuality.high,
-          isAntiAlias: true,
-          gaplessPlayback: true,
-        ),
-      ),
+      child: SizedBox(width: size, height: size, child: enhancedMascot),
     );
 
     return Semantics(
