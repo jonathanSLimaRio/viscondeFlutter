@@ -144,7 +144,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            valid.verified ? 'Area adulta liberada.' : 'PIN invalido.',
+            valid.verified ? 'Área adulta liberada.' : 'PIN inválido.',
           ),
         ),
       );
@@ -259,7 +259,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
           ),
           FilledButton(
             onPressed: _verifyPin,
-            child: const Text('Desbloquear area adulta'),
+            child: const Text('Desbloquear área adulta'),
           ),
           const SizedBox(height: 16),
           const Divider(),
@@ -286,8 +286,8 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
         const SizedBox(height: 16),
         Text(
           _isUnlocked
-              ? 'Area adulta liberada por 10 minutos.'
-              : 'Area adulta bloqueada.',
+              ? 'Área adulta liberada por 10 minutos.'
+              : 'Área adulta bloqueada.',
           style: TextStyle(
             color: _isUnlocked ? Colors.green : Colors.orange,
             fontWeight: FontWeight.w600,
@@ -299,7 +299,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
               ? () => context.push(AppRoute.adultVirtueReports)
               : null,
           icon: const Icon(Icons.insights_outlined),
-          label: const Text('Relatorio de virtudes'),
+          label: const Text('Relatório de virtudes'),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
@@ -307,7 +307,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
               ? () => context.push(AppRoute.adultInteractions)
               : null,
           icon: const Icon(Icons.forum_outlined),
-          label: const Text('Interacoes remotas'),
+          label: const Text('Interações remotas'),
         ),
         const SizedBox(height: 8),
         FilledButton.icon(
@@ -324,7 +324,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
                 ? () => context.push(AppRoute.adminHub)
                 : null,
             icon: const Icon(Icons.admin_panel_settings_outlined),
-            label: const Text('Administracao'),
+            label: const Text('Administração'),
           ),
         ],
       ],

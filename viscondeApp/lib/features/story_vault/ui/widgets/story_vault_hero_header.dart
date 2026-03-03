@@ -42,23 +42,6 @@ class StoryVaultHeroHeader extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 18, 14, 14),
         child: Stack(
           children: [
-            Positioned(
-              right: -24,
-              top: -22,
-              child: Container(
-                width: 180,
-                height: 180,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      colors.accent.withValues(alpha: 0.36),
-                      colors.accent.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

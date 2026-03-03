@@ -115,7 +115,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
       final bundle = widget.joinBundle;
       if (bundle == null) {
         setState(() {
-          _error = 'Dados da sala remota nao encontrados.';
+          _error = 'Dados da sala remota não encontrados.';
         });
         return;
       }
@@ -144,7 +144,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
     final storyId = widget.storyId;
     if (token == null || storyId == null || storyId.isEmpty) {
       setState(() {
-        _error = 'Sessao expirada. Faca login novamente.';
+        _error = 'Sessão expirada. Faça login novamente.';
       });
       return;
     }
@@ -444,7 +444,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
 
     if (!gate.isUnlocked || gate.unlockToken == null) {
       context.showMessage(
-        'Desbloqueie a area adulta com PIN antes de abrir sala remota.',
+        'Desbloqueie a área adulta com PIN antes de abrir sala remota.',
       );
       return;
     }
@@ -869,7 +869,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(_error ?? 'Sessao remota nao encontrada.'),
+            child: Text(_error ?? 'Sessão remota não encontrada.'),
           ),
         ),
       );
@@ -930,13 +930,13 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 4),
-                    Text('Historia: ${story.title}'),
+                    Text('História: ${story.title}'),
                     Text('Etapa atual: ${story.currentStepIndex}/12'),
                     if (room != null) ...[
                       Text('Status sala: ${room.status.name.toUpperCase()}'),
                       Text('Participantes online: ${room.participants.length}'),
                     ] else ...[
-                      const Text('Sala remota ainda nao aberta.'),
+                      const Text('Sala remota ainda não aberta.'),
                     ],
                     if (_joinCode != null && _joinCode!.isNotEmpty)
                       Text('Codigo ativo: $_joinCode'),
@@ -954,7 +954,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                   ),
                   ButtonSegment(
                     value: StoryMode.childChooser,
-                    label: Text('Crianca escolhe'),
+                    label: Text('Criança escolhe'),
                   ),
                 ],
                 selected: <StoryMode>{story.currentMode},

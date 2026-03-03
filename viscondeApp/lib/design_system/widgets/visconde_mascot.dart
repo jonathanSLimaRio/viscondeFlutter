@@ -75,7 +75,13 @@ class ViscondeMascot extends StatelessWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child: Image.asset(resolvePose(pose), fit: fit),
+        child: Image.asset(
+          resolvePose(pose),
+          fit: fit,
+          filterQuality: FilterQuality.high,
+          isAntiAlias: true,
+          gaplessPlayback: true,
+        ),
       ),
     );
 

@@ -284,7 +284,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
   }) async {
     final token = _accessToken();
     if (token == null) {
-      state = state.copyWith(error: 'Sessao expirada. Faca login novamente.');
+      state = state.copyWith(error: 'Sessão expirada. Faça login novamente.');
       return null;
     }
 
@@ -321,7 +321,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
   Future<void> loadSession(String storyId) async {
     final token = _accessToken();
     if (token == null) {
-      state = state.copyWith(error: 'Sessao expirada. Faca login novamente.');
+      state = state.copyWith(error: 'Sessão expirada. Faça login novamente.');
       return;
     }
 

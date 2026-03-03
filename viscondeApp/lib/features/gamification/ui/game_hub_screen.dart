@@ -182,7 +182,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('PIN invalido.')));
+          ).showSnackBar(const SnackBar(content: Text('PIN inválido.')));
         }
         return null;
       }

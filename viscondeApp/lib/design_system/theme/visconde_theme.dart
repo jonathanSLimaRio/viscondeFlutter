@@ -32,9 +32,19 @@ class ViscondeTheme {
       textTheme: ViscondeTypography.build(),
       splashFactory: InkSparkle.splashFactory,
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: colors.parchmentSoft.withValues(alpha: 0.72),
         foregroundColor: colors.textStrong,
         elevation: 0,
+        centerTitle: false,
+        toolbarHeight: 62,
+        titleSpacing: 12,
+        scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(radii.md),
+          ),
+        ),
         titleTextStyle: ViscondeTypography.build().titleLarge,
         surfaceTintColor: Colors.transparent,
       ),
@@ -120,15 +130,22 @@ class ViscondeTheme {
         space: spacing.section,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 78,
-        backgroundColor: colors.parchment.withValues(alpha: 0.82),
+        height: 70,
+        backgroundColor: colors.parchment.withValues(alpha: 0.9),
         indicatorColor: colors.primary.withValues(alpha: 0.2),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected ? colors.primaryDark : colors.textMuted,
+            size: selected ? 24 : 22,
+          );
+        }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
             color: selected ? colors.primaryDark : colors.textMuted,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-            fontSize: 12,
+            fontSize: 11,
           );
         }),
       ),

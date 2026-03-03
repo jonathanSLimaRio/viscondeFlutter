@@ -22,10 +22,10 @@ String parseDioError(Object error) {
     }
 
     if (error.type == DioExceptionType.connectionError) {
-      return 'Falha de conexao com o servidor.';
+      return 'Falha de conexão com o servidor.';
     }
 
-    return 'Erro de requisicao (${error.response?.statusCode ?? 'sem status'}).';
+    return 'Erro de requisição (${error.response?.statusCode ?? 'sem status'}).';
   }
 
   if (error is String && error.trim().isNotEmpty) {

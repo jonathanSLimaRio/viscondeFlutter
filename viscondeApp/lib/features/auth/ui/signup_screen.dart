@@ -248,13 +248,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             Positioned(
               right: 10,
               bottom: 4,
-              child: SizedBox(
+              child: const SizedBox(
                 width: 132,
                 height: 132,
-                child: Image.asset(
-                  ViscondeArtRegistry.resolve(
-                    ViscondeArtKey.mascotPointingScroll,
-                  ),
+                child: ViscondeMascot(
+                  pose: ViscondeMascotPose.pointingScroll,
+                  glow: true,
                   fit: BoxFit.contain,
                 ),
               ),

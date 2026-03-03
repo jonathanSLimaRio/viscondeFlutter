@@ -37,7 +37,7 @@ class StoryPdfExporter {
       ),
     );
 
-    // Timeline Paginas
+    // Timeline Páginas
     for (final step in story.steps) {
       if (step.narratorText != null && step.narratorText!.isNotEmpty) {
         pdf.addPage(
@@ -48,15 +48,15 @@ class StoryPdfExporter {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'Capitulo ${step.stepIndex}',
+                    'Capítulo ${step.stepIndex}',
                     style: pw.TextStyle(
                       fontSize: 20,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
                   pw.SizedBox(height: 20),
-                  // Em uma versao mais avancada, poderiamos baixar a url da imagem (StoryIllustration)
-                  // e injetar na arvore do pw.Image aqui!
+                  // Em uma versão mais avançada, poderíamos baixar a url da imagem (StoryIllustration)
+                  // e injetar na árvore do pw.Image aqui!
                   pw.Text(
                     step.narratorText!,
                     style: const pw.TextStyle(fontSize: 14),
@@ -113,9 +113,9 @@ class StoryPdfExporter {
       ),
     );
 
-    // Iterar pelas Historias
+    // Iterar pelas Histórias
     for (final story in book.stories) {
-      // Contra-capa da historia
+      // Contra-capa da história
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
@@ -145,7 +145,7 @@ class StoryPdfExporter {
         ),
       );
 
-      // Paginas da historia
+      // Páginas da história
       for (final step in story.steps) {
         if (step.narratorText != null && step.narratorText!.isNotEmpty) {
           pdf.addPage(

@@ -101,7 +101,7 @@ class _StoryInteractionsAdultScreenState
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text('Interacoes: ${result.interactions.length}'),
+                  Text('Interações: ${result.interactions.length}'),
                   const SizedBox(height: 12),
                   ...result.interactions.map(
                     (item) => Card(
@@ -139,7 +139,7 @@ class _StoryInteractionsAdultScreenState
 
     if (!gate.isUnlocked || gate.unlockToken == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Interacoes remotas')),
+        appBar: AppBar(title: const Text('Interações remotas')),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: const [
@@ -156,7 +156,7 @@ class _StoryInteractionsAdultScreenState
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Interacoes remotas')),
+      appBar: AppBar(title: const Text('Interações remotas')),
       body: RefreshIndicator(
         onRefresh: _loadStories,
         child: ListView(
@@ -183,7 +183,7 @@ class _StoryInteractionsAdultScreenState
             if (!_loading && _stories.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
-                child: Text('Nenhuma historia encontrada.'),
+                child: Text('Nenhuma história encontrada.'),
               ),
             ..._stories.map(
               (story) => ViscondeGlassCard(

@@ -284,7 +284,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   Future<void> _createStory() async {
     final childId = _selectedChildId;
     if (childId == null) {
-      context.showMessage('Selecione uma crianca para iniciar.');
+      context.showMessage('Selecione uma criança para iniciar.');
       return;
     }
 
@@ -342,7 +342,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
     if (created == null) {
       final error = ref.read(storyRoomControllerProvider).error;
-      context.showMessage(error ?? 'Falha ao criar sessao.');
+      context.showMessage(error ?? 'Falha ao criar sessão.');
       return;
     }
 
@@ -352,7 +352,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Criar Sala de Historia')),
+      appBar: AppBar(title: const Text('Criar Sala de História')),
       body: _loadingChildren
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -385,7 +385,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                         const Padding(
                           padding: EdgeInsets.only(bottom: 16),
                           child: Text(
-                            'Cadastre ao menos uma crianca na aba Criancas antes de iniciar.',
+                            'Cadastre ao menos uma criança na aba Crianças antes de iniciar.',
                           ),
                         ),
                       DropdownButtonFormField<String>(
@@ -401,7 +401,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                         onChanged: (value) {
                           setState(() => _selectedChildId = value);
                         },
-                        decoration: const InputDecoration(labelText: 'Crianca'),
+                        decoration: const InputDecoration(labelText: 'Criança'),
                       ),
                       const SizedBox(height: 12),
                       if (_loadingTemplates || _applyingTemplate)
@@ -520,7 +520,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                         DropdownButtonFormField<String>(
                           initialValue: _selectedArtStyleId,
                           decoration: const InputDecoration(
-                            labelText: 'Estilo de Ilustracao (Nova Aventura)',
+                            labelText: 'Estilo de Ilustração (Nova Aventura)',
                           ),
                           items: _artStyles
                               .map(
@@ -542,7 +542,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                           ),
                           ButtonSegment<StoryMode>(
                             value: StoryMode.childChooser,
-                            label: Text('Crianca escolhe'),
+                            label: Text('Criança escolhe'),
                           ),
                         ],
                         selected: <StoryMode>{_mode},
@@ -558,7 +558,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                         icon: Icons.play_arrow,
                         label: _submitting
                             ? 'Criando...'
-                            : 'Abrir Sala de Historia',
+                            : 'Abrir Sala de História',
                       ),
                     ],
                   ),

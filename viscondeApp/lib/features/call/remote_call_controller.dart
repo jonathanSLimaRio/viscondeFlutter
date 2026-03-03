@@ -352,7 +352,7 @@ class RemoteCallController extends ChangeNotifier {
         RTCIceCandidate(candidateValue, sdpMid, sdpMLineIndex),
       );
     } catch (_) {
-      // Ignora ICE candidates invalidos/fora de ordem.
+      // Ignora ICE candidates inválidos/fora de ordem.
     }
   }
 

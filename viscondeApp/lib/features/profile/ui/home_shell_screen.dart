@@ -17,6 +17,8 @@ class HomeShellScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
+  static const _menuAnimationDuration = Duration(milliseconds: 260);
+
   int _index = 0;
   final Map<int, Widget> _tabCache = <int, Widget>{0: const StoryVaultScreen()};
 
@@ -37,34 +39,142 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
     }
   }
 
-  List<Widget> _stackChildren() {
-    return List<Widget>.generate(5, (index) {
-      return _tabCache[index] ?? const SizedBox.shrink();
-    }, growable: false);
+  String _tabLabel(int index) {
+    switch (index) {
+      case 0:
+        return 'Histórias';
+      case 1:
+        return 'Game Hub';
+      case 2:
+        return 'Crianças';
+      case 3:
+        return 'Perfil';
+      case 4:
+        return 'Área adulta';
+      default:
+        return '';
+    }
+  }
+
+  Widget _buildAnimatedBody() {
+    return Stack(
+      children: List<Widget>.generate(5, (index) {
+        final tab = _tabCache[index];
+        if (tab == null) {
+          return const SizedBox.shrink();
+        }
+
+        final selected = _index == index;
+        return Positioned.fill(
+          child: IgnorePointer(
+            ignoring: !selected,
+            child: AnimatedOpacity(
+              opacity: selected ? 1 : 0,
+              duration: _menuAnimationDuration,
+              curve: Curves.easeOutCubic,
+              child: AnimatedSlide(
+                offset: selected ? Offset.zero : const Offset(0.03, 0),
+                duration: _menuAnimationDuration,
+                curve: Curves.easeOutCubic,
+                child: KeyedSubtree(key: ValueKey<int>(index), child: tab),
+              ),
+            ),
+          ),
+        );
+      }, growable: false),
+    );
+  }
+
+  NavigationDestination _destination({
+    required int index,
+    required IconData icon,
+    required IconData selectedIcon,
+    required String label,
+  }) {
+    final selected = _index == index;
+
+    return NavigationDestination(
+      icon: AnimatedScale(
+        scale: selected ? 1.08 : 1,
+        duration: _menuAnimationDuration,
+        curve: Curves.easeOutBack,
+        child: Icon(icon),
+      ),
+      selectedIcon: AnimatedScale(
+        scale: selected ? 1.1 : 1,
+        duration: _menuAnimationDuration,
+        curve: Curves.easeOutBack,
+        child: Icon(selectedIcon),
+      ),
+      label: label,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.viscondeColors;
+    final currentTabLabel = _tabLabel(_index);
+
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset(
-          ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
-          height: 36,
-          fit: BoxFit.contain,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
+              height: 30,
+              fit: BoxFit.contain,
+            ),
+            AnimatedSwitcher(
+              duration: _menuAnimationDuration,
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeOutCubic,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.16),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              ),
+              child: Text(
+                currentTabLabel,
+                key: ValueKey<String>(currentTabLabel),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colors.primaryDark,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
         ),
         actions: [
-          IconButton(
-            onPressed: () async {
-              await ref.read(authControllerProvider.notifier).logout();
-            },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sair',
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: context.viscondeGradients.glass,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: colors.borderSoft, width: 1),
+              ),
+              child: IconButton(
+                onPressed: () async {
+                  await ref.read(authControllerProvider.notifier).logout();
+                },
+                icon: const Icon(Icons.logout),
+                tooltip: 'Sair',
+              ),
+            ),
           ),
         ],
       ),
-      body: IndexedStack(index: _index, children: _stackChildren()),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      body: _buildAnimatedBody(),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(10, 0, 10, 4),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(context.viscondeRadii.xl),
           child: NavigationBar(
@@ -75,31 +185,36 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
                 _tabCache.putIfAbsent(value, () => _tabForIndex(value));
               });
             },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.menu_book_outlined),
-                selectedIcon: Icon(Icons.menu_book),
-                label: 'Historias',
+            destinations: [
+              _destination(
+                index: 0,
+                icon: Icons.menu_book_outlined,
+                selectedIcon: Icons.menu_book,
+                label: 'Histórias',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.videogame_asset_outlined),
-                selectedIcon: Icon(Icons.videogame_asset),
+              _destination(
+                index: 1,
+                icon: Icons.videogame_asset_outlined,
+                selectedIcon: Icons.videogame_asset,
                 label: 'Game',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.child_care_outlined),
-                selectedIcon: Icon(Icons.child_care),
-                label: 'Criancas',
+              _destination(
+                index: 2,
+                icon: Icons.child_care_outlined,
+                selectedIcon: Icons.child_care,
+                label: 'Crianças',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.account_circle_outlined),
-                selectedIcon: Icon(Icons.account_circle),
+              _destination(
+                index: 3,
+                icon: Icons.account_circle_outlined,
+                selectedIcon: Icons.account_circle,
                 label: 'Perfil',
               ),
-              NavigationDestination(
-                icon: Icon(Icons.lock_outline),
-                selectedIcon: Icon(Icons.lock),
-                label: 'Area adulta',
+              _destination(
+                index: 4,
+                icon: Icons.lock_outline,
+                selectedIcon: Icons.lock,
+                label: 'Área adulta',
               ),
             ],
           ),

@@ -34,7 +34,7 @@ class ApiException implements Exception {
     if (error.type == DioExceptionType.connectionError) {
       return ApiException(
         kind: ApiErrorKind.network,
-        message: message ?? 'Falha de conexao com o servidor.',
+        message: message ?? 'Falha de conexão com o servidor.',
         statusCode: status,
         code: code,
         cause: error,
@@ -46,7 +46,7 @@ class ApiException implements Exception {
         error.type == DioExceptionType.sendTimeout) {
       return ApiException(
         kind: ApiErrorKind.timeout,
-        message: message ?? 'Tempo limite de conexao excedido.',
+        message: message ?? 'Tempo limite de conexão excedido.',
         statusCode: status,
         code: code,
         cause: error,
@@ -56,7 +56,7 @@ class ApiException implements Exception {
     if (status == 401) {
       return ApiException(
         kind: ApiErrorKind.unauthorized,
-        message: message ?? 'Sessao expirada. Faca login novamente.',
+        message: message ?? 'Sessão expirada. Faça login novamente.',
         statusCode: status,
         code: code,
         cause: error,
@@ -66,7 +66,7 @@ class ApiException implements Exception {
     if (status == 403) {
       return ApiException(
         kind: ApiErrorKind.forbidden,
-        message: message ?? 'Voce nao tem permissao para esta acao.',
+        message: message ?? 'Você não tem permissão para esta ação.',
         statusCode: status,
         code: code,
         cause: error,
@@ -76,7 +76,7 @@ class ApiException implements Exception {
     if (status == 404) {
       return ApiException(
         kind: ApiErrorKind.notFound,
-        message: message ?? 'Recurso nao encontrado.',
+        message: message ?? 'Recurso não encontrado.',
         statusCode: status,
         code: code,
         cause: error,
@@ -96,7 +96,7 @@ class ApiException implements Exception {
     if (status == 422 || status == 400) {
       return ApiException(
         kind: ApiErrorKind.validation,
-        message: message ?? 'Dados invalidos para esta operacao.',
+        message: message ?? 'Dados inválidos para esta operação.',
         statusCode: status,
         code: code,
         cause: error,
@@ -115,7 +115,7 @@ class ApiException implements Exception {
 
     return ApiException(
       kind: ApiErrorKind.unknown,
-      message: message ?? 'Erro de requisicao (${status ?? 'sem status'}).',
+      message: message ?? 'Erro de requisição (${status ?? 'sem status'}).',
       statusCode: status,
       code: code,
       cause: error,

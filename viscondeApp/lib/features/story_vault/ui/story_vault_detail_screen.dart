@@ -182,7 +182,7 @@ class _StoryVaultDetailScreenState
         : <ChildProfile>[
             ChildProfile(
               id: defaultChildId,
-              name: 'Crianca atual',
+              name: 'Criança atual',
               birthDate: DateTime(2018, 1, 1),
               favoriteThemes: const [],
               isArchived: false,
@@ -196,7 +196,7 @@ class _StoryVaultDetailScreenState
           title: const Text('Repetir aventura'),
           content: DropdownButtonFormField<String>(
             initialValue: selected,
-            decoration: const InputDecoration(labelText: 'Crianca destino'),
+            decoration: const InputDecoration(labelText: 'Criança destino'),
             items: childOptions
                 .map(
                   (child) => DropdownMenuItem<String>(
@@ -289,7 +289,7 @@ class _StoryVaultDetailScreenState
     if (detail == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Detalhe da saga')),
-        body: const Center(child: Text('Saga nao encontrada.')),
+        body: const Center(child: Text('Saga não encontrada.')),
       );
     }
 
@@ -413,7 +413,7 @@ class _StoryVaultDetailScreenState
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Escolhas e narracao',
+                        'Escolhas e narração',
                         style: TextStyle(
                           color: Colors.grey.shade700,
                           fontWeight: FontWeight.w700,

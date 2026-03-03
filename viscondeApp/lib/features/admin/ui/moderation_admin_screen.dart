@@ -351,7 +351,7 @@ class _ModerationAdminScreenState extends ConsumerState<ModerationAdminScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin: Moderacao')),
+      appBar: AppBar(title: const Text('Admin: Moderação')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateTermDialog,
         icon: const Icon(Icons.add),
@@ -383,7 +383,7 @@ class _ModerationAdminScreenState extends ConsumerState<ModerationAdminScreen> {
             if (!_loading && _terms.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 24),
-                child: Text('Nenhum termo de moderacao cadastrado.'),
+                child: Text('Nenhum termo de moderação cadastrado.'),
               ),
             ..._terms.map(
               (term) => ViscondeGlassCard(

@@ -161,7 +161,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     if (token == null || _selectedChildId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Selecione uma crianca nos filtros primeiro.'),
+          content: Text('Selecione uma criança nos filtros primeiro.'),
         ),
       );
       return;
@@ -181,7 +181,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Nenhuma historia concluida neste mes para gerar o livro.',
+            'Nenhuma história concluída neste mês para gerar o livro.',
           ),
         ),
       );
@@ -271,7 +271,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                       child: DropdownButtonFormField<String?>(
                         initialValue: _selectedChildId,
                         isExpanded: true,
-                        decoration: const InputDecoration(labelText: 'Crianca'),
+                        decoration: const InputDecoration(labelText: 'Criança'),
                         items: [
                           const DropdownMenuItem<String?>(
                             value: null,
@@ -338,7 +338,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                         label: Text(
                           _dateTo == null
                               ? 'Data final'
-                              : 'Ate ${dateFormat.format(_dateTo!)}',
+                              : 'Até ${dateFormat.format(_dateTo!)}',
                         ),
                       ),
                     ),
@@ -383,12 +383,9 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Column(
                   children: [
-                    const Text(
+                    Text(
                       'Seu baú está vazio',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
                     const ViscondeMascot(

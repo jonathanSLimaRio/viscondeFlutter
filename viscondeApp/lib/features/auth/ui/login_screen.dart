@@ -217,13 +217,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Positioned(
             right: 8,
             bottom: 4,
-            child: SizedBox(
+            child: const SizedBox(
               width: 132,
               height: 132,
-              child: Image.asset(
-                ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.mascotWavingControllerBook,
-                ),
+              child: ViscondeMascot(
+                pose: ViscondeMascotPose.wavingControllerBook,
+                glow: true,
                 fit: BoxFit.contain,
               ),
             ),

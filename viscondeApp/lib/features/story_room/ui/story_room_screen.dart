@@ -36,11 +36,11 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
   String _stepTitle(StoryStepModel step) {
     switch (step.kind) {
       case StoryStepKind.childChoice:
-        return 'Escolha da crianca';
+        return 'Escolha da criança';
       case StoryStepKind.system:
         return 'Sistema';
       case StoryStepKind.narration:
-        return 'Narracao do pai';
+        return 'Narração do pai';
     }
   }
 
@@ -63,7 +63,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
 
       if (readyProfiles.isEmpty) {
         context.showMessage(
-          'Nenhuma voz pronta encontrada. Acesse a area adulta e treine uma voz primeiro.',
+          'Nenhuma voz pronta encontrada. Acesse a área adulta e treine uma voz primeiro.',
         );
         return;
       }
@@ -93,7 +93,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                     onTap: () async {
                       Navigator.of(context).pop();
                       try {
-                        context.showMessage('Gerando narracao...');
+                        context.showMessage('Gerando narração...');
                         final job = await ref
                             .read(voiceApiProvider)
                             .requestNarration(
@@ -158,8 +158,8 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
 
     if (story == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Sala de Historia')),
-        body: const Center(child: Text('Sessao de historia nao encontrada.')),
+        appBar: AppBar(title: const Text('Sala de História')),
+        body: const Center(child: Text('Sessão de história não encontrada.')),
       );
     }
 
@@ -190,7 +190,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
           IconButton(
             onPressed: () => context.push(AppRoute.storySummary(story.id)),
             icon: const Icon(Icons.checklist_outlined),
-            tooltip: 'Resumo e publicacao',
+            tooltip: 'Resumo e publicação',
           ),
         ],
       ),
@@ -264,7 +264,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                           child: Text(
                             illustration.status == 'COMPLETED'
                                 ? 'Ilustrando Cena ${illustration.stepIndex}'
-                                : 'Criando Ilustracao...',
+                                : 'Criando Ilustração...',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -329,7 +329,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                 ),
                 ButtonSegment<StoryMode>(
                   value: StoryMode.childChooser,
-                  label: Text('Crianca escolhe'),
+                  label: Text('Criança escolhe'),
                 ),
               ],
               selected: <StoryMode>{story.currentMode},
@@ -393,7 +393,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
             ViscondePrimaryCta(
               onPressed: () => context.push(AppRoute.storySummary(story.id)),
               icon: Icons.publish_outlined,
-              label: 'Revisar e publicar capitulo',
+              label: 'Revisar e publicar capítulo',
             ),
           ],
         ),

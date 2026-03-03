@@ -82,7 +82,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Historia publicada com sucesso.')),
+      const SnackBar(content: Text('História publicada com sucesso.')),
     );
     context.go(AppRoute.home);
   }
@@ -174,8 +174,8 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
 
     if (story == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Resumo da Historia')),
-        body: const Center(child: Text('Historia nao encontrada.')),
+        appBar: AppBar(title: const Text('Resumo da História')),
+        body: const Center(child: Text('História não encontrada.')),
       );
     }
 
@@ -185,7 +185,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Resumo e Publicacao'),
+        title: const Text('Resumo e Publicação'),
         actions: [
           IconButton(
             onPressed: () => StoryPdfExporter.exportAndShare(story),
@@ -219,7 +219,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Crianca: ${story.child.name}'),
+                        Text('Criança: ${story.child.name}'),
                         Text('Tema: ${story.theme}'),
                         Text('Cenario: ${story.scenario}'),
                         Text('Objetivo: ${story.objective}'),
@@ -262,7 +262,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
                   icon: Icons.publish,
                   label: state.finalizing
                       ? 'Publicando...'
-                      : 'Publicar capitulo',
+                      : 'Publicar capítulo',
                 ),
               ],
             ),

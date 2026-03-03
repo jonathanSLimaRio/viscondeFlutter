@@ -77,7 +77,7 @@ class _ChildrenTabState extends ConsumerState<ChildrenTab> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    child == null ? 'Nova crianca' : 'Editar crianca',
+                    child == null ? 'Nova criança' : 'Editar criança',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -239,7 +239,7 @@ class _ChildrenTabState extends ConsumerState<ChildrenTab> {
                 FilledButton.icon(
                   onPressed: () => _openChildForm(),
                   icon: const Icon(Icons.add),
-                  label: const Text('Adicionar crianca'),
+                  label: const Text('Adicionar criança'),
                 ),
                 const SizedBox(height: 12),
                 if (_children.isEmpty)

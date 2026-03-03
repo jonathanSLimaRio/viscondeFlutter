@@ -1305,8 +1305,8 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       children: [
                         Text(
                           _lastValidation!.valid
-                              ? 'Validacao OK'
-                              : 'Validacao com erros',
+                              ? 'Validação OK'
+                              : 'Validação com erros',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             color: _lastValidation!.valid

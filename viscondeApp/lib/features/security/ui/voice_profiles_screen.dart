@@ -143,7 +143,7 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
             ViscondeHeroBanner(
               title: 'A voz da sua familia',
               subtitle:
-                  'Crie perfis e guarde para sempre a voz de quem você ama na narracao.',
+                  'Crie perfis e guarde para sempre a voz de quem você ama na narração.',
               assetPath: ViscondeArtRegistry.resolve(
                 ViscondeArtKey.heroTreasure,
               ),

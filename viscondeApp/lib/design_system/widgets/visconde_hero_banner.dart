@@ -16,7 +16,7 @@ class ViscondeHeroBanner extends StatelessWidget {
     this.mascotPose = ViscondeMascotPose.readingBook,
     this.mascotAlignment = Alignment.bottomRight,
     this.mascotSize = 96,
-    this.mascotOpacity = 0.92,
+    this.mascotOpacity = 1,
   });
 
   final String title;

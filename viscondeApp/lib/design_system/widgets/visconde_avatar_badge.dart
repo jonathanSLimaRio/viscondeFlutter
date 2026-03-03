@@ -16,6 +16,8 @@ class ViscondeAvatarBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(context.viscondeRadii.sm);
+
     return SizedBox(
       width: size,
       height: size,
@@ -25,15 +27,21 @@ class ViscondeAvatarBadge extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
+                borderRadius: radius,
+                gradient: context.viscondeGradients.glass,
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.8),
                   width: 2,
                 ),
                 boxShadow: context.viscondeElevations.soft,
               ),
-              child: ClipOval(
-                child: Image.asset(imageAsset, fit: BoxFit.cover),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(context.viscondeRadii.xs),
+                child: Image.asset(
+                  imageAsset,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.high,
+                ),
               ),
             ),
           ),

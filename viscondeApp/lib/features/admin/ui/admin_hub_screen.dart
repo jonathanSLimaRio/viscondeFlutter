@@ -49,18 +49,18 @@ class AdminHubScreen extends StatelessWidget {
           _AdminMenuTile(
             icon: Icons.lightbulb_outline,
             title: 'Prompts',
-            subtitle: 'Gerencie prompts de ideia/fallback e narracao.',
+            subtitle: 'Gerencie prompts de ideia/fallback e narração.',
             onTap: () => context.push(AppRoute.adminPrompts),
           ),
           _AdminMenuTile(
             icon: Icons.account_tree_outlined,
-            title: 'Templates de Historia',
-            subtitle: 'Edite arvore de decisao e publique versoes.',
+            title: 'Templates de História',
+            subtitle: 'Edite árvore de decisao e publique versões.',
             onTap: () => context.push(AppRoute.adminTemplates),
           ),
           _AdminMenuTile(
             icon: Icons.shield_outlined,
-            title: 'Moderacao',
+            title: 'Moderação',
             subtitle: 'Bloqueie termos improprios por escopo.',
             onTap: () => context.push(AppRoute.adminModeration),
           ),

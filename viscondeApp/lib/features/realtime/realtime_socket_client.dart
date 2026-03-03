@@ -62,14 +62,14 @@ class RealtimeSocketClient {
             ),
           );
         } catch (_) {
-          _errorsController.add('Mensagem realtime invalida.');
+          _errorsController.add('Mensagem realtime inválida.');
         }
       },
       onError: (error) {
         _errorsController.add('Erro no realtime socket.');
       },
       onDone: () {
-        _errorsController.add('Conexao realtime encerrada.');
+        _errorsController.add('Conexão realtime encerrada.');
       },
       cancelOnError: false,
     );

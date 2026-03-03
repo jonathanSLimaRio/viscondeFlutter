@@ -110,7 +110,7 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Historias publicadas: ${summary.totals['publishedStories'] ?? 0}',
+                  'Histórias publicadas: ${summary.totals['publishedStories'] ?? 0}',
                 ),
                 Text(
                   'Com virtude: ${summary.totals['storiesWithVirtue'] ?? 0}',
@@ -132,7 +132,7 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Capitulos',
+                  'Capítulos',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
                 ...summary.stories.map(
@@ -172,7 +172,7 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
 
     if (!gate.isUnlocked || gate.unlockToken == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Relatorio de Virtudes')),
+        appBar: AppBar(title: const Text('Relatório de Virtudes')),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: const [
@@ -189,7 +189,7 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Relatorio de Virtudes')),
+      appBar: AppBar(title: const Text('Relatório de Virtudes')),
       body: RefreshIndicator(
         onRefresh: _loadOverview,
         child: ListView(
@@ -242,7 +242,7 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Resumo por crianca',
+                'Resumo por criança',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
