@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -1036,76 +1035,29 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     _enterStep(_currentStep - 1);
   }
 
-  String? _responseCode(Object error) {
-    if (error is DioException) {
-      final data = error.response?.data;
-      if (data is Map<String, dynamic>) {
-        final code = data['code'] as String?;
-        if (code != null && code.isNotEmpty) {
-          return code;
-        }
-      }
-    }
-    return null;
-  }
-
-  Future<void> _tryCreateMissingSteps() async {
-    final token = _accessToken();
-    final storyId = _storyId;
-    if (token == null || storyId == null || storyId.isEmpty) {
-      return;
-    }
-
-    final api = ref.read(storyApiProvider);
-    final session = await api.getStorySession(token, storyId);
-
-    for (
-      var stepIndex = session.currentStepIndex + 1;
-      stepIndex <= 3;
-      stepIndex++
-    ) {
-      try {
-        await api.createStep(
-          token,
-          storyId,
-          kind: StoryStepKind.narration,
-          stepIndex: stepIndex,
-          narratorPrompt: _buildAutoPrompt(stepIndex),
-          localEventId: 'wizard-auto-$storyId-$stepIndex',
-        );
-      } catch (error) {
-        final code = _responseCode(error);
-        if (code == 'STEP_ALREADY_EXISTS' || code == 'STEP_OUT_OF_ORDER') {
-          continue;
-        }
-        rethrow;
-      }
-    }
-  }
-
-  String _buildAutoPrompt(int stepIndex) {
-    final title = _titleController.text.trim().isEmpty
-        ? 'Aventura'
-        : _titleController.text.trim();
-    final theme = _themeController.text.trim().isEmpty
-        ? 'amizade'
-        : _themeController.text.trim();
-    final scenario = _scenarioController.text.trim().isEmpty
-        ? 'bosque encantado'
-        : _scenarioController.text.trim();
-    final objective = _objectiveController.text.trim().isEmpty
-        ? 'seguir a aventura'
-        : _objectiveController.text.trim();
-
-    return 'Etapa $stepIndex da história "$title" em $scenario, com foco em $theme e objetivo: $objective.';
-  }
-
   void _logStep3Once({required String reason}) {
     if (_step3Logged) {
       return;
     }
     _step3Logged = true;
     _logStepCompleted(3, reason: reason);
+  }
+
+  bool _isOnCreateRoute() {
+    final currentPath = GoRouter.of(
+      context,
+    ).routeInformationProvider.value.uri.path;
+    return currentPath == AppRoute.storyCreate;
+  }
+
+  Future<void> _ensurePostPublishNavigation() async {
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) {
+      return;
+    }
+    if (_isOnCreateRoute()) {
+      context.go(AppRoute.homePath(tab: HomeTab.stories));
+    }
   }
 
   Future<void> _continueLater() async {
@@ -1173,11 +1125,9 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     }
 
     try {
-      await _tryCreateMissingSteps();
-
       final result = await ref
           .read(storyRoomControllerProvider.notifier)
-          .wizardPublish(titleFinal: _titleController.text.trim());
+          .finalize(titleFinal: _titleController.text.trim());
 
       if (!mounted) {
         return;
@@ -1190,14 +1140,22 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         return;
       }
 
+      final autoCompletedSteps = result.publishMeta?.autoCompletedSteps ?? 0;
+      if (autoCompletedSteps > 0) {
+        context.showMessage(
+          'Capítulo publicado. $autoCompletedSteps etapas foram completadas automaticamente.',
+        );
+      }
+
       _logStep3Once(reason: 'publish_now');
       UxAnalytics.log(
         'story_published',
         params: <String, Object?>{
           'story_id': result.story.id,
           'steps': result.story.steps.length,
-          'child_id': result.story.childProfileId,
           'source': 'create_story_screen',
+          'flow': 'wizard',
+          'auto_completed_steps': autoCompletedSteps,
         },
       );
 
@@ -1229,20 +1187,32 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         return;
       }
 
-      final action = await showPostPublishCelebrationDialog(
-        context,
-        source: 'create_story_screen',
-        flow: 'wizard',
-        storyId: result.story.id,
-        gamification: result.gamification,
-        reward: reward,
-      );
+      var action = PostPublishAction.backToVault;
+      try {
+        action = await showPostPublishCelebrationDialog(
+          context,
+          source: 'create_story_screen',
+          flow: 'wizard',
+          storyId: result.story.id,
+          gamification: result.gamification,
+          reward: reward,
+        );
+      } catch (error, stackTrace) {
+        AppLogger.warn(
+          'Falha ao abrir pós-publicação no wizard. Aplicando navegação de fallback.',
+          error: error,
+          stackTrace: stackTrace,
+          scope: 'story_creation',
+        );
+        action = PostPublishAction.backToVault;
+      }
 
       if (!mounted) {
         return;
       }
 
       await _handlePostPublishAction(action, result.story.id);
+      await _ensurePostPublishNavigation();
     } catch (error) {
       if (mounted) {
         context.showError(error);

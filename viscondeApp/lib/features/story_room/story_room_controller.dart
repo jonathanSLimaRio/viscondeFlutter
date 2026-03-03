@@ -711,26 +711,6 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
   }
 
   Future<StoryFinalizeResult?> wizardPublish({String? titleFinal}) async {
-    final token = _accessToken();
-    final storyId = state.session?.id;
-    if (token == null || storyId == null) {
-      state = state.copyWith(error: 'Sessão expirada. Faça login novamente.');
-      return null;
-    }
-
-    state = state.copyWith(finalizing: true, clearError: true);
-
-    try {
-      final finalized = await _api.wizardPublishStory(
-        token,
-        storyId,
-        titleFinal: titleFinal,
-      );
-      state = state.copyWith(finalizing: false, session: finalized.story);
-      return finalized;
-    } catch (error) {
-      state = state.copyWith(finalizing: false, error: parseDioError(error));
-      return null;
-    }
+    return finalize(titleFinal: titleFinal);
   }
 }

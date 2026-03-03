@@ -1153,19 +1153,59 @@ export async function requestStoryIdeas(
   };
 }
 
-export async function finalizeStorySession(
-  userId: string,
-  storyId: string,
-  input: {
-    titleFinal?: string;
-  }
-) {
+type StoryPublishPreparation = {
+  story: {
+    id: string;
+    collectionId: string;
+    childProfileId: string;
+    virtueId: string | null;
+    continuedFromStoryId: string | null;
+    titleDraft: string;
+    theme: string;
+    scenario: string;
+    objective: string;
+    status: StoryStatus;
+    dilemmaText: string | null;
+    endQuestionText: string | null;
+    steps: Array<{ stepIndex: number }>;
+    user: { timezone: string | null };
+    virtue: { slug: string } | null;
+  };
+  publishMeta: {
+    minimumRequiredSteps: number;
+    stepCountBeforePublish: number;
+    autoCompletedSteps: number;
+    finalStepCount: number;
+  };
+};
+
+async function prepareStoryForPublish(userId: string, storyId: string): Promise<StoryPublishPreparation> {
   const story = await prisma.story.findFirst({
     where: {
       id: storyId,
       userId,
     },
-    include: {
+    select: {
+      id: true,
+      collectionId: true,
+      childProfileId: true,
+      virtueId: true,
+      continuedFromStoryId: true,
+      titleDraft: true,
+      theme: true,
+      scenario: true,
+      objective: true,
+      status: true,
+      dilemmaText: true,
+      endQuestionText: true,
+      steps: {
+        select: {
+          stepIndex: true,
+        },
+        orderBy: {
+          stepIndex: "asc",
+        },
+      },
       user: {
         select: {
           timezone: true,
@@ -1174,11 +1214,6 @@ export async function finalizeStorySession(
       virtue: {
         select: {
           slug: true,
-        },
-      },
-      _count: {
-        select: {
-          steps: true,
         },
       },
     },
@@ -1200,13 +1235,73 @@ export async function finalizeStorySession(
     );
   }
 
-  if (story._count.steps < MIN_STORY_STEPS_TO_PUBLISH) {
+  const stepCountBeforePublish = story.steps.length;
+  const existingStepIndexes = new Set(story.steps.map((step) => step.stepIndex));
+  let autoCompletedSteps = 0;
+
+  for (let stepIndex = 1; stepIndex <= MIN_STORY_STEPS_TO_PUBLISH; stepIndex += 1) {
+    if (existingStepIndexes.has(stepIndex)) {
+      continue;
+    }
+
+    try {
+      await createStoryStep(userId, storyId, {
+        kind: "NARRATION",
+        stepIndex,
+        narratorPrompt: buildWizardAutoPrompt({
+          titleDraft: story.titleDraft,
+          theme: story.theme,
+          scenario: story.scenario,
+          objective: story.objective,
+          stepIndex,
+        }),
+        localEventId: `publish-auto-${storyId}-${stepIndex}`,
+      });
+      autoCompletedSteps += 1;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.code === "STEP_ALREADY_EXISTS" || error.code === "STEP_OUT_OF_ORDER") {
+          continue;
+        }
+      }
+      throw error;
+    }
+  }
+
+  const finalStepCount = await prisma.storyStep.count({
+    where: {
+      storyId: story.id,
+    },
+  });
+
+  if (finalStepCount < MIN_STORY_STEPS_TO_PUBLISH) {
     throw new ApiError(
       `Sao necessarias pelo menos ${MIN_STORY_STEPS_TO_PUBLISH} etapas para publicar.`,
       400,
       "NOT_ENOUGH_STEPS"
     );
   }
+
+  return {
+    story,
+    publishMeta: {
+      minimumRequiredSteps: MIN_STORY_STEPS_TO_PUBLISH,
+      stepCountBeforePublish,
+      autoCompletedSteps,
+      finalStepCount,
+    },
+  };
+}
+
+export async function finalizeStorySession(
+  userId: string,
+  storyId: string,
+  input: {
+    titleFinal?: string;
+  }
+) {
+  const prepared = await prepareStoryForPublish(userId, storyId);
+  const { story, publishMeta } = prepared;
 
   const now = new Date();
   const gamification = await prisma.$transaction(async (tx) => {
@@ -1248,6 +1343,7 @@ export async function finalizeStorySession(
     status: "PUBLISHED" as const,
     story: await getStoryById(userId, storyId),
     gamification,
+    publishMeta,
   };
 }
 
@@ -1268,67 +1364,6 @@ export async function wizardPublishStorySession(
     titleFinal?: string;
   }
 ) {
-  const story = await prisma.story.findFirst({
-    where: {
-      id: storyId,
-      userId,
-    },
-    select: {
-      id: true,
-      status: true,
-      titleDraft: true,
-      theme: true,
-      scenario: true,
-      objective: true,
-      steps: {
-        select: {
-          stepIndex: true,
-        },
-        orderBy: {
-          stepIndex: "asc",
-        },
-      },
-    },
-  });
-
-  if (!story) {
-    throw new ApiError("Sessao de historia nao encontrada.", 404, "STORY_NOT_FOUND");
-  }
-
-  if (story.status !== "DRAFT") {
-    throw new ApiError("A sessao ja foi publicada.", 409, "STORY_ALREADY_FINALIZED");
-  }
-
-  const existingStepIndexes = new Set(story.steps.map((step) => step.stepIndex));
-
-  for (let stepIndex = 1; stepIndex <= MIN_STORY_STEPS_TO_PUBLISH; stepIndex += 1) {
-    if (existingStepIndexes.has(stepIndex)) {
-      continue;
-    }
-
-    try {
-      await createStoryStep(userId, storyId, {
-        kind: "NARRATION",
-        stepIndex,
-        narratorPrompt: buildWizardAutoPrompt({
-          titleDraft: story.titleDraft,
-          theme: story.theme,
-          scenario: story.scenario,
-          objective: story.objective,
-          stepIndex,
-        }),
-        localEventId: `wizard-auto-${storyId}-${stepIndex}`,
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        if (error.code === "STEP_ALREADY_EXISTS" || error.code === "STEP_OUT_OF_ORDER") {
-          continue;
-        }
-      }
-      throw error;
-    }
-  }
-
   return finalizeStorySession(userId, storyId, input);
 }
 

@@ -388,7 +388,13 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         const SizedBox(height: 10),
         const ViscondeSkeletonCard(lines: 4),
         const SizedBox(height: 10),
-        const ViscondeSkeletonCard(lines: 4),
+        Row(
+          children: const [
+            Expanded(child: ViscondeSkeletonCard(lines: 4)),
+            SizedBox(width: 12),
+            Expanded(child: ViscondeSkeletonCard(lines: 4)),
+          ],
+        ),
         const SizedBox(height: 10),
         ...List<Widget>.generate(
           3,
@@ -413,177 +419,223 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
 
     return RefreshIndicator(
       onRefresh: _retryGameLoad,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // ── Hero Banner with "Loja" pill ──
-          _buildGameHubHero(context),
-          const SizedBox(height: 12),
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList.list(
+              children: [
+                // ── Hero Banner with "Loja" pill ──
+                _buildGameHubHero(context),
+                const SizedBox(height: 12),
 
-          if (_loadingInitial) _buildInitialSkeleton(),
-          if (_loadingInitial) const SizedBox(height: 12),
-          if (!_loadingInitial && _blockingError != null && !_hasCoreData) ...[
-            ViscondeContentState.error(
-              title: UiStateCopy.genericErrorTitle,
-              description:
-                  _blockingError ?? UiStateCopy.genericErrorDescription,
-              primaryActionLabel: 'Tentar novamente',
-              onPrimaryAction: _retryGameLoad,
-              secondaryActionLabel: 'Ir para Histórias',
-              onSecondaryAction: _openStoriesHome,
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (!_loadingInitial && _inlineError != null && _hasCoreData) ...[
-            ViscondeContentState.error(
-              title: UiStateCopy.genericErrorTitle,
-              description: _inlineError!,
-              primaryActionLabel: 'Tentar novamente',
-              onPrimaryAction: _retryGameLoad,
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (_loadingData)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12),
-              child: LinearProgressIndicator(),
-            ),
-
-          if (_loadingInitial || (_blockingError != null && !_hasCoreData))
-            const SizedBox.shrink()
-          else ...[
-            // ── Adult gate card ──
-            ViscondeGlassCard(
-              child: ListTile(
-                leading: Icon(
-                  unlockActive
-                      ? Icons.verified_user
-                      : Icons.lock_clock_outlined,
-                  color: unlockActive ? Colors.green : null,
-                ),
-                title: Text(
-                  unlockActive
-                      ? 'Área adulta liberada'
-                      : 'Área adulta bloqueada',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                if (_loadingInitial) _buildInitialSkeleton(),
+                if (_loadingInitial) const SizedBox(height: 12),
+                if (!_loadingInitial &&
+                    _blockingError != null &&
+                    !_hasCoreData) ...[
+                  ViscondeContentState.error(
+                    title: UiStateCopy.genericErrorTitle,
+                    description:
+                        _blockingError ?? UiStateCopy.genericErrorDescription,
+                    primaryActionLabel: 'Tentar novamente',
+                    onPrimaryAction: _retryGameLoad,
+                    secondaryActionLabel: 'Ir para Histórias',
+                    onSecondaryAction: _openStoriesHome,
                   ),
-                ),
-                subtitle: Text(
-                  unlockActive
-                      ? 'Liberada até ${dateFormat.format(gate.expiresAt!)} para compras e ações protegidas.'
-                      : 'Desbloqueie com PIN para evitar interrupções durante as compras.',
-                ),
-                trailing: OutlinedButton(
-                  onPressed: () {
-                    ref
-                        .read(parentalUnlockServiceProvider)
-                        .ensureUnlocked(
-                          context,
-                          forcePrompt: unlockActive,
-                          showSuccessMessage: true,
-                          source: unlockActive
-                              ? 'game_hub_unlock_renew'
-                              : 'game_hub_unlock_manual',
-                        );
-                  },
-                  child: Text(unlockActive ? 'Renovar' : 'Desbloquear'),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
+                  const SizedBox(height: 12),
+                ],
+                if (!_loadingInitial &&
+                    _inlineError != null &&
+                    _hasCoreData) ...[
+                  ViscondeContentState.error(
+                    title: UiStateCopy.genericErrorTitle,
+                    description: _inlineError!,
+                    primaryActionLabel: 'Tentar novamente',
+                    onPrimaryAction: _retryGameLoad,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (_loadingData)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: LinearProgressIndicator(),
+                  ),
 
-            // ── Weekly mission highlight ──
-            if (primaryMission != null) ...[
-              ViscondeGlassCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Meta da semana',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                if (!_loadingInitial &&
+                    (_blockingError == null || _hasCoreData)) ...[
+                  // ── Adult gate card ──
+                  ViscondeGlassCard(
+                    child: ListTile(
+                      leading: Icon(
+                        unlockActive
+                            ? Icons.verified_user
+                            : Icons.lock_clock_outlined,
+                        color: unlockActive ? Colors.green : null,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        primaryMission.title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                      title: Text(
+                        unlockActive
+                            ? 'Área adulta liberada'
+                            : 'Área bloqueada',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      subtitle: Text(
+                        unlockActive
+                            ? 'Liberada até ${dateFormat.format(gate.expiresAt!)}.'
+                            : 'Desbloqueie com PIN para interações seguras.',
+                      ),
+                      trailing: OutlinedButton(
+                        onPressed: () {
+                          ref
+                              .read(parentalUnlockServiceProvider)
+                              .ensureUnlocked(
+                                context,
+                                forcePrompt: unlockActive,
+                                showSuccessMessage: true,
+                                source: unlockActive
+                                    ? 'game_hub_unlock_renew'
+                                    : 'game_hub_unlock_manual',
+                              );
+                        },
+                        child: Text(unlockActive ? 'Renovar' : 'Liberar'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Weekly mission highlight ──
+                  if (primaryMission != null) ...[
+                    ViscondeGlassCard(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Meta da semana',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              primaryMission.title,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(primaryMission.description),
+                            const SizedBox(height: 8),
+                            LinearProgressIndicator(
+                              value: primaryMission.targetValue == 0
+                                  ? 0
+                                  : (primaryMission.progressValue /
+                                            primaryMission.targetValue)
+                                        .clamp(0, 1)
+                                        .toDouble(),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${primaryMission.progressValue}/${primaryMission.targetValue} • ${_missionStatusLabel(primaryMission.status)}',
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(primaryMission.description),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: primaryMission.targetValue == 0
-                            ? 0
-                            : (primaryMission.progressValue /
-                                      primaryMission.targetValue)
-                                  .clamp(0, 1)
-                                  .toDouble(),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${primaryMission.progressValue}/${primaryMission.targetValue} • ${_missionStatusLabel(primaryMission.status)}',
-                      ),
-                    ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // ── Child selector ──
+                  if (_children.isNotEmpty) ...[
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedChildId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Criança'),
+                      items: _children
+                          .map(
+                            (child) => DropdownMenuItem<String>(
+                              value: child.id,
+                              child: Text(child.name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) async {
+                        if (value == null) return;
+                        setState(() => _selectedChildId = value);
+                        await _loadData();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // ── Dashboard (Wallet & Streak) ──
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: _buildWalletCard(context, wallet)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildStreakCard(context, progression)),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+
+                  // ── Weekly Missions Header ──
+                  _buildWeeklyMissionsHeader(context, progression),
+                ],
+              ],
+            ),
+          ),
+
+          if (!_loadingInitial && (_blockingError == null || _hasCoreData)) ...[
+            // ── Weekly Missions List ──
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: _buildWeeklyMissionsSliverList(progression),
+            ),
+
+            // ── Achievements Header ──
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              sliver: SliverToBoxAdapter(
+                child: _buildAchievementsHeader(context, dateFormat),
               ),
-              const SizedBox(height: 12),
-            ],
+            ),
 
-            // ── Child selector ──
-            if (_children.isNotEmpty) ...[
-              DropdownButtonFormField<String>(
-                initialValue: _selectedChildId,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Criança'),
-                items: _children
-                    .map(
-                      (child) => DropdownMenuItem<String>(
-                        value: child.id,
-                        child: Text(child.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) async {
-                  if (value == null) return;
-                  setState(() => _selectedChildId = value);
-                  await _loadData();
-                },
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            // ── Wallet Card (illustrated) ──
-            _buildWalletCard(context, wallet),
-            const SizedBox(height: 12),
-
-            // ── Streak Card (illustrated) ──
-            _buildStreakCard(context, progression),
-            const SizedBox(height: 12),
-
-            // ── Weekly Missions Section ──
-            _buildWeeklyMissionsSection(context, progression),
-            const SizedBox(height: 12),
-
-            // ── Achievements Section ──
-            _buildAchievementsSection(context, dateFormat),
-            const SizedBox(height: 12),
+            // ── Achievements List ──
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: _buildAchievementsSliverList(dateFormat),
+            ),
 
             // ── Collector Section ──
-            _buildCollectorSection(context),
-            const SizedBox(height: 12),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              sliver: SliverToBoxAdapter(
+                child: _buildCollectorSection(context),
+              ),
+            ),
 
-            // ── Shop & Catalog ──
-            _buildShopSection(context),
-            const SizedBox(height: 12),
+            // ── Shop Header ──
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              sliver: SliverToBoxAdapter(child: _buildShopHeader(context)),
+            ),
+
+            // ── Shop Grid ──
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: _buildShopSliverGrid(),
+            ),
 
             // ── Equipped Items ──
-            _buildEquippedItemsCard(context, progression),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              sliver: SliverToBoxAdapter(
+                child: _buildEquippedItemsCard(context, progression),
+              ),
+            ),
           ],
         ],
       ),
@@ -601,77 +653,72 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     );
   }
 
-  // ── Wallet Card with illustration ──
+  // ── Wallet Card ──
   Widget _buildWalletCard(BuildContext context, WalletModel? wallet) {
     final colors = context.viscondeColors;
 
     return ViscondeGlassCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-      child: Row(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Carteira',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: colors.textStrong,
-                  ),
+          Row(
+            children: [
+              Icon(
+                Icons.account_balance_wallet_rounded,
+                color: colors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Carteira',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: colors.textStrong,
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.monetization_on_rounded,
-                      color: const Color(0xFFDAA520),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Coin: ${wallet?.coins ?? 0}',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.star_rounded,
-                      color: const Color(0xFFDAA520),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Estrelas: ${wallet?.stars ?? 0}',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          SizedBox(
-            width: 90,
-            height: 90,
-            child: Image.asset(
-              ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
-              fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
-            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(
+                Icons.monetization_on_rounded,
+                color: Color(0xFFDAA520),
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${wallet?.coins ?? 0}',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(
+                Icons.star_rounded,
+                color: Color(0xFFDAA520),
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${wallet?.stars ?? 0}',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ── Streak Card with illustration ──
+  // ── Streak Card ──
   Widget _buildStreakCard(
     BuildContext context,
     ChildProgressionModel? progression,
@@ -679,60 +726,55 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     final colors = context.viscondeColors;
 
     return ViscondeGlassCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-      child: Row(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Streak',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: colors.textStrong,
-                  ),
+          Row(
+            children: [
+              const Icon(
+                Icons.local_fire_department_rounded,
+                color: Colors.deepOrange,
+                size: 20,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Streak',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: colors.textStrong,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Atual: ${progression?.streak.currentDays ?? 0} dias',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Melhor: ${progression?.streak.bestDays ?? 0} dias',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Escudos: ${progression?.streak.shieldCount ?? 0}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(
-            width: 80,
-            height: 80,
-            child: ViscondeMascot(
-              pose: ViscondeMascotPose.pointingScroll,
-              glow: true,
-              fit: BoxFit.contain,
-            ),
+          const SizedBox(height: 12),
+          Text(
+            '🔥 ${progression?.streak.currentDays ?? 0} dias',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Melhor: ${progression?.streak.bestDays ?? 0}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '🛡️ ${progression?.streak.shieldCount ?? 0}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
           ),
         ],
       ),
     );
   }
 
-  // ── Weekly Missions Section ──
-  Widget _buildWeeklyMissionsSection(
+  // ── Weekly Missions ──
+  Widget _buildWeeklyMissionsHeader(
     BuildContext context,
     ChildProgressionModel? progression,
   ) {
@@ -757,7 +799,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                   children: [
                     Text(
                       'Missões Semanais',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: colors.textStrong,
                       ),
@@ -765,7 +807,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                     const SizedBox(height: 2),
                     Text(
                       'Objetivos da semana por criança.',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -777,9 +819,9 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                   const SizedBox(width: 4),
                   _buildMiniBox(context),
                   const SizedBox(width: 6),
-                  Icon(
+                  const Icon(
                     Icons.star_rounded,
-                    color: const Color(0xFFDAA520),
+                    color: Color(0xFFDAA520),
                     size: 22,
                   ),
                 ],
@@ -796,25 +838,38 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             onPrimaryAction: _openStoriesHome,
             mascotPose: ViscondeMascotPose.pointingScroll,
           ),
-        ] else
-          ...missions.map(
-            (mission) => Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: ViscondeGlassCard(
-                child: ListTile(
-                  title: Text(mission.title),
-                  subtitle: Text(
-                    '${mission.description}\n${mission.progressValue}/${mission.targetValue} · ${_missionStatusLabel(mission.status)}',
-                  ),
-                  trailing: Text(
-                    '+${mission.rewardCoins} / +${mission.rewardStars}⭐',
-                  ),
-                  isThreeLine: true,
-                ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildWeeklyMissionsSliverList(ChildProgressionModel? progression) {
+    final missions =
+        progression?.weeklyMissions ?? const <WeeklyMissionModel>[];
+    if (missions.isEmpty) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final mission = missions[index];
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: ViscondeGlassCard(
+            child: ListTile(
+              title: Text(mission.title),
+              subtitle: Text(
+                '${mission.description}\n${mission.progressValue}/${mission.targetValue} · ${_missionStatusLabel(mission.status)}',
               ),
+              trailing: Text(
+                '+${mission.rewardCoins} / +${mission.rewardStars}⭐',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              isThreeLine: true,
             ),
           ),
-      ],
+        );
+      }, childCount: missions.length),
     );
   }
 
@@ -832,11 +887,8 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     );
   }
 
-  // ── Achievements Section ──
-  Widget _buildAchievementsSection(
-    BuildContext context,
-    DateFormat dateFormat,
-  ) {
+  // ── Achievements ──
+  Widget _buildAchievementsHeader(BuildContext context, DateFormat dateFormat) {
     final colors = context.viscondeColors;
     final showEmpty = _achievements.isEmpty;
     if (showEmpty) {
@@ -850,9 +902,9 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
           padding: const EdgeInsets.only(left: 4),
           child: Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.emoji_events_rounded,
-                color: const Color(0xFFDAA520),
+                color: Color(0xFFDAA520),
                 size: 24,
               ),
               const SizedBox(width: 8),
@@ -862,11 +914,10 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                   children: [
                     Text(
                       'Conquistas',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: colors.textStrong,
-                          ),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: colors.textStrong,
+                      ),
                     ),
                     Text(
                       'Marcos já desbloqueados na conta.',
@@ -878,8 +929,8 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 8),
         if (showEmpty) ...[
+          const SizedBox(height: 8),
           ViscondeContentState.empty(
             title: UiStateCopy.gameAchievementsEmptyTitle,
             description: UiStateCopy.gameAchievementsEmptyDescription,
@@ -887,29 +938,42 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             onPrimaryAction: _openCreateStory,
             mascotPose: ViscondeMascotPose.enchantedHearts,
           ),
-        ] else
-          ..._achievements.map(
-            (achievement) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: ViscondeGlassCard(
-                child: ListTile(
-                  leading: Icon(
-                    achievement.unlocked
-                        ? Icons.emoji_events
-                        : Icons.lock_outline,
-                    color: achievement.unlocked ? Colors.amber.shade700 : null,
-                  ),
-                  title: Text(achievement.title),
-                  subtitle: Text(
-                    '${achievement.description}\n+${achievement.rewardCoins} moedas / +${achievement.rewardStars}⭐'
-                    '${achievement.unlockedAt != null ? '\nDesbloqueada em ${dateFormat.format(achievement.unlockedAt!)}' : ''}',
-                  ),
-                  isThreeLine: true,
-                ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAchievementsSliverList(DateFormat dateFormat) {
+    if (_achievements.isEmpty) {
+      {
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+      }
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final achievement = _achievements[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: ViscondeGlassCard(
+            child: ListTile(
+              leading: Icon(
+                achievement.unlocked ? Icons.emoji_events : Icons.lock_outline,
+                color: achievement.unlocked ? Colors.amber.shade700 : null,
               ),
+              title: Text(
+                achievement.title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                '${achievement.description}\n+${achievement.rewardCoins} moedas / +${achievement.rewardStars}⭐'
+                '${achievement.unlockedAt != null ? '\nDesbloqueada em ${dateFormat.format(achievement.unlockedAt!)}' : ''}',
+              ),
+              isThreeLine: true,
             ),
           ),
-      ],
+        );
+      }, childCount: _achievements.length),
     );
   }
 
@@ -927,7 +991,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
           title: 'O Colecionador',
           subtitle: 'Seus itens e companheiros de aventura.',
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         if (showEmpty) ...[
           ViscondeContentState.empty(
             title: UiStateCopy.gameCollectorEmptyTitle,
@@ -953,7 +1017,10 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                   margin: const EdgeInsets.only(right: 8),
                   child: ViscondeGlassCard(
                     child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 12.0,
+                      ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -962,23 +1029,30 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                             style: Theme.of(context).textTheme.headlineMedium,
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            item.name,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                item.name,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
                           Text(
                             '${item.rarity} · Qtd: ${inv.qty}',
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 10,
                               color: Colors.grey,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -993,7 +1067,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
   }
 
   // ── Shop & Catalog Section ──
-  Widget _buildShopSection(BuildContext context) {
+  Widget _buildShopHeader(BuildContext context) {
     final showEmpty = _catalog.isEmpty;
     if (showEmpty) {
       _trackGameSectionState('empty_catalog');
@@ -1031,8 +1105,8 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
         if (showEmpty) ...[
+          const SizedBox(height: 8),
           ViscondeContentState.empty(
             title: UiStateCopy.gameCatalogEmptyTitle,
             description: UiStateCopy.gameCatalogEmptyDescription,
@@ -1043,31 +1117,102 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             },
             mascotPose: ViscondeMascotPose.thumbsUpController,
           ),
-        ] else
-          ..._catalog.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: ViscondeGlassCard(
-                child: ListTile(
-                  title: Text(item.name),
-                  subtitle: Text(
-                    '${item.description}\n${item.priceCoins} moedas / ${item.priceStars}⭐ · ${item.type.name.toUpperCase()}',
-                  ),
-                  trailing: item.unlocked
-                      ? OutlinedButton(
-                          onPressed: () => _toggleEquip(item),
-                          child: Text(item.equipped ? 'Desequipar' : 'Equipar'),
-                        )
-                      : FilledButton(
-                          onPressed: () => _unlockItem(item),
-                          child: const Text('Desbloquear'),
-                        ),
-                  isThreeLine: true,
+        ],
+      ],
+    );
+  }
+
+  Widget _buildShopSliverGrid() {
+    if (_catalog.isEmpty)
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+    return SliverGrid(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        mainAxisExtent: 220,
+      ),
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final item = _catalog[index];
+        return _buildCatalogItemCard(context, item);
+      }, childCount: _catalog.length),
+    );
+  }
+
+  Widget _buildCatalogItemCard(BuildContext context, CatalogItemModel item) {
+    final colors = context.viscondeColors;
+    return ViscondeGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.1),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  item.iconKey.isNotEmpty ? item.iconKey : '✨',
+                  style: const TextStyle(fontSize: 40),
                 ),
               ),
             ),
           ),
-      ],
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${item.priceCoins} 💰 / ${item.priceStars} ⭐',
+                  style: Theme.of(context).textTheme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                item.unlocked
+                    ? OutlinedButton(
+                        onPressed: () => _toggleEquip(item),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36),
+                          padding: EdgeInsets.zero,
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        child: Text(item.equipped ? 'Desequipar' : 'Equipar'),
+                      )
+                    : FilledButton(
+                        onPressed: () => _unlockItem(item),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(36),
+                          padding: EdgeInsets.zero,
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        child: const Text('Comprar'),
+                      ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1106,7 +1251,10 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
               ),
             ] else
               ...equipped.map(
-                (item) => Text('- ${item.name} (${item.type.name})'),
+                (item) => Text(
+                  '- ${item.name} (${item.type.name})',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
           ],
         ),

@@ -628,7 +628,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
           icon: Icons.flash_on_rounded,
           label: _quickCreating
               ? 'Criando história rápida...'
-              : 'Criar história rápida',
+              : 'Criar história rápida (1 toque)',
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
@@ -642,6 +642,11 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                 },
           icon: const Icon(Icons.tune),
           label: const Text('Criar com detalhes'),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Dica: você pode publicar mesmo com poucas etapas. O app completa as iniciais automaticamente.',
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );
@@ -677,16 +682,22 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
             subtitle: 'Refine por criança, virtude e período.',
           ),
           const SizedBox(height: 10),
-          TextField(
-            controller: _themeController,
-            decoration: InputDecoration(
-              labelText: 'Filtro por tema',
-              suffixIcon: IconButton(
-                onPressed: _loadCollections,
-                icon: const Icon(Icons.search),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _themeController,
+                  decoration: InputDecoration(
+                    labelText: 'Filtro por tema',
+                    suffixIcon: IconButton(
+                      onPressed: _loadCollections,
+                      icon: const Icon(Icons.search),
+                    ),
+                  ),
+                  onSubmitted: (_) => _loadCollections(),
+                ),
               ),
-            ),
-            onSubmitted: (_) => _loadCollections(),
+            ],
           ),
           const SizedBox(height: 10),
           if (_loadingFilters)
@@ -773,15 +784,24 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: _favoriteOnly,
-            onChanged: (value) async {
-              setState(() => _favoriteOnly = value);
-              await _loadCollections();
-            },
-            title: const Text('Somente favoritas'),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _favoriteOnly,
+                  onChanged: (value) async {
+                    setState(() => _favoriteOnly = value);
+                    await _loadCollections();
+                  },
+                  title: const Text(
+                    'Somente favoritas',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -800,7 +820,9 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     return ViscondeContentState.empty(
       title: title,
       description: description,
-      primaryActionLabel: filtered ? 'Limpar filtros' : 'Criar história rápida',
+      primaryActionLabel: filtered
+          ? 'Limpar filtros'
+          : 'Criar história rápida (1 toque)',
       onPrimaryAction: filtered
           ? () {
               _trackVaultEmptyCta('clear_filters');
@@ -876,104 +898,164 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
 
     return RefreshIndicator(
       onRefresh: _retryVaultLoad,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          ViscondeHeroBanner(
-            title: 'Baú de Aventuras',
-            subtitle: '${_collections.length} sagas encontradas',
-            assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
-            showMascot: true,
-            mascotPose: ViscondeMascotPose.readingBook,
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: 12,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: ViscondeHeroBanner(
+                title: 'Baú de Aventuras',
+                subtitle:
+                    '${_collections.length} sagas encontradas · publique em 1 toque',
+                assetPath: ViscondeArtRegistry.resolve(
+                  ViscondeArtKey.heroTreasure,
+                ),
+                showMascot: true,
+                mascotPose: ViscondeMascotPose.readingBook,
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          if (_loadingInitial) _buildInitialSkeleton(),
-          if (!_loadingInitial) _buildFiltersCard(dateFormat),
+
+          if (_loadingInitial)
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverToBoxAdapter(child: _buildInitialSkeleton()),
+            ),
+
+          if (!_loadingInitial)
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverToBoxAdapter(child: _buildFiltersCard(dateFormat)),
+            ),
+
           if (!_loadingInitial && hasBlockingError) ...[
-            const SizedBox(height: 12),
-            ViscondeContentState.error(
-              title: UiStateCopy.genericErrorTitle,
-              description:
-                  _blockingError ?? UiStateCopy.genericErrorDescription,
-              primaryActionLabel: 'Tentar novamente',
-              onPrimaryAction: _retryVaultLoad,
-              secondaryActionLabel: 'Criar história rápida',
-              onSecondaryAction: () {
-                _trackVaultEmptyCta('quick_create_error');
-                _createQuickStory();
-              },
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+              sliver: SliverToBoxAdapter(
+                child: ViscondeContentState.error(
+                  title: UiStateCopy.genericErrorTitle,
+                  description:
+                      _blockingError ?? UiStateCopy.genericErrorDescription,
+                  primaryActionLabel: 'Tentar novamente',
+                  onPrimaryAction: _retryVaultLoad,
+                  secondaryActionLabel: 'Criar história rápida (1 toque)',
+                  onSecondaryAction: () {
+                    _trackVaultEmptyCta('quick_create_error');
+                    _createQuickStory();
+                  },
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            _buildCreationActions(trackAsEmptyCta: true),
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+              sliver: SliverToBoxAdapter(
+                child: _buildCreationActions(trackAsEmptyCta: true),
+              ),
+            ),
           ],
+
           if (!_loadingInitial && !hasBlockingError) ...[
-            if (_inlineError != null) ...[
-              ViscondeContentState.error(
-                title: UiStateCopy.genericErrorTitle,
-                description: _inlineError!,
-                primaryActionLabel: 'Tentar novamente',
-                onPrimaryAction: _retryVaultLoad,
-              ),
-              const SizedBox(height: 12),
-            ],
-            if (_loadingCollections)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: LinearProgressIndicator(),
-              ),
-          ],
-          const SizedBox(height: 12),
-          if (!_loadingInitial &&
-              _resumeDraft != null &&
-              !hasBlockingError) ...[
-            _buildResumeDraftCard(),
-            const SizedBox(height: 12),
-          ],
-          if (!_loadingInitial && !hasBlockingError) _buildCreationActions(),
-          if (!_loadingInitial &&
-              !hasBlockingError &&
-              _selectedChildId != null) ...[
-            const SizedBox(height: 12),
-            ViscondePrimaryCta(
-              onPressed: _generateMonthlyBook,
-              icon: Icons.picture_as_pdf,
-              label: 'Gerar Livro do Mês',
-            ),
-          ],
-          const SizedBox(height: 12),
-          if (!_loadingInitial && !hasBlockingError && _collections.isEmpty)
-            _buildEmptyState(),
-          if (!_loadingInitial && !hasBlockingError)
-            ..._collections.map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: ViscondeStoryRowCard(
-                  onTap: () => context.push(AppRoute.vaultDetail(item.id)),
-                  title: item.title,
-                  badgeLabel: item.virtue?.name ?? item.theme,
-                  backgroundAsset: ViscondeArtRegistry.resolve(
-                    item.isFavorite
-                        ? ViscondeArtKey.heroCastle
-                        : ViscondeArtKey.heroForest,
-                  ),
-                  trailing: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: () => _toggleFavorite(item),
-                        icon: Icon(
-                          item.isFavorite ? Icons.star : Icons.star_border,
-                          color: item.isFavorite ? Colors.amber.shade700 : null,
-                        ),
-                        tooltip: item.isFavorite ? 'Desfavoritar' : 'Favoritar',
-                      ),
-                      Text(
-                        '${item.episodesCount} ep',
-                        style: Theme.of(context).textTheme.labelMedium,
-                      ),
-                    ],
+            if (_inlineError != null)
+              SliverPadding(
+                padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+                sliver: SliverToBoxAdapter(
+                  child: ViscondeContentState.error(
+                    title: UiStateCopy.genericErrorTitle,
+                    description: _inlineError!,
+                    primaryActionLabel: 'Tentar novamente',
+                    onPrimaryAction: _retryVaultLoad,
                   ),
                 ),
+              ),
+            if (_loadingCollections)
+              const SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                sliver: SliverToBoxAdapter(child: LinearProgressIndicator()),
+              ),
+          ],
+
+          if (!_loadingInitial && _resumeDraft != null && !hasBlockingError)
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+              sliver: SliverToBoxAdapter(child: _buildResumeDraftCard()),
+            ),
+
+          if (!_loadingInitial && !hasBlockingError)
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+              sliver: SliverToBoxAdapter(child: _buildCreationActions()),
+            ),
+
+          if (!_loadingInitial && !hasBlockingError && _selectedChildId != null)
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+              sliver: SliverToBoxAdapter(
+                child: ViscondePrimaryCta(
+                  onPressed: _generateMonthlyBook,
+                  icon: Icons.picture_as_pdf,
+                  label: 'Gerar Livro do Mês',
+                ),
+              ),
+            ),
+
+          if (!_loadingInitial && !hasBlockingError && _collections.isEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+              sliver: SliverToBoxAdapter(child: _buildEmptyState()),
+            ),
+
+          if (!_loadingInitial && !hasBlockingError && _collections.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.only(
+                top: 12,
+                left: 16,
+                right: 16,
+                bottom: 32,
+              ),
+              sliver: SliverList.builder(
+                itemCount: _collections.length,
+                itemBuilder: (context, index) {
+                  final item = _collections[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: ViscondeStoryRowCard(
+                      onTap: () => context.push(AppRoute.vaultDetail(item.id)),
+                      title: item.title,
+                      badgeLabel: item.virtue?.name ?? item.theme,
+                      backgroundAsset: ViscondeArtRegistry.resolve(
+                        item.isFavorite
+                            ? ViscondeArtKey.heroCastle
+                            : ViscondeArtKey.heroForest,
+                      ),
+                      trailing: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () => _toggleFavorite(item),
+                            icon: Icon(
+                              item.isFavorite ? Icons.star : Icons.star_border,
+                              color: item.isFavorite
+                                  ? Colors.amber.shade700
+                                  : null,
+                            ),
+                            tooltip: item.isFavorite
+                                ? 'Desfavoritar'
+                                : 'Favoritar',
+                          ),
+                          Text(
+                            '${item.episodesCount} ep',
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
         ],

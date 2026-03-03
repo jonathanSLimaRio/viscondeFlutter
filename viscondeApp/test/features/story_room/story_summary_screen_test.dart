@@ -22,11 +22,13 @@ class _SummaryStoryApi extends StoryApi {
   _SummaryStoryApi({
     required StorySessionModel session,
     this.failContinue = false,
+    this.autoCompletedSteps = 0,
   }) : _session = session,
        super(Dio());
 
   StorySessionModel _session;
   bool failContinue;
+  int autoCompletedSteps;
   int continueCalls = 0;
 
   @override
@@ -64,6 +66,12 @@ class _SummaryStoryApi extends StoryApi {
           shieldCount: 0,
           lastCountedDate: null,
         ),
+      ),
+      publishMeta: StoryPublishMetaModel(
+        minimumRequiredSteps: 3,
+        stepCountBeforePublish: _session.steps.length,
+        autoCompletedSteps: autoCompletedSteps,
+        finalStepCount: _session.steps.length + autoCompletedSteps,
       ),
     );
   }
@@ -172,7 +180,27 @@ class _NoopUxTransport implements UxAnalyticsTransport {
   }
 }
 
-StorySessionModel _buildSession() {
+StorySessionModel _buildSession({
+  List<StoryStepModel>? steps,
+  int currentStepIndex = 2,
+}) {
+  final timelineSteps =
+      steps ??
+      const [
+        StoryStepModel(
+          id: 'step-1',
+          stepIndex: 1,
+          kind: StoryStepKind.narration,
+          modeUsed: StoryMode.parentNarrator,
+          localEventId: 'local-1',
+          narratorPrompt: null,
+          childOptions: [],
+          selectedOptionId: null,
+          selectedOptionLabel: null,
+          narratorText: 'Era uma vez...',
+        ),
+      ];
+
   return StorySessionModel(
     id: 'story-test',
     childProfileId: 'child-1',
@@ -202,7 +230,7 @@ StorySessionModel _buildSession() {
     ),
     status: StoryStatus.draft,
     currentMode: StoryMode.parentNarrator,
-    currentStepIndex: 2,
+    currentStepIndex: currentStepIndex,
     ageSnapshotYears: 7,
     remote: null,
     child: StoryChildSnapshot(
@@ -213,24 +241,146 @@ StorySessionModel _buildSession() {
     characters: const [
       StoryCharacterModel(id: 'char-1', name: 'Lucas', role: 'Protagonista'),
     ],
-    steps: const [
-      StoryStepModel(
-        id: 'step-1',
-        stepIndex: 1,
-        kind: StoryStepKind.narration,
-        modeUsed: StoryMode.parentNarrator,
-        localEventId: 'local-1',
-        narratorPrompt: null,
-        childOptions: [],
-        selectedOptionId: null,
-        selectedOptionLabel: null,
-        narratorText: 'Era uma vez...',
-      ),
-    ],
+    steps: timelineSteps,
   );
 }
 
 void main() {
+  testWidgets(
+    'summary mostra publicação assistida quando há menos de 3 etapas',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+      final api = _SummaryStoryApi(
+        session: _buildSession(),
+        autoCompletedSteps: 2,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          ...authOverrides(user: buildTestUser(), authenticated: true),
+          storyApiProvider.overrideWith((ref) => api),
+          inventoryApiProvider.overrideWith((ref) => _SummaryInventoryApi()),
+          storySyncQueueProvider.overrideWith((ref) => FakeStorySyncQueue()),
+          uxAnalyticsServiceProvider.overrideWith(
+            (ref) => UxAnalyticsService(
+              store: _NoopUxStore(),
+              transport: _NoopUxTransport(),
+              readAccessToken: () => null,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+          child: UncontrolledProviderScope(
+            container: container,
+            child: const ViscondeApp(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final router = container.read(appRouterProvider);
+      router.go('/stories/story-test/summary');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Publicar e completar 2 etapas'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('story_summary_publish_button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Capítulo publicado. 2 etapas foram completadas automaticamente.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('summary mantém CTA padrão com 3 etapas salvas', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    final api = _SummaryStoryApi(
+      session: _buildSession(
+        currentStepIndex: 3,
+        steps: const [
+          StoryStepModel(
+            id: 'step-1',
+            stepIndex: 1,
+            kind: StoryStepKind.narration,
+            modeUsed: StoryMode.parentNarrator,
+            localEventId: 'local-1',
+            narratorPrompt: null,
+            childOptions: [],
+            selectedOptionId: null,
+            selectedOptionLabel: null,
+            narratorText: 'A',
+          ),
+          StoryStepModel(
+            id: 'step-2',
+            stepIndex: 2,
+            kind: StoryStepKind.narration,
+            modeUsed: StoryMode.parentNarrator,
+            localEventId: 'local-2',
+            narratorPrompt: null,
+            childOptions: [],
+            selectedOptionId: null,
+            selectedOptionLabel: null,
+            narratorText: 'B',
+          ),
+          StoryStepModel(
+            id: 'step-3',
+            stepIndex: 3,
+            kind: StoryStepKind.narration,
+            modeUsed: StoryMode.parentNarrator,
+            localEventId: 'local-3',
+            narratorPrompt: null,
+            childOptions: [],
+            selectedOptionId: null,
+            selectedOptionLabel: null,
+            narratorText: 'C',
+          ),
+        ],
+      ),
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        ...authOverrides(user: buildTestUser(), authenticated: true),
+        storyApiProvider.overrideWith((ref) => api),
+        inventoryApiProvider.overrideWith((ref) => _SummaryInventoryApi()),
+        storySyncQueueProvider.overrideWith((ref) => FakeStorySyncQueue()),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: _NoopUxStore(),
+            transport: _NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const ViscondeApp(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final router = container.read(appRouterProvider);
+    router.go('/stories/story-test/summary');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Publicar capítulo'), findsOneWidget);
+  });
+
   testWidgets('continue saga opens next room after publish', (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
     final api = _SummaryStoryApi(session: _buildSession());
@@ -267,7 +417,7 @@ void main() {
     router.go('/stories/story-test/summary');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Publicar capítulo'));
+    await tester.tap(find.byKey(const Key('story_summary_publish_button')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continuar saga'));
     await tester.pumpAndSettle();
@@ -275,6 +425,51 @@ void main() {
     expect(api.continueCalls, 1);
     final location = router.routeInformationProvider.value.uri.toString();
     expect(location, '/stories/story-continued/room');
+  });
+
+  testWidgets('voltar ao baú sai do resumo após publicar', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    final api = _SummaryStoryApi(session: _buildSession());
+
+    final container = ProviderContainer(
+      overrides: [
+        ...authOverrides(user: buildTestUser(), authenticated: true),
+        storyApiProvider.overrideWith((ref) => api),
+        inventoryApiProvider.overrideWith((ref) => _SummaryInventoryApi()),
+        storySyncQueueProvider.overrideWith((ref) => FakeStorySyncQueue()),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: _NoopUxStore(),
+            transport: _NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const ViscondeApp(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final router = container.read(appRouterProvider);
+    router.go('/stories/story-test/summary');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('story_summary_publish_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Voltar ao baú'));
+    await tester.pumpAndSettle();
+
+    final location = router.routeInformationProvider.value.uri.toString();
+    expect(location, '/');
   });
 
   testWidgets('continue saga failure falls back to stories tab', (
@@ -315,7 +510,7 @@ void main() {
     router.go('/stories/story-test/summary');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Publicar capítulo'));
+    await tester.tap(find.byKey(const Key('story_summary_publish_button')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continuar saga'));
     await tester.pumpAndSettle();

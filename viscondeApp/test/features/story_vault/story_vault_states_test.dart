@@ -182,7 +182,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(UiStateCopy.vaultEmptyTitle), findsOneWidget);
-    expect(find.text('Criar história rápida'), findsAtLeastNWidgets(1));
+    expect(
+      find.textContaining('Criar história rápida'),
+      findsAtLeastNWidgets(1),
+    );
     expect(find.text('Criar com detalhes'), findsAtLeastNWidgets(1));
   });
 

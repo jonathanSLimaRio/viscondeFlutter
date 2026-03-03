@@ -245,7 +245,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Criar história rápida').first);
+    await tester.tap(find.textContaining('Criar história rápida').first);
     await tester.pump();
     await tester.pumpAndSettle();
 
@@ -297,7 +297,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Criar história rápida').first);
+    await tester.tap(find.textContaining('Criar história rápida').first);
     await tester.pump();
     await tester.pumpAndSettle();
 

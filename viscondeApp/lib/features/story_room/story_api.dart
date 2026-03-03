@@ -47,10 +47,15 @@ class StoryCoopVoteResult {
 }
 
 class StoryFinalizeResult {
-  const StoryFinalizeResult({required this.story, this.gamification});
+  const StoryFinalizeResult({
+    required this.story,
+    this.gamification,
+    this.publishMeta,
+  });
 
   final StorySessionModel story;
   final PublishGamificationSummaryModel? gamification;
+  final StoryPublishMetaModel? publishMeta;
 }
 
 class StoryApi {
@@ -239,12 +244,16 @@ class StoryApi {
     final storyPayload = payload['story'] as Map<String, dynamic>?;
     final gamificationPayload =
         payload['gamification'] as Map<String, dynamic>?;
+    final publishMetaPayload = payload['publishMeta'] as Map<String, dynamic>?;
 
     return StoryFinalizeResult(
       story: StorySessionModel.fromJson(storyPayload ?? <String, dynamic>{}),
       gamification: gamificationPayload == null
           ? null
           : PublishGamificationSummaryModel.fromJson(gamificationPayload),
+      publishMeta: publishMetaPayload == null
+          ? null
+          : StoryPublishMetaModel.fromJson(publishMetaPayload),
     );
   }
 
@@ -266,12 +275,16 @@ class StoryApi {
     final storyPayload = payload['story'] as Map<String, dynamic>?;
     final gamificationPayload =
         payload['gamification'] as Map<String, dynamic>?;
+    final publishMetaPayload = payload['publishMeta'] as Map<String, dynamic>?;
 
     return StoryFinalizeResult(
       story: StorySessionModel.fromJson(storyPayload ?? <String, dynamic>{}),
       gamification: gamificationPayload == null
           ? null
           : PublishGamificationSummaryModel.fromJson(gamificationPayload),
+      publishMeta: publishMetaPayload == null
+          ? null
+          : StoryPublishMetaModel.fromJson(publishMetaPayload),
     );
   }
 

@@ -15,6 +15,14 @@ String _normalizeKnownMessage(ApiException error) {
     return 'Seu desbloqueio da área adulta expirou. Digite o PIN novamente.';
   }
 
+  if (code == 'NOT_ENOUGH_STEPS') {
+    return 'A história ainda está curta para publicar. Continue por mais alguns passos e tente novamente.';
+  }
+
+  if (code == 'VIRTUE_CONTEXT_REQUIRED') {
+    return 'Antes de publicar, revise os detalhes da história e confirme dilema e pergunta final.';
+  }
+
   if (error.kind == ApiErrorKind.unauthorized) {
     return 'Sua sessão expirou. Faça login novamente.';
   }

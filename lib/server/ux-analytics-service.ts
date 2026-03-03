@@ -78,7 +78,7 @@ const PARAM_ALLOWLIST: Record<keyof typeof UX_EVENT_NAME_MAP, readonly string[]>
   story_create_started: ["step", "source", "flow", "duration_ms", "reason"],
   story_create_step_completed: ["step", "source", "flow", "duration_ms", "reason"],
   story_create_abandoned: ["step", "source", "flow", "duration_ms", "reason"],
-  story_published: ["story_id", "steps"],
+  story_published: ["story_id", "steps", "source", "flow", "auto_completed_steps"],
   game_hub_opened: ["selected_child", "source"],
   vault_state_shown: ["screen", "state", "filtered", "source"],
   vault_retry_tapped: ["screen", "source"],

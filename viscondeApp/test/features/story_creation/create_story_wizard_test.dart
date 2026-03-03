@@ -107,7 +107,7 @@ class WizardStoryApi extends StoryApi {
   int createSessionCalls = 0;
   int updateSetupCalls = 0;
   int createStepCalls = 0;
-  int wizardPublishCalls = 0;
+  int finalizeCalls = 0;
 
   @override
   Future<List<ContentStoryTemplateModel>> listPublishedStoryTemplates(
@@ -257,21 +257,51 @@ class WizardStoryApi extends StoryApi {
   }
 
   @override
-  Future<StoryFinalizeResult> wizardPublishStory(
+  Future<StoryFinalizeResult> finalizeStory(
     String accessToken,
     String storyId, {
     String? titleFinal,
   }) async {
-    wizardPublishCalls += 1;
+    finalizeCalls += 1;
+
+    final stepCountBeforePublish = session.steps.length;
+    final nextSteps = <StoryStepModel>[...session.steps];
+    for (var stepIndex = nextSteps.length + 1; stepIndex <= 3; stepIndex++) {
+      nextSteps.add(
+        StoryStepModel(
+          id: 'auto-step-$stepIndex',
+          stepIndex: stepIndex,
+          kind: StoryStepKind.narration,
+          modeUsed: session.currentMode,
+          localEventId: 'publish-auto-$storyId-$stepIndex',
+          narratorPrompt: 'Etapa automática $stepIndex',
+          childOptions: const <StoryChoiceOption>[],
+          selectedOptionId: null,
+          selectedOptionLabel: null,
+          narratorText: null,
+        ),
+      );
+    }
+
+    final autoCompletedSteps = nextSteps.length - stepCountBeforePublish;
 
     session = session.copyWith(
       status: StoryStatus.published,
-      currentStepIndex: 3,
+      currentStepIndex: nextSteps.length,
       titleFinal: titleFinal,
       title: titleFinal ?? session.titleDraft,
+      steps: nextSteps,
     );
 
-    return StoryFinalizeResult(story: session);
+    return StoryFinalizeResult(
+      story: session,
+      publishMeta: StoryPublishMetaModel(
+        minimumRequiredSteps: 3,
+        stepCountBeforePublish: stepCountBeforePublish,
+        autoCompletedSteps: autoCompletedSteps,
+        finalStepCount: nextSteps.length,
+      ),
+    );
   }
 }
 
@@ -630,8 +660,8 @@ void main() {
       find.byKey(const Key('wizard_publish_now_button')),
     );
 
-    expect(storyApi.createStepCalls, greaterThanOrEqualTo(3));
-    expect(storyApi.wizardPublishCalls, 1);
+    expect(storyApi.createStepCalls, 0);
+    expect(storyApi.finalizeCalls, 1);
 
     expect(find.text('Capítulo publicado!'), findsOneWidget);
     expect(find.text('Continuar saga'), findsOneWidget);

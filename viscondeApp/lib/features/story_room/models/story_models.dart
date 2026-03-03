@@ -568,6 +568,31 @@ class StorySessionModel {
   }
 }
 
+class StoryPublishMetaModel {
+  const StoryPublishMetaModel({
+    required this.minimumRequiredSteps,
+    required this.stepCountBeforePublish,
+    required this.autoCompletedSteps,
+    required this.finalStepCount,
+  });
+
+  final int minimumRequiredSteps;
+  final int stepCountBeforePublish;
+  final int autoCompletedSteps;
+  final int finalStepCount;
+
+  factory StoryPublishMetaModel.fromJson(Map<String, dynamic> json) {
+    return StoryPublishMetaModel(
+      minimumRequiredSteps:
+          (json['minimumRequiredSteps'] as num?)?.toInt() ?? 3,
+      stepCountBeforePublish:
+          (json['stepCountBeforePublish'] as num?)?.toInt() ?? 0,
+      autoCompletedSteps: (json['autoCompletedSteps'] as num?)?.toInt() ?? 0,
+      finalStepCount: (json['finalStepCount'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class StoryListItem {
   const StoryListItem({
     required this.id,

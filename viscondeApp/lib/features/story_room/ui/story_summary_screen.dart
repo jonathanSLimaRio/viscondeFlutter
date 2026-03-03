@@ -26,6 +26,46 @@ class StorySummaryScreen extends ConsumerStatefulWidget {
 
 class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
   final _titleController = TextEditingController();
+  static const int _minimumPublishSteps = 3;
+
+  int _missingStepsFor(StorySessionModel story) {
+    final missing = _minimumPublishSteps - story.steps.length;
+    return missing > 0 ? missing : 0;
+  }
+
+  String _publishButtonLabel({
+    required StorySessionModel story,
+    required bool finalizing,
+  }) {
+    if (finalizing) {
+      return 'Publicando...';
+    }
+
+    final missing = _missingStepsFor(story);
+    if (missing <= 0) {
+      return 'Publicar capítulo';
+    }
+
+    final suffix = missing == 1 ? 'etapa' : 'etapas';
+    return 'Publicar e completar $missing $suffix';
+  }
+
+  bool _isOnSummaryRoute(String storyId) {
+    final currentPath = GoRouter.of(
+      context,
+    ).routeInformationProvider.value.uri.path;
+    return currentPath == AppRoute.storySummary(storyId);
+  }
+
+  Future<void> _ensurePostPublishNavigation(String storyId) async {
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) {
+      return;
+    }
+    if (_isOnSummaryRoute(storyId)) {
+      context.go(AppRoute.homePath(tab: HomeTab.stories));
+    }
+  }
 
   @override
   void initState() {
@@ -66,13 +106,21 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       return;
     }
 
+    final autoCompletedSteps = finalized.publishMeta?.autoCompletedSteps ?? 0;
+    if (autoCompletedSteps > 0) {
+      context.showMessage(
+        'Capítulo publicado. $autoCompletedSteps etapas foram completadas automaticamente.',
+      );
+    }
+
     UxAnalytics.log(
       'story_published',
       params: <String, Object?>{
         'story_id': finalized.story.id,
         'steps': finalized.story.steps.length,
-        'child_id': finalized.story.childProfileId,
         'source': 'story_summary_screen',
+        'flow': 'summary',
+        'auto_completed_steps': autoCompletedSteps,
       },
     );
 
@@ -97,20 +145,32 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       return;
     }
 
-    final nextAction = await showPostPublishCelebrationDialog(
-      context,
-      source: 'story_summary_screen',
-      flow: 'summary',
-      storyId: finalized.story.id,
-      gamification: finalized.gamification,
-      reward: reward,
-    );
+    var nextAction = PostPublishAction.backToVault;
+    try {
+      nextAction = await showPostPublishCelebrationDialog(
+        context,
+        source: 'story_summary_screen',
+        flow: 'summary',
+        storyId: finalized.story.id,
+        gamification: finalized.gamification,
+        reward: reward,
+      );
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao abrir pós-publicação na tela de resumo. Aplicando navegação de fallback.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_summary',
+      );
+      nextAction = PostPublishAction.backToVault;
+    }
 
     if (!mounted) {
       return;
     }
 
     await _handlePostPublishAction(nextAction, finalized.story.id);
+    await _ensurePostPublishNavigation(finalized.story.id);
   }
 
   Future<void> _handlePostPublishAction(
@@ -176,6 +236,8 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
       _titleController.text = story.title;
     }
 
+    final missingSteps = _missingStepsFor(story);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Resumo e Publicação'),
@@ -232,6 +294,26 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      missingSteps == 0
+                          ? Icons.verified_rounded
+                          : Icons.auto_awesome_rounded,
+                    ),
+                    title: Text(
+                      missingSteps == 0
+                          ? 'Pronto para publicar'
+                          : 'Publicação assistida',
+                    ),
+                    subtitle: Text(
+                      missingSteps == 0
+                          ? 'Sua história já tem etapas suficientes.'
+                          : 'Ao publicar, completaremos automaticamente $missingSteps ${missingSteps == 1 ? 'etapa' : 'etapas'} para fechar o capítulo.',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 const ViscondeSectionTitle(
                   title: 'Trechos da aventura',
                   subtitle: 'Momentos registrados na timeline',
@@ -251,11 +333,13 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
                 ),
                 const SizedBox(height: 12),
                 ViscondePrimaryCta(
+                  key: const Key('story_summary_publish_button'),
                   onPressed: state.finalizing ? null : _finalize,
                   icon: Icons.publish,
-                  label: state.finalizing
-                      ? 'Publicando...'
-                      : 'Publicar capítulo',
+                  label: _publishButtonLabel(
+                    story: story,
+                    finalizing: state.finalizing,
+                  ),
                 ),
               ],
             ),

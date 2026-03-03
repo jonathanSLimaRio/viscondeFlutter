@@ -25,6 +25,12 @@ class StoryRoomScreen extends ConsumerStatefulWidget {
 
 class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
   int _lastKnownSteps = 0;
+  static const int _minimumPublishSteps = 3;
+
+  int _missingStepsForPublish(StorySessionModel story) {
+    final missing = _minimumPublishSteps - story.steps.length;
+    return missing > 0 ? missing : 0;
+  }
 
   @override
   void initState() {
@@ -450,6 +456,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
     }
 
     final options = controller.currentChoiceOptions();
+    final missingStepsForPublish = _missingStepsForPublish(story);
     final illustrationAsync = ref.watch(
       storyIllustrationProvider((
         storyId: story.id,
@@ -597,6 +604,13 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                       Chip(label: Text('Etapa ${story.currentStepIndex}/12')),
                       Chip(label: Text(controller.syncLabel())),
                       Chip(label: Text('${state.pendingCount} pendentes')),
+                      Chip(
+                        label: Text(
+                          missingStepsForPublish == 0
+                              ? 'Publicação pronta'
+                              : 'Publicação: +$missingStepsForPublish auto',
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -701,10 +715,20 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
               ),
             ),
             const SizedBox(height: 8),
+            if (missingStepsForPublish > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Ao publicar no resumo, completaremos automaticamente '
+                  '$missingStepsForPublish ${missingStepsForPublish == 1 ? 'etapa' : 'etapas'} restantes.',
+                ),
+              ),
             ViscondePrimaryCta(
               onPressed: () => context.push(AppRoute.storySummary(story.id)),
               icon: Icons.publish_outlined,
-              label: 'Revisar e publicar capítulo',
+              label: missingStepsForPublish == 0
+                  ? 'Revisar e publicar capítulo'
+                  : 'Revisar e publicar com auto-complete',
             ),
           ],
         ),
