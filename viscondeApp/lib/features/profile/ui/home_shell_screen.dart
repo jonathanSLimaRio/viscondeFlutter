@@ -18,17 +18,33 @@ class HomeShellScreen extends ConsumerStatefulWidget {
 
 class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   int _index = 0;
+  final Map<int, Widget> _tabCache = <int, Widget>{0: const StoryVaultScreen()};
+
+  Widget _tabForIndex(int index) {
+    switch (index) {
+      case 0:
+        return const StoryVaultScreen();
+      case 1:
+        return const GameHubScreen();
+      case 2:
+        return const ChildrenTab();
+      case 3:
+        return const ProfileTab();
+      case 4:
+        return const AdultGateTab();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  List<Widget> _stackChildren() {
+    return List<Widget>.generate(5, (index) {
+      return _tabCache[index] ?? const SizedBox.shrink();
+    }, growable: false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tabs = const [
-      StoryVaultScreen(),
-      GameHubScreen(),
-      ChildrenTab(),
-      ProfileTab(),
-      AdultGateTab(),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: Image.asset(
@@ -46,7 +62,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
           ),
         ],
       ),
-      body: IndexedStack(index: _index, children: tabs),
+      body: IndexedStack(index: _index, children: _stackChildren()),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
         child: ClipRRect(
@@ -54,7 +70,10 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
           child: NavigationBar(
             selectedIndex: _index,
             onDestinationSelected: (value) {
-              setState(() => _index = value);
+              setState(() {
+                _index = value;
+                _tabCache.putIfAbsent(value, () => _tabForIndex(value));
+              });
             },
             destinations: const [
               NavigationDestination(
