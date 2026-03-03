@@ -76,7 +76,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
     final pin = _newPinController.text.trim();
     if (!_isValidPin(pin)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN deve conter 6 digitos.')),
+        const SnackBar(content: Text('PIN deve conter 6 dígitos.')),
       );
       return;
     }
@@ -114,7 +114,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
     final pin = _pinController.text.trim();
     if (!_isValidPin(pin)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN deve conter 6 digitos.')),
+        const SnackBar(content: Text('PIN deve conter 6 dígitos.')),
       );
       return;
     }
@@ -167,7 +167,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
     final newPin = _newPinController.text.trim();
     if (!_isValidPin(newPin)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Novo PIN deve conter 6 digitos.')),
+        const SnackBar(content: Text('Novo PIN deve conter 6 dígitos.')),
       );
       return;
     }
@@ -235,7 +235,9 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
         const SizedBox(height: 12),
         Text(
           _hasPin ? 'PIN configurado' : 'Configure seu PIN adulto',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 12),
         if (!_hasPin) ...[
@@ -245,7 +247,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
             maxLength: 6,
             obscureText: true,
             decoration: const InputDecoration(
-              labelText: 'Novo PIN (6 digitos)',
+              labelText: 'Novo PIN (6 dígitos)',
             ),
           ),
           FilledButton(onPressed: _setPin, child: const Text('Definir PIN')),
@@ -315,7 +317,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
               ? () => context.push(AppRoute.adultVoices)
               : null,
           icon: const Icon(Icons.record_voice_over_outlined),
-          label: const Text('Voz inesquecivel'),
+          label: const Text('Voz inesquecível'),
         ),
         if (auth.user?.isAdmin ?? false) ...[
           const SizedBox(height: 8),

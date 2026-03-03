@@ -143,7 +143,7 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
                       TextField(
                         controller: descriptionController,
                         decoration: const InputDecoration(
-                          labelText: 'Descricao curta',
+                          labelText: 'Descrição curta',
                         ),
                       ),
                       TextField(
@@ -260,7 +260,7 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
                       TextField(
                         controller: descriptionController,
                         decoration: const InputDecoration(
-                          labelText: 'Descricao curta',
+                          labelText: 'Descrição curta',
                         ),
                       ),
                       TextField(
@@ -405,7 +405,7 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
                       DropdownButtonFormField<String>(
                         initialValue: selectedAgeBand,
                         decoration: const InputDecoration(
-                          labelText: 'Faixa etaria',
+                          labelText: 'Faixa etária',
                         ),
                         items: _ageBands
                             .map(
@@ -744,7 +744,7 @@ class _VirtueAdminScreenState extends ConsumerState<VirtueAdminScreen> {
                   child: DropdownButtonFormField<String?>(
                     initialValue: _templateAgeBandFilter,
                     decoration: const InputDecoration(
-                      labelText: 'Faixa etaria',
+                      labelText: 'Faixa etária',
                     ),
                     items: [
                       const DropdownMenuItem<String?>(

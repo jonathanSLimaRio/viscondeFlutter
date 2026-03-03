@@ -461,7 +461,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                           children: [
                             Text(
                               item.icon,
-                              style: const TextStyle(fontSize: 32),
+                              style: Theme.of(context).textTheme.headlineMedium,
                             ),
                             const SizedBox(height: 8),
                             Text(

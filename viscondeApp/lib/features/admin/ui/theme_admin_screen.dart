@@ -97,7 +97,7 @@ class _ThemeAdminScreenState extends ConsumerState<ThemeAdminScreen> {
                       TextField(
                         controller: descriptionController,
                         decoration: const InputDecoration(
-                          labelText: 'Descricao curta',
+                          labelText: 'Descrição curta',
                         ),
                       ),
                       TextField(
@@ -214,7 +214,7 @@ class _ThemeAdminScreenState extends ConsumerState<ThemeAdminScreen> {
                       TextField(
                         controller: descriptionController,
                         decoration: const InputDecoration(
-                          labelText: 'Descricao curta',
+                          labelText: 'Descrição curta',
                         ),
                       ),
                       TextField(

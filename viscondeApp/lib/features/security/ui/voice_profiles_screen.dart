@@ -111,7 +111,7 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
 
     if (!gate.isUnlocked || gate.unlockToken == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Voz Inesquecivel')),
+        appBar: AppBar(title: const Text('Voz Inesquecível')),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: const [
@@ -128,20 +128,20 @@ class _VoiceProfilesScreenState extends ConsumerState<VoiceProfilesScreen> {
 
     if (_loading && _profiles.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Voz Inesquecivel')),
+        appBar: AppBar(title: const Text('Voz Inesquecível')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Voz Inesquecivel')),
+      appBar: AppBar(title: const Text('Voz Inesquecível')),
       body: RefreshIndicator(
         onRefresh: _loadProfiles,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             ViscondeHeroBanner(
-              title: 'A voz da sua familia',
+              title: 'A voz da sua família',
               subtitle:
                   'Crie perfis e guarde para sempre a voz de quem você ama na narração.',
               assetPath: ViscondeArtRegistry.resolve(

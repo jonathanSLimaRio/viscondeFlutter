@@ -210,7 +210,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
               children: [
                 TextField(
                   controller: _titleController,
-                  decoration: const InputDecoration(labelText: 'Titulo final'),
+                  decoration: const InputDecoration(labelText: 'Título final'),
                 ),
                 const SizedBox(height: 12),
                 Card(
@@ -221,7 +221,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
                       children: [
                         Text('Criança: ${story.child.name}'),
                         Text('Tema: ${story.theme}'),
-                        Text('Cenario: ${story.scenario}'),
+                        Text('Cenário: ${story.scenario}'),
                         Text('Objetivo: ${story.objective}'),
                         if (story.virtue != null)
                           Text(

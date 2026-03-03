@@ -138,7 +138,7 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
                       ),
                       TextField(
                         controller: titleController,
-                        decoration: const InputDecoration(labelText: 'Titulo'),
+                        decoration: const InputDecoration(labelText: 'Título'),
                       ),
                       TextField(
                         controller: textController,
@@ -190,7 +190,7 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
                       DropdownButtonFormField<String?>(
                         initialValue: ageBand,
                         decoration: const InputDecoration(
-                          labelText: 'Faixa etaria (opcional)',
+                          labelText: 'Faixa etária (opcional)',
                         ),
                         items: [
                           const DropdownMenuItem<String?>(
@@ -358,7 +358,7 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
                       ),
                       TextField(
                         controller: titleController,
-                        decoration: const InputDecoration(labelText: 'Titulo'),
+                        decoration: const InputDecoration(labelText: 'Título'),
                       ),
                       TextField(
                         controller: textController,
@@ -410,7 +410,7 @@ class _PromptAdminScreenState extends ConsumerState<PromptAdminScreen> {
                       DropdownButtonFormField<String?>(
                         initialValue: ageBand,
                         decoration: const InputDecoration(
-                          labelText: 'Faixa etaria (opcional)',
+                          labelText: 'Faixa etária (opcional)',
                         ),
                         items: [
                           const DropdownMenuItem<String?>(

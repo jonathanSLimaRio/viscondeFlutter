@@ -50,9 +50,11 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Painel do pai narrador',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -84,12 +86,12 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
                   widget.onRequestIdeas(_hintController.text.trim());
                 },
           icon: const Icon(Icons.auto_awesome),
-          label: const Text('Me da ideias'),
+          label: const Text('Me dá ideias'),
         ),
         if (widget.ideas.isNotEmpty) ...[
           const SizedBox(height: 12),
           Text(
-            'Sugestoes (${widget.ideasSource ?? 'TEMPLATE'})${widget.ideasSafetyAdjusted ? ' · ajustado para seguranca' : ''}',
+            'Sugestões (${widget.ideasSource ?? 'TEMPLATE'})${widget.ideasSafetyAdjusted ? ' · ajustado para segurança' : ''}',
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),

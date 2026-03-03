@@ -31,13 +31,15 @@ class CreateRemoteSessionSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Sala remota',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Crie um codigo de entrada para o outro dispositivo. Requer PIN adulto valido.',
+              'Crie um código de entrada para o outro dispositivo. Requer PIN adulto válido.',
             ),
             const SizedBox(height: 12),
             if (loading)
@@ -53,12 +55,12 @@ class CreateRemoteSessionSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Codigo: $joinCode',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
-                        ),
+                        'Código: $joinCode',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                            ),
                       ),
                       if (expiresAt != null) ...[
                         const SizedBox(height: 4),
@@ -66,7 +68,10 @@ class CreateRemoteSessionSheet extends StatelessWidget {
                       ],
                       if (joinLink != null && joinLink!.isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text(joinLink!, style: const TextStyle(fontSize: 12)),
+                        Text(
+                          joinLink!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       ],
                     ],
                   ),
@@ -91,7 +96,7 @@ class CreateRemoteSessionSheet extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: loading ? null : onRegenerate,
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Gerar novo codigo'),
+                    label: const Text('Gerar novo código'),
                   ),
                 ),
               ],

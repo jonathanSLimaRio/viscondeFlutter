@@ -32,13 +32,13 @@ class AdminHubScreen extends StatelessWidget {
           _AdminMenuTile(
             icon: Icons.palette_outlined,
             title: 'Temas',
-            subtitle: 'Gerencie catalogo de temas ativos/inativos.',
+            subtitle: 'Gerencie catálogo de temas ativos/inativos.',
             onTap: () => context.push(AppRoute.adminThemes),
           ),
           _AdminMenuTile(
             icon: Icons.auto_awesome_outlined,
             title: 'Virtudes e Dilemas',
-            subtitle: 'Edite virtudes e templates por faixa etaria.',
+            subtitle: 'Edite virtudes e templates por faixa etária.',
             onTap: () => context.push(AppRoute.adminVirtues),
           ),
           _AdminMenuTile(
@@ -50,13 +50,13 @@ class AdminHubScreen extends StatelessWidget {
           _AdminMenuTile(
             icon: Icons.account_tree_outlined,
             title: 'Templates de História',
-            subtitle: 'Edite árvore de decisao e publique versões.',
+            subtitle: 'Edite árvore de decisão e publique versões.',
             onTap: () => context.push(AppRoute.adminTemplates),
           ),
           _AdminMenuTile(
             icon: Icons.shield_outlined,
             title: 'Moderação',
-            subtitle: 'Bloqueie termos improprios por escopo.',
+            subtitle: 'Bloqueie termos impróprios por escopo.',
             onTap: () => context.push(AppRoute.adminModeration),
           ),
         ],

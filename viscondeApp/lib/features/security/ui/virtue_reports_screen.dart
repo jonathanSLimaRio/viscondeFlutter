@@ -103,10 +103,9 @@ class _VirtueReportsScreenState extends ConsumerState<VirtueReportsScreen> {
               children: [
                 Text(
                   'Resumo de ${summary.child.name}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Text(

@@ -146,7 +146,7 @@ class _StoryVaultDetailScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'E necessario ao menos um episodio publicado para continuar a aventura.',
+            'E necessário ao menos um episodio publicado para continuar a aventura.',
           ),
         ),
       );

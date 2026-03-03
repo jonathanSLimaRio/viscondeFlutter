@@ -482,7 +482,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
         state = state.copyWith(
           submittingStep: false,
           error:
-              'Sem internet: etapa salva localmente e pendente de sincronizacao.',
+              'Sem internet: etapa salva localmente e pendente de sincronização.',
         );
         return;
       }

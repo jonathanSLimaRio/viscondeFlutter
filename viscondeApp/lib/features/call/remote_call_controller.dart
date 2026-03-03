@@ -199,7 +199,7 @@ class RemoteCallController extends ChangeNotifier {
           break;
       }
     } catch (_) {
-      _errorMessage = "Falha ao preparar chamada de audio/video.";
+      _errorMessage = "Falha ao preparar chamada de áudio/vídeo.";
       notifyListeners();
     }
   }
@@ -317,7 +317,7 @@ class RemoteCallController extends ChangeNotifier {
     try {
       await peer.setRemoteDescription(RTCSessionDescription(description, type));
     } catch (_) {
-      _errorMessage = "Falha ao concluir sinalizacao da chamada.";
+      _errorMessage = "Falha ao concluir sinalização da chamada.";
       notifyListeners();
     }
   }

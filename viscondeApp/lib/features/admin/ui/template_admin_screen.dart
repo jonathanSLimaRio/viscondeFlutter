@@ -161,13 +161,13 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       ),
                       TextField(
                         controller: titleController,
-                        decoration: const InputDecoration(labelText: 'Titulo'),
+                        decoration: const InputDecoration(labelText: 'Título'),
                       ),
                       TextField(
                         controller: descriptionController,
                         maxLines: 2,
                         decoration: const InputDecoration(
-                          labelText: 'Descricao',
+                          labelText: 'Descrição',
                         ),
                       ),
                       DropdownButtonFormField<String?>(
@@ -215,7 +215,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       DropdownButtonFormField<String?>(
                         initialValue: selectedAgeBand,
                         decoration: const InputDecoration(
-                          labelText: 'Faixa etaria (opcional)',
+                          labelText: 'Faixa etária (opcional)',
                         ),
                         items: [
                           const DropdownMenuItem<String?>(
@@ -236,13 +236,13 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       TextField(
                         controller: scenarioController,
                         decoration: const InputDecoration(
-                          labelText: 'Cenario padrao',
+                          labelText: 'Cenário padrão',
                         ),
                       ),
                       TextField(
                         controller: objectiveController,
                         decoration: const InputDecoration(
-                          labelText: 'Objetivo padrao',
+                          labelText: 'Objetivo padrão',
                         ),
                       ),
                       SwitchListTile.adaptive(
@@ -357,13 +357,13 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       ),
                       TextField(
                         controller: titleController,
-                        decoration: const InputDecoration(labelText: 'Titulo'),
+                        decoration: const InputDecoration(labelText: 'Título'),
                       ),
                       TextField(
                         controller: descriptionController,
                         maxLines: 2,
                         decoration: const InputDecoration(
-                          labelText: 'Descricao',
+                          labelText: 'Descrição',
                         ),
                       ),
                       DropdownButtonFormField<String?>(
@@ -411,7 +411,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       DropdownButtonFormField<String?>(
                         initialValue: selectedAgeBand,
                         decoration: const InputDecoration(
-                          labelText: 'Faixa etaria (opcional)',
+                          labelText: 'Faixa etária (opcional)',
                         ),
                         items: [
                           const DropdownMenuItem<String?>(
@@ -432,13 +432,13 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       TextField(
                         controller: scenarioController,
                         decoration: const InputDecoration(
-                          labelText: 'Cenario padrao',
+                          labelText: 'Cenário padrão',
                         ),
                       ),
                       TextField(
                         controller: objectiveController,
                         decoration: const InputDecoration(
-                          labelText: 'Objetivo padrao',
+                          labelText: 'Objetivo padrão',
                         ),
                       ),
                       SwitchListTile.adaptive(
@@ -636,7 +636,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       ),
                       TextField(
                         controller: titleController,
-                        decoration: const InputDecoration(labelText: 'Titulo'),
+                        decoration: const InputDecoration(labelText: 'Título'),
                       ),
                       TextField(
                         controller: narratorTextController,
@@ -779,7 +779,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       ),
                       TextField(
                         controller: titleController,
-                        decoration: const InputDecoration(labelText: 'Titulo'),
+                        decoration: const InputDecoration(labelText: 'Título'),
                       ),
                       TextField(
                         controller: narratorTextController,
@@ -879,7 +879,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
           return StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
-                title: const Text('Adicionar opcao'),
+                title: const Text('Adicionar opção'),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1015,7 +1015,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
           return StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
-                title: const Text('Editar opcao'),
+                title: const Text('Editar opção'),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1126,7 +1126,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
       if (validation.valid) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Template valido.')));
+        ).showSnackBar(const SnackBar(content: Text('Template válido.')));
       }
     } catch (error) {
       if (!mounted) {
@@ -1262,9 +1262,9 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                         'tema: ${detail.theme?.name ?? '-'} · virtude: ${detail.virtue?.name ?? '-'} · faixa: ${detail.ageBand ?? '-'}',
                       ),
                       const SizedBox(height: 8),
-                      Text('Descricao: ${detail.description}'),
-                      Text('Cenario padrao: ${detail.defaultScenario}'),
-                      Text('Objetivo padrao: ${detail.defaultObjective}'),
+                      Text('Descrição: ${detail.description}'),
+                      Text('Cenário padrão: ${detail.defaultScenario}'),
+                      Text('Objetivo padrão: ${detail.defaultObjective}'),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
@@ -1371,7 +1371,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                   child: ExpansionTile(
                     title: Text('${node.nodeKey} · ${node.title}'),
                     subtitle: Text(
-                      '${node.kind.name.toUpperCase()} · ordem ${node.sortOrder} · opcoes ${node.options.length}',
+                      '${node.kind.name.toUpperCase()} · ordem ${node.sortOrder} · opções ${node.options.length}',
                     ),
                     childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     children: [
@@ -1398,7 +1398,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                             onPressed: () =>
                                 _addOption(detail, initialNodeId: node.id),
                             icon: const Icon(Icons.add_link_outlined),
-                            label: const Text('Nova opcao'),
+                            label: const Text('Nova opção'),
                           ),
                         ],
                       ),
@@ -1406,7 +1406,7 @@ class _TemplateAdminScreenState extends ConsumerState<TemplateAdminScreen> {
                       if (node.options.isEmpty)
                         const Align(
                           alignment: Alignment.centerLeft,
-                          child: Text('Sem opcoes.'),
+                          child: Text('Sem opções.'),
                         ),
                       ...node.options.map(
                         (option) => ViscondeGlassCard(

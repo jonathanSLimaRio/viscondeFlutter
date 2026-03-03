@@ -77,9 +77,11 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Narrar com a Voz Inesquecivel',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  'Narrar com a Voz Inesquecível',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 12),
                 ...readyProfiles.map(
@@ -105,9 +107,9 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                         showDialog(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            title: const Text('Audio gerado!'),
+                            title: const Text('Áudio gerado!'),
                             content: Text(
-                              'O seu audio artificial (MVP) foi criado com sucesso:\n\n${job.outputUrl}',
+                              'O seu áudio artificial (MVP) foi criado com sucesso:\n\n${job.outputUrl}',
                             ),
                             actions: [
                               TextButton(
@@ -377,7 +379,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                   trailing: step.kind == StoryStepKind.narration
                       ? IconButton(
                           icon: const Icon(Icons.record_voice_over),
-                          tooltip: 'Narrar com Voz da Familia',
+                          tooltip: 'Narrar com Voz da Família',
                           onPressed: () => _showNarrateDialog(step),
                         )
                       : null,

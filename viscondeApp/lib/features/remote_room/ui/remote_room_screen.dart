@@ -508,7 +508,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
     }
 
     if (!gate.isUnlocked || gate.unlockToken == null) {
-      context.showMessage('PIN adulto necessario para regenerar codigo.');
+      context.showMessage('PIN adulto necessário para regenerar código.');
       return;
     }
 
@@ -887,7 +887,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
             IconButton(
               onPressed: _showCreateRemoteSheet,
               icon: const Icon(Icons.link),
-              tooltip: 'Criar/gerenciar codigo',
+              tooltip: 'Criar/gerenciar código',
             ),
           if (!widget.isGuest && room != null)
             IconButton(
@@ -932,7 +932,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                       const Text('Sala remota ainda não aberta.'),
                     ],
                     if (_joinCode != null && _joinCode!.isNotEmpty)
-                      Text('Codigo ativo: $_joinCode'),
+                      Text('Código ativo: $_joinCode'),
                   ],
                 ),
               ),
@@ -978,14 +978,14 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                               : (_) => _setCallMode(RemoteCallMode.none),
                         ),
                         ChoiceChip(
-                          label: const Text('Audio'),
+                          label: const Text('Áudio'),
                           selected: room?.callMode == RemoteCallMode.audio,
                           onSelected: widget.isGuest
                               ? null
                               : (_) => _setCallMode(RemoteCallMode.audio),
                         ),
                         ChoiceChip(
-                          label: const Text('Video'),
+                          label: const Text('Vídeo'),
                           selected: room?.callMode == RemoteCallMode.video,
                           onSelected: widget.isGuest
                               ? null
@@ -1012,7 +1012,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                       if (room?.callMode == RemoteCallMode.audio)
                         const Padding(
                           padding: EdgeInsets.only(top: 4),
-                          child: Text('Audio ativo (video opcional).'),
+                          child: Text('Áudio ativo (vídeo opcional).'),
                         ),
                       if (room?.callMode == RemoteCallMode.video)
                         Padding(
@@ -1038,7 +1038,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                                             )
                                           : const Center(
                                               child: Text(
-                                                'Aguardando video remoto...',
+                                                'Aguardando vídeo remoto...',
                                                 style: TextStyle(
                                                   color: Colors.white70,
                                                 ),
@@ -1070,7 +1070,7 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                                             )
                                           : const Center(
                                               child: Text(
-                                                'Sem camera',
+                                                'Sem câmera',
                                                 style: TextStyle(
                                                   color: Colors.white70,
                                                 ),
@@ -1110,9 +1110,11 @@ class _RemoteRoomScreenState extends ConsumerState<RemoteRoomScreen> {
                 ),
               ),
             const SizedBox(height: 12),
-            const Text(
-              'Chat e reacoes',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              'Chat e reações',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             ..._interactions.map(

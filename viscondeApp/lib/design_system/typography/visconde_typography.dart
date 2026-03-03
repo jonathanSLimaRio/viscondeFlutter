@@ -28,17 +28,17 @@ class ViscondeTypography {
       labelSmall: base,
     ).copyWith(
       headlineLarge: base.copyWith(
-        fontSize: 32,
+        fontSize: 30,
         fontWeight: FontWeight.w800,
         letterSpacing: -0.4,
       ),
-      headlineMedium: base.copyWith(fontSize: 27, fontWeight: FontWeight.w800),
-      headlineSmall: base.copyWith(fontSize: 22, fontWeight: FontWeight.w800),
-      titleLarge: base.copyWith(fontSize: 19, fontWeight: FontWeight.w700),
-      titleMedium: base.copyWith(fontSize: 17, fontWeight: FontWeight.w700),
+      headlineMedium: base.copyWith(fontSize: 25, fontWeight: FontWeight.w800),
+      headlineSmall: base.copyWith(fontSize: 21, fontWeight: FontWeight.w800),
+      titleLarge: base.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+      titleMedium: base.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
       titleSmall: base.copyWith(fontSize: 15, fontWeight: FontWeight.w700),
       bodyLarge: base.copyWith(
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: FontWeight.w600,
         color: const Color(0xFF5A4132),
       ),
@@ -52,7 +52,7 @@ class ViscondeTypography {
         fontWeight: FontWeight.w500,
         color: const Color(0xFF7A6356),
       ),
-      labelLarge: base.copyWith(fontSize: 15, fontWeight: FontWeight.w800),
+      labelLarge: base.copyWith(fontSize: 14, fontWeight: FontWeight.w800),
       labelMedium: base.copyWith(fontSize: 13, fontWeight: FontWeight.w700),
       labelSmall: base.copyWith(fontSize: 11, fontWeight: FontWeight.w700),
     );

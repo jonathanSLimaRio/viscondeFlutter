@@ -78,9 +78,8 @@ class _ChildrenTabState extends ConsumerState<ChildrenTab> {
                 children: [
                   Text(
                     child == null ? 'Nova criança' : 'Editar criança',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -92,7 +91,7 @@ class _ChildrenTabState extends ConsumerState<ChildrenTab> {
                   TextField(
                     controller: themesController,
                     decoration: const InputDecoration(
-                      labelText: 'Temas favoritos (separados por virgula)',
+                      labelText: 'Temas favoritos (separados por vírgula)',
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -247,7 +246,7 @@ class _ChildrenTabState extends ConsumerState<ChildrenTab> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Column(
-                        children: const [
+                        children: [
                           ViscondeMascot(
                             pose: ViscondeMascotPose.readingBookClose,
                             size: 180,
@@ -256,10 +255,8 @@ class _ChildrenTabState extends ConsumerState<ChildrenTab> {
                           SizedBox(height: 8),
                           Text(
                             'Nenhuma criança cadastrada ainda.',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           SizedBox(height: 4),
                           Text(

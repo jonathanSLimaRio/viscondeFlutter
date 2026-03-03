@@ -298,7 +298,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         theme.isEmpty ||
         scenario.isEmpty ||
         objective.isEmpty) {
-      context.showMessage('Preencha titulo, tema, cenario e objetivo.');
+      context.showMessage('Preencha título, tema, cenário e objetivo.');
       return;
     }
 
@@ -312,7 +312,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
     if (characters.isEmpty) {
       context.showMessage(
-        'Informe ao menos um personagem (separados por virgula).',
+        'Informe ao menos um personagem (separados por vírgula).',
       );
       return;
     }
@@ -431,7 +431,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                       TextField(
                         controller: _titleController,
                         decoration: const InputDecoration(
-                          labelText: 'Titulo provisiorio',
+                          labelText: 'Título provisório',
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -442,7 +442,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: _scenarioController,
-                        decoration: const InputDecoration(labelText: 'Cenario'),
+                        decoration: const InputDecoration(labelText: 'Cenário'),
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -455,7 +455,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                       TextField(
                         controller: _charactersController,
                         decoration: const InputDecoration(
-                          labelText: 'Personagens (separe por virgula)',
+                          labelText: 'Personagens (separe por vírgula)',
                         ),
                       ),
                       const SizedBox(height: 12),

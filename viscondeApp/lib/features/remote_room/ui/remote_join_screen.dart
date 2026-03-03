@@ -41,7 +41,7 @@ class _RemoteJoinScreenState extends ConsumerState<RemoteJoinScreen> {
 
     if (code.isEmpty || displayName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe codigo e nome para entrar.')),
+        const SnackBar(content: Text('Informe código e nome para entrar.')),
       );
       return;
     }
