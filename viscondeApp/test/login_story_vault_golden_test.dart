@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:visconde_app/core/models/child_profile.dart';
 import 'package:visconde_app/features/auth/ui/login_screen.dart';
+import 'package:visconde_app/features/auth/ui/signup_screen.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
 import 'package:visconde_app/features/story_vault/ui/story_vault_screen.dart';
 import 'package:visconde_app/shared/providers.dart';
@@ -25,6 +26,24 @@ void main() {
     await expectLater(
       find.byType(LoginScreen),
       matchesGoldenFile('goldens/features/auth/login_screen.png'),
+    );
+  });
+
+  testWidgets('SignupScreen golden', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+
+    await tester.pumpWidget(
+      wrapTestApp(
+        const SignupScreen(),
+        overrides: authOverrides(user: buildTestUser(), authenticated: false),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(SignupScreen),
+      matchesGoldenFile('goldens/features/auth/signup_screen.png'),
     );
   });
 

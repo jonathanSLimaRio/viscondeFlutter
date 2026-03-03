@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
@@ -20,7 +18,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  final _googleSignIn = GoogleSignIn(scopes: <String>['email']);
 
   @override
   void dispose() {
@@ -40,54 +37,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
   }
 
-  Future<void> _googleLogin() async {
-    final account = await _googleSignIn.signIn();
-    if (account == null) return;
-
-    final auth = await account.authentication;
-    final idToken = auth.idToken;
-
-    if (idToken == null || idToken.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nao foi possivel obter token do Google.'),
-          ),
-        );
-      }
-      return;
-    }
-
-    await ref
-        .read(authControllerProvider.notifier)
-        .loginWithGoogleToken(idToken);
-  }
-
-  Future<void> _appleLogin() async {
-    final credential = await SignInWithApple.getAppleIDCredential(
-      scopes: const [
-        AppleIDAuthorizationScopes.email,
-        AppleIDAuthorizationScopes.fullName,
-      ],
-    );
-
-    final idToken = credential.identityToken;
-    if (idToken == null || idToken.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nao foi possivel obter token da Apple.'),
-          ),
-        );
-      }
-      return;
-    }
-
-    await ref
-        .read(authControllerProvider.notifier)
-        .loginWithAppleToken(idToken);
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
@@ -98,200 +47,226 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: ViscondeScaffoldBackground(
-        safeArea: false,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 36, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Logo ──────────────────────────────────────────────────────
-                Center(
-                  child: Image.asset(
-                    ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
-                    height: 120,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const SizedBox(height: 80),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 26, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Entrar no Visconde',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: context.viscondeColors.textStrong,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              _buildHeroCard(context),
+              const SizedBox(height: 16),
+
+              ViscondeGlassCard(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const ViscondeSectionTitle(
+                        title: 'Acessar conta',
+                        subtitle: 'Continue a próxima aventura.',
+                      ),
+                      const SizedBox(height: 20),
+                      _buildEmailField(context),
+                      const SizedBox(height: 12),
+                      _buildPasswordField(context),
+                      const SizedBox(height: 20),
+                      ViscondePrimaryCta(
+                        onPressed: _submit,
+                        label: 'Entrar',
+                        icon: Icons.arrow_forward_rounded,
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => context.push(AppRoute.signup),
+                        style: TextButton.styleFrom(
+                          foregroundColor: context.viscondeColors.primaryDark,
+                          textStyle: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        child: const Text('Não tem conta? Criar conta'),
+                      ),
+                    ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 14),
+
+              TextButton(
+                onPressed: () => context.push(AppRoute.forgotPassword),
+                style: TextButton.styleFrom(
+                  foregroundColor: context.viscondeColors.primaryDark,
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                child: const Text('Esqueci minha senha'),
+              ),
+              const SizedBox(height: 10),
+
+              _buildOrDivider(context),
+              const SizedBox(height: 12),
+
+              _buildSocialButton(
+                context: context,
+                onPressed: null,
+                icon: const _GoogleIcon(),
+                label: 'Continuar com Google',
+              ),
+              const SizedBox(height: 12),
+
+              _buildSocialButton(
+                context: context,
+                onPressed: null,
+                icon: const Icon(Icons.apple, size: 22, color: Colors.black87),
+                label: 'Continuar com Apple',
+              ),
+              if (authState.error != null) ...[
                 const SizedBox(height: 12),
-
-                // ── Hero Banner ──────────────────────────────────────────────
-                ViscondeHeroBanner(
-                  title: 'Criando com o Papai!',
-                  subtitle: 'Transforme tempo em\nmemórias mágicas.',
-                  assetPath: ViscondeArtRegistry.resolve(
-                    ViscondeArtKey.heroTreasure,
-                  ),
-                  showMascot: true,
-                  mascotPose: ViscondeMascotPose.wavingControllerBook,
-                  trailing: ViscondeAvatarBadge(
-                    imageAsset: ViscondeArtRegistry.resolve(
-                      ViscondeArtKey.avatarParent,
-                    ),
-                  ),
-                  height: 160,
-                ),
-                const SizedBox(height: 16),
-
-                // ── Login Card ───────────────────────────────────────────────
-                ViscondeGlassCard(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Card header
-                        const ViscondeSectionTitle(
-                          title: 'Acessar conta',
-                          subtitle: 'Continue a próxima aventura.',
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Email field
-                        _buildEmailField(context),
-                        const SizedBox(height: 12),
-
-                        // Password field
-                        _buildPasswordField(context),
-                        const SizedBox(height: 20),
-
-                        // Entrar button
-                        ViscondePrimaryCta(
-                          onPressed: _submit,
-                          label: 'Entrar',
-                          icon: Icons.arrow_forward_rounded,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // ── Forgot password ──────────────────────────────────────────
-                TextButton(
-                  onPressed: () => context.push(AppRoute.forgotPassword),
-                  style: TextButton.styleFrom(
-                    foregroundColor: context.viscondeColors.primaryDark,
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  child: const Text('Esqueci minha senha'),
-                ),
-
-                const SizedBox(height: 8),
-
-                // ── Divider "ou" ─────────────────────────────────────────────
                 Text(
-                  'Bem-vindo ao\nVisconde App',
+                  authState.error!,
+                  style: TextStyle(
+                    color: context.viscondeColors.warning,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black87,
-                  ),
                 ),
-
-                const SizedBox(height: 16),
-
-                // ── Google button ────────────────────────────────────────────
-                _buildSocialButton(
-                  context: context,
-                  onPressed: _googleLogin,
-                  icon: _GoogleIcon(),
-                  label: 'Continuar com Google',
-                ),
-                const SizedBox(height: 12),
-
-                // ── Apple button ─────────────────────────────────────────────
-                _buildSocialButton(
-                  context: context,
-                  onPressed: _appleLogin,
-                  icon: const Icon(
-                    Icons.apple,
-                    size: 22,
-                    color: Colors.black87,
-                  ),
-                  label: 'Continuar com Apple',
-                ),
-
-                // ── Error message ────────────────────────────────────────────
-                if (authState.error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    authState.error!,
-                    style: TextStyle(
-                      color: context.viscondeColors.warning,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
               ],
-            ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
-  Widget _buildEmailField(BuildContext context) {
+  Widget _buildHeroCard(BuildContext context) {
     final colors = context.viscondeColors;
-    return TextFormField(
-      controller: _emailController,
-      keyboardType: TextInputType.emailAddress,
-      style: TextStyle(color: colors.textStrong, fontSize: 15),
-      decoration: InputDecoration(
-        hintText: 'E-mail',
-        hintStyle: TextStyle(color: colors.textMuted, fontSize: 15),
-        prefixIcon: Padding(
-          padding: const EdgeInsets.only(left: 14, right: 10),
-          child: Icon(
-            Icons.mail_outline_rounded,
-            color: colors.primary,
-            size: 22,
-          ),
+    final radius = BorderRadius.circular(context.viscondeRadii.xl);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFF5E3B8).withValues(alpha: 0.88),
+            const Color(0xFFEDDBB4).withValues(alpha: 0.8),
+            const Color(0xFFEFD9AE).withValues(alpha: 0.92),
+          ],
         ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        filled: true,
-        fillColor: const Color(0xFFFBF7F0),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.72),
+          width: 2,
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.warning, width: 1),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.warning, width: 1.5),
+        boxShadow: context.viscondeElevations.card,
+      ),
+      child: SizedBox(
+        height: 188,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: radius,
+                child: Image.asset(
+                  ViscondeArtRegistry.resolve(ViscondeArtKey.paperTexture),
+                  fit: BoxFit.cover,
+                  opacity: const AlwaysStoppedAnimation<double>(0.28),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 146, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Criando com o Papai!',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: colors.textStrong,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Transforme tempo em\nmemórias mágicas.',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: colors.textStrong.withValues(alpha: 0.9),
+                      height: 1.15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              right: 8,
+              bottom: 4,
+              child: SizedBox(
+                width: 132,
+                height: 132,
+                child: Image.asset(
+                  ViscondeArtRegistry.resolve(
+                    ViscondeArtKey.mascotWavingControllerBook,
+                  ),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildOrDivider(BuildContext context) {
+    final color = context.viscondeColors.textMuted.withValues(alpha: 0.56);
+
+    return Row(
+      children: [
+        Expanded(child: Divider(color: color, thickness: 1.2)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            'ou',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: context.viscondeColors.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: color, thickness: 1.2)),
+      ],
+    );
+  }
+
+  Widget _buildEmailField(BuildContext context) {
+    return _buildInputField(
+      context: context,
+      controller: _emailController,
+      keyboardType: TextInputType.emailAddress,
+      hintText: 'E-mail',
+      prefixIcon: Icons.mail_outline_rounded,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return 'Informe seu e-mail';
         }
         if (!value.contains('@')) {
-          return 'E-mail invalido';
+          return 'E-mail inválido';
         }
         return null;
       },
@@ -299,50 +274,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildPasswordField(BuildContext context) {
-    final colors = context.viscondeColors;
-    return TextFormField(
+    return _buildInputField(
+      context: context,
       controller: _passwordController,
+      hintText: 'Senha',
+      prefixIcon: Icons.lock_outline_rounded,
       obscureText: true,
-      style: TextStyle(color: colors.textStrong, fontSize: 15),
-      decoration: InputDecoration(
-        hintText: 'Senha',
-        hintStyle: TextStyle(color: colors.textMuted, fontSize: 15),
-        prefixIcon: Padding(
-          padding: const EdgeInsets.only(left: 14, right: 10),
-          child: Icon(
-            Icons.lock_outline_rounded,
-            color: colors.primary,
-            size: 22,
-          ),
-        ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        filled: true,
-        fillColor: const Color(0xFFFBF7F0),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.warning, width: 1),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colors.warning, width: 1.5),
-        ),
-      ),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Informe sua senha';
@@ -352,27 +289,88 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  Widget _buildInputField({
+    required BuildContext context,
+    required TextEditingController controller,
+    required String hintText,
+    required IconData prefixIcon,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+    required String? Function(String?) validator,
+  }) {
+    final colors = context.viscondeColors;
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      style: TextStyle(color: colors.textStrong, fontSize: 15),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(color: colors.textMuted, fontSize: 15),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 14, right: 10),
+          child: Icon(prefixIcon, color: colors.primary, size: 22),
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        filled: true,
+        fillColor: const Color(0xFFFBF7F0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.warning, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.warning, width: 1.5),
+        ),
+      ),
+      validator: validator,
+    );
+  }
+
   Widget _buildSocialButton({
     required BuildContext context,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
     required Widget icon,
     required String label,
   }) {
     final colors = context.viscondeColors;
-    return OutlinedButton(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        backgroundColor: const Color(0xFFFBF7F0),
-        foregroundColor: colors.textStrong,
-        side: BorderSide.none,
-        shape: const StadiumBorder(),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        elevation: 0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [icon, const SizedBox(width: 8), Text(label)],
+    final disabled = onPressed == null;
+
+    return Opacity(
+      opacity: disabled ? 0.55 : 1,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: const Color(0xFFFBF7F0),
+          disabledBackgroundColor: const Color(0xFFFBF7F0),
+          foregroundColor: colors.textStrong,
+          disabledForegroundColor: colors.textStrong.withValues(alpha: 0.78),
+          side: BorderSide.none,
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [icon, const SizedBox(width: 8), Text(label)],
+        ),
       ),
     );
   }
