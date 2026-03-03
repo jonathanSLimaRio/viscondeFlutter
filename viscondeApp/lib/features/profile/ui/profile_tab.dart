@@ -270,8 +270,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
   }
 
   Widget _buildFormCard(BuildContext context) {
-    final colors = context.viscondeColors;
-
     return ViscondeGlassCard(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       child: Column(

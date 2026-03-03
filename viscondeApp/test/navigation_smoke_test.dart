@@ -11,8 +11,51 @@ import 'package:visconde_app/features/story_room/ui/story_room_screen.dart';
 import 'package:visconde_app/features/story_room/ui/story_summary_screen.dart';
 import 'package:visconde_app/features/story_vault/ui/story_vault_screen.dart';
 import 'package:visconde_app/shared/providers.dart';
+import 'package:visconde_app/shared/ux_analytics.dart';
+import 'package:visconde_app/shared/ux_analytics_api.dart';
+import 'package:visconde_app/shared/ux_analytics_queue.dart';
+import 'package:visconde_app/shared/ux_analytics_service.dart';
 
 import 'helpers/test_harness.dart';
+
+class _NoopUxStore implements UxAnalyticsStore {
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Future<void> enqueue({
+    required UxAnalyticsEvent event,
+    required String appSessionId,
+    String? source,
+    String? childId,
+    Map<String, Object?> params = const <String, Object?>{},
+  }) async {}
+
+  @override
+  Future<List<QueuedUxAnalyticsEvent>> listRetryable({int limit = 50}) async {
+    return const <QueuedUxAnalyticsEvent>[];
+  }
+
+  @override
+  Future<void> markFailed(List<int> ids, {String? reason}) async {}
+
+  @override
+  Future<void> markSent(List<int> ids) async {}
+}
+
+class _NoopUxTransport implements UxAnalyticsTransport {
+  @override
+  Future<UxAnalyticsBatchResult> sendBatch(
+    UxAnalyticsBatchPayload payload, {
+    String? accessToken,
+  }) async {
+    return const UxAnalyticsBatchResult(
+      accepted: 0,
+      deduplicated: 0,
+      rejected: 0,
+    );
+  }
+}
 
 void main() {
   testWidgets('navigation smoke: home -> create -> room -> summary -> vault', (
@@ -72,6 +115,13 @@ void main() {
         ),
         storyApiProvider.overrideWith(
           (ref) => FakeStoryApi(collections: collections, virtues: virtues),
+        ),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: _NoopUxStore(),
+            transport: _NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
         ),
       ],
     );

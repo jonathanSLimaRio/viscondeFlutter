@@ -975,18 +975,21 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         FilledButton.icon(
+          key: const Key('wizard_publish_now_button'),
           onPressed: _busyAction ? null : _publishNow,
           icon: const Icon(Icons.publish),
           label: Text(_busyAction ? 'Processando...' : 'Publicar agora'),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
+          key: const Key('wizard_open_story_room_button'),
           onPressed: _busyAction ? null : _openStoryRoom,
           icon: const Icon(Icons.menu_book_outlined),
           label: const Text('Ir para Sala de História'),
         ),
         const SizedBox(height: 4),
         TextButton.icon(
+          key: const Key('wizard_continue_later_button'),
           onPressed: _busyAction ? null : _continueLater,
           icon: const Icon(Icons.pause_circle_outline),
           label: const Text('Continuar depois'),
@@ -1037,6 +1040,10 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                   currentStep: _currentStep,
                   margin: EdgeInsets.zero,
                   controlsBuilder: (context, details) {
+                    if (!details.isActive) {
+                      return const SizedBox.shrink();
+                    }
+
                     if (_currentStep == 2) {
                       return Padding(
                         padding: const EdgeInsets.only(top: 12),
@@ -1059,6 +1066,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                         children: [
                           Expanded(
                             child: FilledButton.icon(
+                              key: const Key('wizard_save_continue_button'),
                               onPressed: _busyAction ? null : _goNextStep,
                               icon: Icon(
                                 _busyAction
@@ -1076,6 +1084,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: OutlinedButton(
+                                key: const Key('wizard_back_button'),
                                 onPressed: _busyAction ? null : _goPreviousStep,
                                 child: const Text('Voltar'),
                               ),

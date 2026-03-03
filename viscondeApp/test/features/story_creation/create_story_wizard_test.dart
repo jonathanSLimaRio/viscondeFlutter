@@ -12,6 +12,10 @@ import 'package:visconde_app/features/story_room/models/story_models.dart';
 import 'package:visconde_app/features/story_room/story_api.dart';
 import 'package:visconde_app/features/story_room/ui/story_room_screen.dart';
 import 'package:visconde_app/shared/providers.dart';
+import 'package:visconde_app/shared/ux_analytics.dart';
+import 'package:visconde_app/shared/ux_analytics_api.dart';
+import 'package:visconde_app/shared/ux_analytics_queue.dart';
+import 'package:visconde_app/shared/ux_analytics_service.dart';
 
 import '../../helpers/test_harness.dart';
 
@@ -45,6 +49,45 @@ class FakeIllustrationApi extends IllustrationApi {
 
   @override
   Future<List<ArtStyleModel>> listArtStyles() async => styles;
+}
+
+class NoopUxStore implements UxAnalyticsStore {
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Future<void> enqueue({
+    required UxAnalyticsEvent event,
+    required String appSessionId,
+    String? source,
+    String? childId,
+    Map<String, Object?> params = const <String, Object?>{},
+  }) async {}
+
+  @override
+  Future<List<QueuedUxAnalyticsEvent>> listRetryable({int limit = 50}) async {
+    return const <QueuedUxAnalyticsEvent>[];
+  }
+
+  @override
+  Future<void> markFailed(List<int> ids, {String? reason}) async {}
+
+  @override
+  Future<void> markSent(List<int> ids) async {}
+}
+
+class NoopUxTransport implements UxAnalyticsTransport {
+  @override
+  Future<UxAnalyticsBatchResult> sendBatch(
+    UxAnalyticsBatchPayload payload, {
+    String? accessToken,
+  }) async {
+    return const UxAnalyticsBatchResult(
+      accepted: 0,
+      deduplicated: 0,
+      rejected: 0,
+    );
+  }
 }
 
 class WizardStoryApi extends StoryApi {
@@ -245,6 +288,13 @@ StorySessionModel _buildSession() {
   );
 }
 
+Future<void> _tapWizardControl(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder, warnIfMissed: false);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('autosave por passo e continuar depois salva rascunho local', (
     tester,
@@ -311,6 +361,13 @@ void main() {
           ]),
         ),
         createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: NoopUxStore(),
+            transport: NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -330,14 +387,20 @@ void main() {
     router.go('/stories/new');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Salvar e continuar').first);
-    await tester.pumpAndSettle();
+    await _tapWizardControl(
+      tester,
+      find.byKey(const Key('wizard_save_continue_button')),
+    );
 
-    await tester.tap(find.text('Salvar e continuar').first);
-    await tester.pumpAndSettle();
+    await _tapWizardControl(
+      tester,
+      find.byKey(const Key('wizard_save_continue_button')),
+    );
 
-    await tester.tap(find.text('Continuar depois'));
-    await tester.pumpAndSettle();
+    await _tapWizardControl(
+      tester,
+      find.byKey(const Key('wizard_continue_later_button')),
+    );
 
     expect(storyApi.createSessionCalls, 1);
     expect(storyApi.updateSetupCalls, greaterThanOrEqualTo(1));
@@ -412,6 +475,13 @@ void main() {
           ]),
         ),
         createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: NoopUxStore(),
+            transport: NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -431,14 +501,20 @@ void main() {
     router.go('/stories/new');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Salvar e continuar').first);
-    await tester.pumpAndSettle();
+    await _tapWizardControl(
+      tester,
+      find.byKey(const Key('wizard_save_continue_button')),
+    );
 
-    await tester.tap(find.text('Salvar e continuar').first);
-    await tester.pumpAndSettle();
+    await _tapWizardControl(
+      tester,
+      find.byKey(const Key('wizard_save_continue_button')),
+    );
 
-    await tester.tap(find.text('Publicar agora'));
-    await tester.pumpAndSettle();
+    await _tapWizardControl(
+      tester,
+      find.byKey(const Key('wizard_publish_now_button')),
+    );
 
     expect(storyApi.createStepCalls, greaterThanOrEqualTo(3));
     expect(storyApi.wizardPublishCalls, 1);

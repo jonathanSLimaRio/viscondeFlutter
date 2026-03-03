@@ -10,6 +10,10 @@ import 'package:visconde_app/features/story_room/illustration_api.dart';
 import 'package:visconde_app/features/story_room/models/illustration_models.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
 import 'package:visconde_app/shared/providers.dart';
+import 'package:visconde_app/shared/ux_analytics.dart';
+import 'package:visconde_app/shared/ux_analytics_api.dart';
+import 'package:visconde_app/shared/ux_analytics_queue.dart';
+import 'package:visconde_app/shared/ux_analytics_service.dart';
 
 import '../../helpers/test_harness.dart';
 
@@ -43,6 +47,45 @@ class FakeIllustrationApi extends IllustrationApi {
 
   @override
   Future<List<ArtStyleModel>> listArtStyles() async => styles;
+}
+
+class NoopUxStore implements UxAnalyticsStore {
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Future<void> enqueue({
+    required UxAnalyticsEvent event,
+    required String appSessionId,
+    String? source,
+    String? childId,
+    Map<String, Object?> params = const <String, Object?>{},
+  }) async {}
+
+  @override
+  Future<List<QueuedUxAnalyticsEvent>> listRetryable({int limit = 50}) async {
+    return const <QueuedUxAnalyticsEvent>[];
+  }
+
+  @override
+  Future<void> markFailed(List<int> ids, {String? reason}) async {}
+
+  @override
+  Future<void> markSent(List<int> ids) async {}
+}
+
+class NoopUxTransport implements UxAnalyticsTransport {
+  @override
+  Future<UxAnalyticsBatchResult> sendBatch(
+    UxAnalyticsBatchPayload payload, {
+    String? accessToken,
+  }) async {
+    return const UxAnalyticsBatchResult(
+      accepted: 0,
+      deduplicated: 0,
+      rejected: 0,
+    );
+  }
 }
 
 StorySessionModel _buildSession() {
@@ -143,6 +186,13 @@ void main() {
           ]),
         ),
         createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: NoopUxStore(),
+            transport: NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -225,6 +275,13 @@ void main() {
           ),
         ),
         createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: NoopUxStore(),
+            transport: NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);

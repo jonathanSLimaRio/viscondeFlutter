@@ -390,7 +390,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     final unlockActive =
         gate.isUnlocked && gate.expiresAt != null && gate.unlockToken != null;
     final dateFormat = DateFormat('dd/MM HH:mm');
-    final colors = context.viscondeColors;
 
     return RefreshIndicator(
       onRefresh: _loadData,
@@ -563,8 +562,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
 
   // ── Hero banner with "Loja" pill button ──
   Widget _buildGameHubHero(BuildContext context) {
-    final colors = context.viscondeColors;
-
     return ViscondeHeroBanner(
       title: 'Game Hub',
       subtitle: 'Progresso saudável,\nmissões e cosméticos.',
@@ -636,7 +633,7 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             child: Image.asset(
               ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
           ),
         ],
