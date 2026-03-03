@@ -130,54 +130,245 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     final user = auth.user;
+    final colors = context.viscondeColors;
 
     return RefreshIndicator(
       onRefresh: _loadProfile,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
-          if (user?.imageUrl != null)
-            CircleAvatar(
-              radius: 42,
-              backgroundImage: NetworkImage(user!.imageUrl!),
-            )
-          else
-            const CircleAvatar(radius: 42, child: Icon(Icons.person, size: 42)),
-          const SizedBox(height: 8),
-          Center(
-            child: TextButton.icon(
-              onPressed: _loading ? null : _pickAndUploadPhoto,
-              icon: const Icon(Icons.photo_camera_outlined),
-              label: const Text('Alterar foto'),
+          _buildProfileHeader(context),
+          const SizedBox(height: 10),
+          _buildAvatarSection(context, user),
+          const SizedBox(height: 20),
+          _buildFormCard(context),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'E-mail: ${user?.email ?? '-'}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ID: ${user?.id ?? '-'}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          const Center(
-            child: ViscondeMascot(
-              pose: ViscondeMascotPose.readingBookClose,
-              size: 72,
-              glow: true,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(BuildContext context) {
+    final colors = context.viscondeColors;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Spacer(),
+        Text(
+          'Visconde App',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: colors.textStrong,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const Spacer(),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: context.viscondeGradients.glass,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colors.borderSoft, width: 1),
+          ),
+          child: IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.ios_share_outlined, size: 20),
+            tooltip: 'Compartilhar',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvatarSection(BuildContext context, dynamic user) {
+    final colors = context.viscondeColors;
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colors.primary.withValues(alpha: 0.3),
+                colors.accent.withValues(alpha: 0.4),
+                colors.secondary.withValues(alpha: 0.3),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: colors.accent.withValues(alpha: 0.25),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(3),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+            ),
+            child: user?.imageUrl != null
+                ? CircleAvatar(
+                    radius: 56,
+                    backgroundImage: NetworkImage(user!.imageUrl!),
+                  )
+                : CircleAvatar(
+                    radius: 56,
+                    backgroundColor: colors.parchmentSoft,
+                    child: Icon(
+                      Icons.person,
+                      size: 56,
+                      color: colors.textMuted,
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextButton.icon(
+          onPressed: _loading ? null : _pickAndUploadPhoto,
+          icon: Icon(
+            Icons.camera_alt_outlined,
+            size: 18,
+            color: colors.textMuted,
+          ),
+          label: Text(
+            'Alterar foto',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: colors.textMuted,
+              fontWeight: FontWeight.w600,
+              fontStyle: FontStyle.italic,
             ),
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Nome'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _timezoneController,
-            decoration: const InputDecoration(labelText: 'Fuso horario'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormCard(BuildContext context) {
+    final colors = context.viscondeColors;
+
+    return ViscondeGlassCard(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildLabeledField(
+            context: context,
+            label: 'Nome',
+            child: _buildPillInput(
+              context: context,
+              controller: _nameController,
+              hintText: 'Digite seu nome',
+            ),
           ),
           const SizedBox(height: 16),
-          FilledButton(
-            onPressed: _loading ? null : _saveProfile,
-            child: Text(_loading ? 'Salvando...' : 'Salvar perfil'),
+          _buildLabeledField(
+            context: context,
+            label: 'Fuso horário',
+            child: _buildPillInput(
+              context: context,
+              controller: _timezoneController,
+              hintText: 'UTC-03:00 Brasilia',
+              suffixIcon: Icons.keyboard_arrow_down_rounded,
+            ),
           ),
           const SizedBox(height: 20),
-          Text('E-mail: ${user?.email ?? '-'}'),
-          Text('ID: ${user?.id ?? '-'}'),
+          ViscondePrimaryCta(
+            onPressed: _loading ? null : _saveProfile,
+            label: _loading ? 'Salvando...' : 'Salvar perfil',
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLabeledField({
+    required BuildContext context,
+    required String label,
+    required Widget child,
+  }) {
+    final colors = context.viscondeColors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: colors.textStrong,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+
+  Widget _buildPillInput({
+    required BuildContext context,
+    required TextEditingController controller,
+    required String hintText,
+    IconData? suffixIcon,
+  }) {
+    final colors = context.viscondeColors;
+
+    return TextField(
+      controller: controller,
+      style: TextStyle(color: colors.textStrong, fontSize: 15),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(color: colors.textMuted, fontSize: 15),
+        filled: true,
+        fillColor: const Color(0xFFFBF7F0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        suffixIcon: suffixIcon != null
+            ? Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: Icon(suffixIcon, color: colors.textMuted, size: 22),
+              )
+            : null,
+        suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(color: colors.primary, width: 1.5),
+        ),
       ),
     );
   }

@@ -45,91 +45,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return const LoadingScreen();
     }
 
+    final colors = context.viscondeColors;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 26, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Image.asset(
-                  ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
-                  height: 112,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const SizedBox(height: 72),
-                ),
-              ),
-              const SizedBox(height: 18),
-
+              _buildHeader(context),
+              const SizedBox(height: 20),
               _buildHeroCard(context),
+              const SizedBox(height: 18),
+              _buildFormCard(context),
               const SizedBox(height: 16),
-
-              ViscondeGlassCard(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const ViscondeSectionTitle(
-                        title: 'Acessar conta',
-                        subtitle: 'Continue a próxima aventura.',
-                      ),
-                      const SizedBox(height: 20),
-                      _buildEmailField(context),
-                      const SizedBox(height: 12),
-                      _buildPasswordField(context),
-                      const SizedBox(height: 20),
-                      ViscondePrimaryCta(
-                        onPressed: _submit,
-                        label: 'Entrar',
-                        icon: Icons.arrow_forward_rounded,
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => context.push(AppRoute.signup),
-                        style: TextButton.styleFrom(
-                          foregroundColor: context.viscondeColors.primaryDark,
-                          textStyle: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        child: const Text('Não tem conta? Criar conta'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-
               TextButton(
                 onPressed: () => context.push(AppRoute.forgotPassword),
                 style: TextButton.styleFrom(
-                  foregroundColor: context.viscondeColors.primaryDark,
+                  foregroundColor: colors.primaryDark,
                   textStyle: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 child: const Text('Esqueci minha senha'),
               ),
-              const SizedBox(height: 10),
-
+              const SizedBox(height: 8),
               _buildOrDivider(context),
               const SizedBox(height: 12),
-
               _buildSocialButton(
                 context: context,
                 onPressed: null,
                 icon: const _GoogleIcon(),
                 label: 'Continuar com Google',
               ),
-              const SizedBox(height: 12),
-
+              const SizedBox(height: 10),
               _buildSocialButton(
                 context: context,
                 onPressed: null,
@@ -141,7 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text(
                   authState.error!,
                   style: TextStyle(
-                    color: context.viscondeColors.warning,
+                    color: colors.warning,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -150,6 +102,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final colors = context.viscondeColors;
+
+    return Center(
+      child: RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: 'Entrar no   ',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: colors.textStrong,
+                fontWeight: FontWeight.w500,
+                fontSize: 20,
+              ),
+            ),
+            TextSpan(
+              text: 'Visconde',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: colors.textStrong,
+                fontWeight: FontWeight.w900,
+                fontSize: 28,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -232,6 +214,75 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  Widget _buildFormCard(BuildContext context) {
+    final colors = context.viscondeColors;
+
+    return ViscondeGlassCard(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const ViscondeSectionTitle(
+              title: 'Acessar conta',
+              subtitle: 'Continue a próxima aventura.',
+            ),
+            const SizedBox(height: 20),
+            _buildInputField(
+              context: context,
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              hintText: 'E-mail',
+              prefixIcon: Icons.mail_outline_rounded,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Informe seu e-mail';
+                }
+                if (!value.contains('@')) {
+                  return 'E-mail inválido';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildInputField(
+              context: context,
+              controller: _passwordController,
+              hintText: 'Senha',
+              prefixIcon: Icons.lock_outline_rounded,
+              obscureText: true,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Informe sua senha';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
+            ViscondePrimaryCta(
+              onPressed: _submit,
+              label: 'Entrar',
+              icon: Icons.arrow_forward_rounded,
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => context.push(AppRoute.signup),
+              style: TextButton.styleFrom(
+                foregroundColor: colors.primaryDark,
+                textStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: const Text('Não tem conta? Criar conta'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrDivider(BuildContext context) {
     final color = context.viscondeColors.textMuted.withValues(alpha: 0.56);
 
@@ -250,41 +301,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         Expanded(child: Divider(color: color, thickness: 1.2)),
       ],
-    );
-  }
-
-  Widget _buildEmailField(BuildContext context) {
-    return _buildInputField(
-      context: context,
-      controller: _emailController,
-      keyboardType: TextInputType.emailAddress,
-      hintText: 'E-mail',
-      prefixIcon: Icons.mail_outline_rounded,
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Informe seu e-mail';
-        }
-        if (!value.contains('@')) {
-          return 'E-mail inválido';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildPasswordField(BuildContext context) {
-    return _buildInputField(
-      context: context,
-      controller: _passwordController,
-      hintText: 'Senha',
-      prefixIcon: Icons.lock_outline_rounded,
-      obscureText: true,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Informe sua senha';
-        }
-        return null;
-      },
     );
   }
 

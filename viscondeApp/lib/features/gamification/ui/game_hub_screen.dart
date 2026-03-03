@@ -390,23 +390,19 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     final unlockActive =
         gate.isUnlocked && gate.expiresAt != null && gate.unlockToken != null;
     final dateFormat = DateFormat('dd/MM HH:mm');
+    final colors = context.viscondeColors;
 
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ViscondeHeroBanner(
-            title: 'Game',
-            subtitle: 'Progresso saudável, missões e cosméticos.',
-            assetPath: ViscondeArtRegistry.resolve(
-              ViscondeArtKey.heroUnderwater,
-            ),
-            showMascot: true,
-            mascotPose: ViscondeMascotPose.thumbsUpController,
-          ),
+          // ── Hero Banner with "Loja" pill ──
+          _buildGameHubHero(context),
           const SizedBox(height: 12),
-          if (_loadError != null)
+
+          // ── Error state ──
+          if (_loadError != null) ...[
             ViscondeGlassCard(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -431,7 +427,10 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                 ),
               ),
             ),
-          if (_loadError != null) const SizedBox(height: 12),
+            const SizedBox(height: 12),
+          ],
+
+          // ── Adult gate card ──
           ViscondeGlassCard(
             child: ListTile(
               leading: Icon(
@@ -458,7 +457,9 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          if (primaryMission != null)
+
+          // ── Weekly mission highlight ──
+          if (primaryMission != null) ...[
             ViscondeGlassCard(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -497,13 +498,17 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                 ),
               ),
             ),
-          if (primaryMission != null) const SizedBox(height: 12),
+            const SizedBox(height: 12),
+          ],
+
           if (_loading)
             const Padding(
               padding: EdgeInsets.only(bottom: 12),
               child: LinearProgressIndicator(),
             ),
-          if (_children.isNotEmpty)
+
+          // ── Child selector ──
+          if (_children.isNotEmpty) ...[
             DropdownButtonFormField<String>(
               initialValue: _selectedChildId,
               isExpanded: true,
@@ -522,71 +527,316 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                 await _loadData();
               },
             ),
+            const SizedBox(height: 12),
+          ],
+
+          // ── Wallet Card (illustrated) ──
+          _buildWalletCard(context, wallet),
           const SizedBox(height: 12),
-          ViscondeGlassCard(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Carteira',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+
+          // ── Streak Card (illustrated) ──
+          _buildStreakCard(context, progression),
+          const SizedBox(height: 12),
+
+          // ── Weekly Missions Section ──
+          _buildWeeklyMissionsSection(context, progression),
+          const SizedBox(height: 12),
+
+          // ── Achievements Section ──
+          _buildAchievementsSection(context, dateFormat),
+          const SizedBox(height: 12),
+
+          // ── Collector Section ──
+          _buildCollectorSection(context),
+          const SizedBox(height: 12),
+
+          // ── Shop & Catalog ──
+          _buildShopSection(context),
+          const SizedBox(height: 12),
+
+          // ── Equipped Items ──
+          _buildEquippedItemsCard(context, progression),
+        ],
+      ),
+    );
+  }
+
+  // ── Hero banner with "Loja" pill button ──
+  Widget _buildGameHubHero(BuildContext context) {
+    final colors = context.viscondeColors;
+
+    return ViscondeHeroBanner(
+      title: 'Game Hub',
+      subtitle: 'Progresso saudável,\nmissões e cosméticos.',
+      assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroUnderwater),
+      showMascot: true,
+      mascotPose: ViscondeMascotPose.thumbsUpController,
+    );
+  }
+
+  // ── Wallet Card with illustration ──
+  Widget _buildWalletCard(BuildContext context, WalletModel? wallet) {
+    final colors = context.viscondeColors;
+
+    return ViscondeGlassCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Carteira',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: colors.textStrong,
                   ),
-                  const SizedBox(height: 6),
-                  Text('Moedas: ${wallet?.coins ?? 0}'),
-                  Text('Estrelas: ${wallet?.stars ?? 0}'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.monetization_on_rounded,
+                      color: const Color(0xFFDAA520),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Coin: ${wallet?.coins ?? 0}',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.star_rounded,
+                      color: const Color(0xFFDAA520),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Estrelas: ${wallet?.stars ?? 0}',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 90,
+            height: 90,
+            child: Image.asset(
+              ViscondeArtRegistry.resolve(ViscondeArtKey.heroTreasure),
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Streak Card with illustration ──
+  Widget _buildStreakCard(
+    BuildContext context,
+    ChildProgressionModel? progression,
+  ) {
+    final colors = context.viscondeColors;
+
+    return ViscondeGlassCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Streak',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: colors.textStrong,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Atual: ${progression?.streak.currentDays ?? 0} dias',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Melhor: ${progression?.streak.bestDays ?? 0} dias',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Escudos: ${progression?.streak.shieldCount ?? 0}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(
+            width: 80,
+            height: 80,
+            child: ViscondeMascot(
+              pose: ViscondeMascotPose.pointingScroll,
+              glow: true,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Weekly Missions Section ──
+  Widget _buildWeeklyMissionsSection(
+    BuildContext context,
+    ChildProgressionModel? progression,
+  ) {
+    final colors = context.viscondeColors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ViscondeGlassCard(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Missões Semanais',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: colors.textStrong,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Objetivos da semana por criança.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildMiniBox(context),
+                  const SizedBox(width: 4),
+                  _buildMiniBox(context),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.star_rounded,
+                    color: const Color(0xFFDAA520),
+                    size: 22,
+                  ),
                 ],
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 12),
-          ViscondeGlassCard(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Streak',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        if (progression != null)
+          ...progression.weeklyMissions.map(
+            (mission) => Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: ViscondeGlassCard(
+                child: ListTile(
+                  title: Text(mission.title),
+                  subtitle: Text(
+                    '${mission.description}\n${mission.progressValue}/${mission.targetValue} · ${_missionStatusLabel(mission.status)}',
                   ),
-                  const SizedBox(height: 6),
-                  Text('Atual: ${progression?.streak.currentDays ?? 0} dias'),
-                  Text('Melhor: ${progression?.streak.bestDays ?? 0} dias'),
-                  Text('Escudos: ${progression?.streak.shieldCount ?? 0}'),
-                ],
+                  trailing: Text(
+                    '+${mission.rewardCoins} / +${mission.rewardStars}⭐',
+                  ),
+                  isThreeLine: true,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          const ViscondeSectionTitle(
-            title: 'Missões Semanais',
-            subtitle: 'Objetivos da semana por criança.',
-          ),
-          const SizedBox(height: 6),
-          ...?progression?.weeklyMissions.map(
-            (mission) => ViscondeGlassCard(
-              child: ListTile(
-                title: Text(mission.title),
-                subtitle: Text(
-                  '${mission.description}\n${mission.progressValue}/${mission.targetValue} · ${_missionStatusLabel(mission.status)}',
-                ),
-                trailing: Text(
-                  '+${mission.rewardCoins} / +${mission.rewardStars}⭐',
-                ),
-                isThreeLine: true,
+      ],
+    );
+  }
+
+  Widget _buildMiniBox(BuildContext context) {
+    return Container(
+      width: 18,
+      height: 14,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(
+          color: context.viscondeColors.textMuted.withValues(alpha: 0.4),
+          width: 1.2,
+        ),
+      ),
+    );
+  }
+
+  // ── Achievements Section ──
+  Widget _buildAchievementsSection(
+    BuildContext context,
+    DateFormat dateFormat,
+  ) {
+    final colors = context.viscondeColors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Row(
+            children: [
+              Icon(
+                Icons.emoji_events_rounded,
+                color: const Color(0xFFDAA520),
+                size: 24,
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Conquistas',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: colors.textStrong,
+                          ),
+                    ),
+                    Text(
+                      'Marcos já desbloqueados na conta.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          const ViscondeSectionTitle(
-            title: 'Conquistas',
-            subtitle: 'Marcos já desbloqueados na conta.',
-          ),
-          const SizedBox(height: 6),
-          ..._achievements.map(
-            (achievement) => ViscondeGlassCard(
+        ),
+        const SizedBox(height: 8),
+        ..._achievements.map(
+          (achievement) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: ViscondeGlassCard(
               child: ListTile(
                 leading: Icon(
                   achievement.unlocked
@@ -603,105 +853,124 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          const ViscondeSectionTitle(
-            title: 'O Colecionador',
-            subtitle: 'Seus itens e companheiros de aventura.',
-          ),
-          const SizedBox(height: 6),
-          if (_childInventory.isEmpty)
-            const ViscondeGlassCard(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Você ainda não encontrou nenhum item. Continue lendo histórias!',
-                ),
+        ),
+      ],
+    );
+  }
+
+  // ── Collector Section ──
+  Widget _buildCollectorSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const ViscondeSectionTitle(
+          title: 'O Colecionador',
+          subtitle: 'Seus itens e companheiros de aventura.',
+        ),
+        const SizedBox(height: 6),
+        if (_childInventory.isEmpty)
+          const ViscondeGlassCard(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Você ainda não encontrou nenhum item. Continue lendo histórias!',
               ),
             ),
-          if (_childInventory.isNotEmpty)
-            SizedBox(
-              height: 140,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _childInventory.length,
-                itemBuilder: (context, index) {
-                  final inv = _childInventory[index];
-                  final item = inv.item;
-                  if (item == null) return const SizedBox.shrink();
+          ),
+        if (_childInventory.isNotEmpty)
+          SizedBox(
+            height: 140,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _childInventory.length,
+              itemBuilder: (context, index) {
+                final inv = _childInventory[index];
+                final item = inv.item;
+                if (item == null) return const SizedBox.shrink();
 
-                  return Container(
-                    width: 120,
-                    margin: const EdgeInsets.only(right: 8),
-                    child: ViscondeGlassCard(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              item.icon,
-                              style: Theme.of(context).textTheme.headlineMedium,
+                return Container(
+                  width: 120,
+                  margin: const EdgeInsets.only(right: 8),
+                  child: ViscondeGlassCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            item.icon,
+                            style: Theme.of(context).textTheme.headlineMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            item.name,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              item.name,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${item.rarity} · Qtd: ${inv.qty}',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${item.rarity} · Qtd: ${inv.qty}',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-          const SizedBox(height: 12),
-          const ViscondeSectionTitle(
-            title: 'Loja e Inventário',
-            subtitle: 'Desbloqueie e equipe itens cosméticos.',
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ChoiceChip(
-                label: const Text('Todos'),
-                selected: _selectedCatalogType == null,
+      ],
+    );
+  }
+
+  // ── Shop & Catalog Section ──
+  Widget _buildShopSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const ViscondeSectionTitle(
+          title: 'Loja e Inventário',
+          subtitle: 'Desbloqueie e equipe itens cosméticos.',
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              label: const Text('Todos'),
+              selected: _selectedCatalogType == null,
+              onSelected: (_) async {
+                setState(() => _selectedCatalogType = null);
+                await _loadData();
+              },
+            ),
+            ...CatalogItemType.values.map(
+              (type) => ChoiceChip(
+                label: Text(type.name.toUpperCase()),
+                selected: _selectedCatalogType == type,
                 onSelected: (_) async {
-                  setState(() => _selectedCatalogType = null);
+                  setState(() => _selectedCatalogType = type);
                   await _loadData();
                 },
               ),
-              ...CatalogItemType.values.map(
-                (type) => ChoiceChip(
-                  label: Text(type.name.toUpperCase()),
-                  selected: _selectedCatalogType == type,
-                  onSelected: (_) async {
-                    setState(() => _selectedCatalogType = type);
-                    await _loadData();
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ..._catalog.map(
-            (item) => ViscondeGlassCard(
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ..._catalog.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: ViscondeGlassCard(
               child: ListTile(
                 title: Text(item.name),
                 subtitle: Text(
@@ -720,30 +989,34 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          ViscondeGlassCard(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Itens equipados',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  if ((progression?.inventorySummary.equippedItems.length ??
-                          0) ==
-                      0)
-                    const Text('Nenhum item equipado.'),
-                  ...?progression?.inventorySummary.equippedItems.map(
-                    (item) => Text('- ${item.name} (${item.type.name})'),
-                  ),
-                ],
-              ),
+        ),
+      ],
+    );
+  }
+
+  // ── Equipped Items Card ──
+  Widget _buildEquippedItemsCard(
+    BuildContext context,
+    ChildProgressionModel? progression,
+  ) {
+    return ViscondeGlassCard(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Itens equipados',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            if ((progression?.inventorySummary.equippedItems.length ?? 0) == 0)
+              const Text('Nenhum item equipado.'),
+            ...?progression?.inventorySummary.equippedItems.map(
+              (item) => Text('- ${item.name} (${item.type.name})'),
+            ),
+          ],
+        ),
       ),
     );
   }
