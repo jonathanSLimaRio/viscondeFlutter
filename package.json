@@ -11,6 +11,7 @@
     "seed:admin": "node prisma/seed.mjs",
     "seed:content": "node prisma/seed.mjs",
     "seed:apply": "prisma migrate deploy && node prisma/seed.mjs",
+    "seed:qa": "node prisma/seed.mjs && node prisma/gamification-backfill.mjs",
     "gamification:backfill": "node prisma/gamification-backfill.mjs",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",

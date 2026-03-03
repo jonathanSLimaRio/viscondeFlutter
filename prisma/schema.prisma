@@ -538,6 +538,7 @@ model Story {
   ideaLogs   StoryIdeaLog[]
   remoteRoom RemoteStoryRoom?
   interactions StoryInteraction[]
+  votes StoryVote[]
   narrationJobs NarrationJob[]
   artStyle            ArtStyle?        @relation(fields: [artStyleId], references: [id], onDelete: SetNull)
   illustrations       StoryIllustration[]

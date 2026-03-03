@@ -1,5 +1,6 @@
 import "dotenv/config";
 
+import { createHash } from "node:crypto";
 import { hash } from "@node-rs/argon2";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
@@ -685,8 +686,53 @@ const demoCollectionsBlueprint = [
     isFavorite: false,
     stories: [
       {
-        key: "castelo_ep1",
+        key: "castelo_ep0",
         episodeNumber: 1,
+        status: "ARCHIVED",
+        title: "Castelo Encantado - Prologo",
+        theme: "Fantasia",
+        scenario: "Castelo antigo com salao de mapas",
+        objective: "Aprender os combinados da aventura",
+        virtueSlug: "respeito",
+        ageBand: "AGE_4_5",
+        ageSnapshotYears: 6,
+        sourceTemplate: false,
+        continuedFromStoryKey: null,
+        currentMode: "PARENT_NARRATOR",
+        currentStepIndex: 2,
+        startedAt: new Date("2026-01-30T17:00:00.000Z"),
+        publishedAt: new Date("2026-01-30T17:14:00.000Z"),
+        completedAt: new Date("2026-01-30T17:14:00.000Z"),
+        referenceAt: new Date("2026-02-01T10:00:00.000Z"),
+        characters: [
+          { key: "sofia", name: "Sofia", role: "heroina" },
+          { key: "milo", name: "Milo", role: "guia do castelo" },
+        ],
+        steps: [
+          {
+            stepIndex: 1,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "Sofia chega ao castelo e conhece os combinados para explorar cada sala.",
+          },
+          {
+            stepIndex: 2,
+            kind: "CHILD_CHOICE",
+            modeUsed: "CHILD_CHOOSER",
+            selectedOptionId: "ouvir_regras",
+            selectedOptionLabel: "Ouvir com atencao as regras",
+            childOptions: [
+              { id: "ouvir_regras", label: "Ouvir com atencao as regras" },
+              { id: "testar_porta", label: "Testar uma porta secreta" },
+              { id: "perguntar_milo", label: "Pedir ajuda para o Milo" },
+            ],
+          },
+        ],
+      },
+      {
+        key: "castelo_ep1",
+        episodeNumber: 2,
         status: "DRAFT",
         title: "Castelo Encantado",
         theme: "Fantasia",
@@ -696,7 +742,7 @@ const demoCollectionsBlueprint = [
         ageBand: "AGE_4_5",
         ageSnapshotYears: 6,
         sourceTemplate: false,
-        continuedFromStoryKey: null,
+        continuedFromStoryKey: "castelo_ep0",
         currentMode: "PARENT_NARRATOR",
         currentStepIndex: 2,
         startedAt: new Date("2026-02-14T17:00:00.000Z"),
@@ -733,6 +779,150 @@ const demoCollectionsBlueprint = [
   },
 ];
 
+const qaArtStylesCatalog = [
+  {
+    id: seedId("art_style", "aquarela"),
+    name: "Aquarela Suave",
+    promptTemplate: "Watercolor illustration, soft brush strokes, warm kids story mood",
+  },
+  {
+    id: seedId("art_style", "cartoon"),
+    name: "Cartoon Aventura",
+    promptTemplate: "Cartoon adventure style, clean outlines, vibrant colors, playful tone",
+  },
+  {
+    id: seedId("art_style", "fantasia"),
+    name: "Fantasia Epica",
+    promptTemplate: "Epic fantasy illustration, magical glow, cinematic composition",
+  },
+];
+
+const qaInventoryItemsCatalog = [
+  {
+    key: "escudo_papelao",
+    name: "Escudo de Papelao",
+    description: "Protege contra desafios imaginarios.",
+    rarity: "COMMON",
+    category: "ITEM",
+    icon: "item_shield_cardboard",
+    tags: ["coragem", "protecao"],
+  },
+  {
+    key: "mapa_tesouro",
+    name: "Mapa do Tesouro",
+    description: "Mostra caminhos secretos para novas aventuras.",
+    rarity: "EPIC",
+    category: "ITEM",
+    icon: "item_treasure_map",
+    tags: ["exploracao", "curiosidade"],
+  },
+  {
+    key: "coruja_sabia",
+    name: "Coruja Sabia",
+    description: "Companheira de jornada para escolhas importantes.",
+    rarity: "RARE",
+    category: "COMPANION",
+    icon: "companion_wise_owl",
+    tags: ["sabedoria", "amizade"],
+  },
+  {
+    key: "fada_cores",
+    name: "Fada das Cores",
+    description: "Leva brilho criativo para cada capitulo.",
+    rarity: "EPIC",
+    category: "COMPANION",
+    icon: "companion_fairy_colors",
+    tags: ["criatividade", "fantasia"],
+  },
+];
+
+const qaInventoryUnlockBlueprint = [
+  {
+    childKey: "lucas",
+    unlocks: [
+      { itemKey: "escudo_papelao", qty: 1 },
+      { itemKey: "mapa_tesouro", qty: 1 },
+      { itemKey: "coruja_sabia", qty: 1 },
+    ],
+  },
+  {
+    childKey: "sofia",
+    unlocks: [
+      { itemKey: "escudo_papelao", qty: 1 },
+      { itemKey: "fada_cores", qty: 1 },
+    ],
+  },
+];
+
+const qaGamificationUnlockBlueprint = [
+  {
+    childKey: "lucas",
+    unlockItemKeys: ["scenario_floresta_luz", "avatar_estrela_dourada"],
+    equippedItemKey: "avatar_estrela_dourada",
+  },
+  {
+    childKey: "sofia",
+    unlockItemKeys: ["character_gato_explorador"],
+    equippedItemKey: "character_gato_explorador",
+  },
+];
+
+const qaStoryMemoriesBlueprint = [
+  {
+    childKey: "lucas",
+    storyKey: "misterio_ep1",
+    summary:
+      "Lucas atravessou a ponte com coragem e encontrou o cristal da vila com a equipe.",
+    usedItems: ["escudo_papelao", "mapa_tesouro"],
+    virtueLearned: "coragem",
+  },
+  {
+    childKey: "sofia",
+    storyKey: "castelo_ep1",
+    summary:
+      "Sofia acolheu Nico no castelo e escolheu mostrar cada sala com paciencia.",
+    usedItems: ["fada_cores"],
+    virtueLearned: "empatia",
+  },
+];
+
+const qaBookProjectConfig = {
+  month: "2026-02",
+  childKey: "lucas",
+  status: "READY",
+  title: "Aventuras de Fevereiro",
+  pdfUrl: "https://cdn.visconde.app/books/seed-demo-fevereiro.pdf",
+  includedStoryKeys: ["misterio_ep1", "viagem_espaco_ep1", "viagem_espaco_ep2"],
+};
+
+const qaRemoteRoomConfig = {
+  accountKey: "demo",
+  storyKey: "castelo_ep1",
+  joinCode: "SEED42",
+  callMode: "AUDIO",
+  interactions: [
+    {
+      key: "chat_host_intro",
+      type: "CHAT",
+      authorRole: "HOST_PARENT",
+      messageText: "Sala pronta para testar o modo remoto.",
+      emoji: null,
+    },
+    {
+      key: "reaction_guest_star",
+      type: "REACTION",
+      authorRole: "GUEST_CHILD",
+      messageText: null,
+      emoji: "star",
+    },
+  ],
+};
+
+const qaWalletBaselineByAccount = {
+  admin: { coins: 180, stars: 4 },
+  demo: { coins: 140, stars: 3 },
+};
+
 function seedId(...parts) {
   return `seed_${parts.join("_")}`;
 }
@@ -768,6 +958,59 @@ function getStoryReferenceDate(story) {
   }
 
   return story.referenceAt ?? story.startedAt ?? new Date();
+}
+
+function hashJoinCode(value) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function toIsoDateKey(parts) {
+  return `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(
+    2,
+    "0"
+  )}-${String(parts.day).padStart(2, "0")}`;
+}
+
+function localDateParts(date, timezone) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  });
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find((part) => part.type === "year")?.value ?? "0");
+  const month = Number(parts.find((part) => part.type === "month")?.value ?? "0");
+  const day = Number(parts.find((part) => part.type === "day")?.value ?? "0");
+  const weekday = parts.find((part) => part.type === "weekday")?.value ?? "Mon";
+  const weekdayIndex = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  }[weekday];
+  return {
+    year,
+    month,
+    day,
+    weekday: weekdayIndex ?? 1,
+  };
+}
+
+function mondayWeekKey(date, timezone) {
+  const parts = localDateParts(date, timezone);
+  const base = Date.UTC(parts.year, parts.month - 1, parts.day);
+  const mondayOffset = (parts.weekday + 6) % 7;
+  const monday = new Date(base - mondayOffset * 24 * 60 * 60 * 1000);
+  return toIsoDateKey({
+    year: monday.getUTCFullYear(),
+    month: monday.getUTCMonth() + 1,
+    day: monday.getUTCDate(),
+  });
 }
 
 async function ensureDemoUsersAndProfiles() {
@@ -1164,8 +1407,9 @@ async function ensureCoreCatalogData(adminUserId) {
     });
   }
 
+  const gamificationCatalogByKey = new Map();
   for (const item of gamificationCatalogItems) {
-    await prisma.gamificationCatalogItem.upsert({
+    const saved = await prisma.gamificationCatalogItem.upsert({
       where: { key: item.key },
       update: {
         type: item.type,
@@ -1188,7 +1432,12 @@ async function ensureCoreCatalogData(adminUserId) {
         sortOrder: item.sortOrder,
         isActive: true,
       },
+      select: {
+        id: true,
+        key: true,
+      },
     });
+    gamificationCatalogByKey.set(saved.key, saved.id);
   }
 
   return {
@@ -1196,6 +1445,7 @@ async function ensureCoreCatalogData(adminUserId) {
     themesBySlug,
     sampleTemplateId: sampleTemplate.id,
     achievementsCount: achievementsToUpsert.length,
+    gamificationCatalogByKey,
   };
 }
 
@@ -1261,6 +1511,8 @@ async function applyDemoForUser(accountState, coreRefs) {
       const virtueId = coreRefs.virtuesBySlug.get(story.virtueSlug) ?? null;
       const templatePayload = getVirtueTemplatePayload(story.virtueSlug, story.ageBand);
       const storyPrefix = seedId(accountState.key, "story", story.key);
+      const titleFinal =
+        story.status === "PUBLISHED" || story.status === "ARCHIVED" ? story.title : null;
 
       await prisma.story.upsert({
         where: { id: storyId },
@@ -1274,7 +1526,7 @@ async function applyDemoForUser(accountState, coreRefs) {
           sessionKind: "PRESENTIAL",
           virtueId,
           titleDraft: story.title,
-          titleFinal: story.status === "PUBLISHED" ? story.title : null,
+          titleFinal,
           theme: story.theme,
           scenario: story.scenario,
           objective: story.objective,
@@ -1301,7 +1553,7 @@ async function applyDemoForUser(accountState, coreRefs) {
           sessionKind: "PRESENTIAL",
           virtueId,
           titleDraft: story.title,
-          titleFinal: story.status === "PUBLISHED" ? story.title : null,
+          titleFinal,
           theme: story.theme,
           scenario: story.scenario,
           objective: story.objective,
@@ -1448,6 +1700,605 @@ async function ensureDemoStoryVaultData(coreRefs, usersByKey) {
   return summary;
 }
 
+async function ensureQaArtStylesData() {
+  for (const style of qaArtStylesCatalog) {
+    await prisma.artStyle.upsert({
+      where: { id: style.id },
+      update: {
+        name: style.name,
+        promptTemplate: style.promptTemplate,
+      },
+      create: {
+        id: style.id,
+        name: style.name,
+        promptTemplate: style.promptTemplate,
+      },
+    });
+  }
+
+  return {
+    count: qaArtStylesCatalog.length,
+  };
+}
+
+async function ensureQaParallelInventoryData(usersByKey) {
+  const inventoryItemIdsByKey = new Map();
+
+  for (const item of qaInventoryItemsCatalog) {
+    const saved = await prisma.inventoryItem.upsert({
+      where: { key: item.key },
+      update: {
+        name: item.name,
+        description: item.description,
+        rarity: item.rarity,
+        category: item.category,
+        icon: item.icon,
+        tags: item.tags,
+      },
+      create: {
+        key: item.key,
+        name: item.name,
+        description: item.description,
+        rarity: item.rarity,
+        category: item.category,
+        icon: item.icon,
+        tags: item.tags,
+      },
+      select: {
+        id: true,
+        key: true,
+      },
+    });
+    inventoryItemIdsByKey.set(saved.key, saved.id);
+  }
+
+  let childInventoryCount = 0;
+  for (const account of demoUsersCatalog) {
+    const accountState = usersByKey.get(account.key);
+    if (!accountState) {
+      continue;
+    }
+
+    for (const config of qaInventoryUnlockBlueprint) {
+      const child = accountState.childrenByKey.get(config.childKey);
+      if (!child) {
+        continue;
+      }
+
+      for (const unlock of config.unlocks) {
+        const itemId = inventoryItemIdsByKey.get(unlock.itemKey);
+        if (!itemId) {
+          continue;
+        }
+
+        await prisma.childInventory.upsert({
+          where: {
+            childProfileId_itemId: {
+              childProfileId: child.id,
+              itemId,
+            },
+          },
+          update: {
+            qty: unlock.qty,
+            acquiredAt: new Date("2026-02-20T12:00:00.000Z"),
+          },
+          create: {
+            id: seedId(account.key, "inventory", config.childKey, unlock.itemKey),
+            childProfileId: child.id,
+            itemId,
+            qty: unlock.qty,
+            acquiredAt: new Date("2026-02-20T12:00:00.000Z"),
+            lastUsedAt: null,
+          },
+        });
+
+        childInventoryCount += 1;
+      }
+    }
+  }
+
+  return {
+    itemsCount: qaInventoryItemsCatalog.length,
+    childInventoryCount,
+  };
+}
+
+async function ensureQaStoryMemoriesData(usersByKey) {
+  let memoriesCount = 0;
+
+  for (const account of demoUsersCatalog) {
+    const accountState = usersByKey.get(account.key);
+    if (!accountState) {
+      continue;
+    }
+
+    for (const memory of qaStoryMemoriesBlueprint) {
+      const child = accountState.childrenByKey.get(memory.childKey);
+      if (!child) {
+        continue;
+      }
+
+      const storyId = seedId(account.key, "story", memory.storyKey);
+      await prisma.storyMemory.upsert({
+        where: {
+          storyId_childProfileId: {
+            storyId,
+            childProfileId: child.id,
+          },
+        },
+        update: {
+          summary: memory.summary,
+          usedItems: memory.usedItems,
+          virtueLearned: memory.virtueLearned,
+        },
+        create: {
+          id: seedId(account.key, "memory", memory.storyKey, memory.childKey),
+          storyId,
+          childProfileId: child.id,
+          summary: memory.summary,
+          usedItems: memory.usedItems,
+          virtueLearned: memory.virtueLearned,
+        },
+      });
+      memoriesCount += 1;
+    }
+  }
+
+  return {
+    memoriesCount,
+  };
+}
+
+async function ensureQaBookProjectsData(usersByKey) {
+  let projectsCount = 0;
+
+  for (const account of demoUsersCatalog) {
+    const accountState = usersByKey.get(account.key);
+    if (!accountState) {
+      continue;
+    }
+
+    const child = accountState.childrenByKey.get(qaBookProjectConfig.childKey);
+    if (!child) {
+      continue;
+    }
+
+    const includedStories = qaBookProjectConfig.includedStoryKeys.map((storyKey) =>
+      seedId(account.key, "story", storyKey)
+    );
+
+    await prisma.bookProject.upsert({
+      where: {
+        childProfileId_month: {
+          childProfileId: child.id,
+          month: qaBookProjectConfig.month,
+        },
+      },
+      update: {
+        userId: accountState.user.id,
+        title: qaBookProjectConfig.title,
+        status: qaBookProjectConfig.status,
+        pdfUrl: qaBookProjectConfig.pdfUrl,
+        includedStories,
+      },
+      create: {
+        id: seedId(account.key, "book_project", qaBookProjectConfig.month),
+        userId: accountState.user.id,
+        childProfileId: child.id,
+        month: qaBookProjectConfig.month,
+        title: qaBookProjectConfig.title,
+        status: qaBookProjectConfig.status,
+        pdfUrl: qaBookProjectConfig.pdfUrl,
+        includedStories,
+      },
+    });
+
+    projectsCount += 1;
+  }
+
+  return {
+    projectsCount,
+  };
+}
+
+async function ensureQaRemoteRoomData(usersByKey) {
+  const accountState = usersByKey.get(qaRemoteRoomConfig.accountKey);
+  if (!accountState) {
+    return {
+      roomsCount: 0,
+      participantsCount: 0,
+      interactionsCount: 0,
+    };
+  }
+
+  const storyId = seedId(accountState.key, "story", qaRemoteRoomConfig.storyKey);
+  const room = await prisma.remoteStoryRoom.upsert({
+    where: { storyId },
+    update: {
+      ownerUserId: accountState.user.id,
+      status: "OPEN",
+      joinCodeHash: hashJoinCode(qaRemoteRoomConfig.joinCode),
+      joinCodeExpiresAt: new Date("2099-12-31T23:59:59.000Z"),
+      joinCodeConsumedAt: null,
+      callMode: qaRemoteRoomConfig.callMode,
+      maxParticipants: 2,
+      closedAt: null,
+    },
+    create: {
+      id: seedId(accountState.key, "remote_room", qaRemoteRoomConfig.storyKey),
+      storyId,
+      ownerUserId: accountState.user.id,
+      status: "OPEN",
+      joinCodeHash: hashJoinCode(qaRemoteRoomConfig.joinCode),
+      joinCodeExpiresAt: new Date("2099-12-31T23:59:59.000Z"),
+      joinCodeConsumedAt: null,
+      callMode: qaRemoteRoomConfig.callMode,
+      maxParticipants: 2,
+      closedAt: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await prisma.story.updateMany({
+    where: {
+      id: storyId,
+      status: "DRAFT",
+    },
+    data: {
+      sessionKind: "REMOTE",
+    },
+  });
+
+  const hostParticipant = await prisma.remoteStoryParticipant.upsert({
+    where: {
+      remoteRoomId_role: {
+        remoteRoomId: room.id,
+        role: "HOST_PARENT",
+      },
+    },
+    update: {
+      displayName: accountState.user.name ?? "Responsavel",
+      status: "CONNECTED",
+      lastSeenAt: new Date("2026-03-01T12:00:00.000Z"),
+      leftAt: null,
+      deviceInfo: "seed-host",
+    },
+    create: {
+      id: seedId(accountState.key, "remote_participant", "host"),
+      remoteRoomId: room.id,
+      role: "HOST_PARENT",
+      displayName: accountState.user.name ?? "Responsavel",
+      status: "CONNECTED",
+      lastSeenAt: new Date("2026-03-01T12:00:00.000Z"),
+      joinedAt: new Date("2026-03-01T11:58:00.000Z"),
+      leftAt: null,
+      deviceInfo: "seed-host",
+    },
+    select: {
+      id: true,
+      displayName: true,
+    },
+  });
+
+  const guestChild = accountState.childrenByKey.get("sofia");
+  const guestParticipant = await prisma.remoteStoryParticipant.upsert({
+    where: {
+      remoteRoomId_role: {
+        remoteRoomId: room.id,
+        role: "GUEST_CHILD",
+      },
+    },
+    update: {
+      displayName: guestChild?.name ?? "Convidado",
+      status: "CONNECTED",
+      lastSeenAt: new Date("2026-03-01T12:01:00.000Z"),
+      leftAt: null,
+      deviceInfo: "seed-guest-tablet",
+    },
+    create: {
+      id: seedId(accountState.key, "remote_participant", "guest"),
+      remoteRoomId: room.id,
+      role: "GUEST_CHILD",
+      displayName: guestChild?.name ?? "Convidado",
+      status: "CONNECTED",
+      lastSeenAt: new Date("2026-03-01T12:01:00.000Z"),
+      joinedAt: new Date("2026-03-01T11:59:00.000Z"),
+      leftAt: null,
+      deviceInfo: "seed-guest-tablet",
+    },
+    select: {
+      id: true,
+      displayName: true,
+    },
+  });
+
+  const interactionIds = [];
+  for (const [index, interaction] of qaRemoteRoomConfig.interactions.entries()) {
+    const interactionId = seedId(accountState.key, "remote_interaction", interaction.key);
+    interactionIds.push(interactionId);
+
+    const isHost = interaction.authorRole === "HOST_PARENT";
+    await prisma.storyInteraction.upsert({
+      where: { id: interactionId },
+      update: {
+        storyId,
+        remoteRoomId: room.id,
+        type: interaction.type,
+        authorRole: interaction.authorRole,
+        authorUserId: isHost ? accountState.user.id : null,
+        authorParticipantId: isHost ? hostParticipant.id : guestParticipant.id,
+        authorDisplayName: isHost
+          ? hostParticipant.displayName
+          : guestParticipant.displayName,
+        messageText: interaction.messageText,
+        emoji: interaction.emoji,
+      },
+      create: {
+        id: interactionId,
+        storyId,
+        remoteRoomId: room.id,
+        type: interaction.type,
+        authorRole: interaction.authorRole,
+        authorUserId: isHost ? accountState.user.id : null,
+        authorParticipantId: isHost ? hostParticipant.id : guestParticipant.id,
+        authorDisplayName: isHost
+          ? hostParticipant.displayName
+          : guestParticipant.displayName,
+        messageText: interaction.messageText,
+        emoji: interaction.emoji,
+        createdAt: new Date(`2026-03-01T12:0${index}:00.000Z`),
+      },
+    });
+  }
+
+  await prisma.storyInteraction.deleteMany({
+    where: {
+      remoteRoomId: room.id,
+      id: {
+        startsWith: `seed_${accountState.key}_remote_interaction_`,
+        notIn: interactionIds,
+      },
+    },
+  });
+
+  return {
+    roomsCount: 1,
+    participantsCount: 2,
+    interactionsCount: interactionIds.length,
+  };
+}
+
+async function ensureQaGamificationBaselineData(coreRefs, usersByKey) {
+  let walletsCount = 0;
+  let streaksCount = 0;
+  let missionsCount = 0;
+  let unlocksCount = 0;
+
+  const weekKey = mondayWeekKey(new Date(), "UTC");
+  const weekStartDate = new Date(`${weekKey}T00:00:00.000Z`);
+  const virtueForMissionId = coreRefs.virtuesBySlug.get("coragem") ?? null;
+
+  for (const account of demoUsersCatalog) {
+    const accountState = usersByKey.get(account.key);
+    if (!accountState) {
+      continue;
+    }
+
+    const baseline = qaWalletBaselineByAccount[account.key] ?? { coins: 100, stars: 2 };
+    const existingWallet = await prisma.wallet.findUnique({
+      where: { userId: accountState.user.id },
+    });
+
+    if (!existingWallet) {
+      await prisma.wallet.create({
+        data: {
+          id: seedId(account.key, "wallet"),
+          userId: accountState.user.id,
+          coins: baseline.coins,
+          stars: baseline.stars,
+        },
+      });
+    } else {
+      const nextCoins = Math.max(existingWallet.coins, baseline.coins);
+      const nextStars = Math.max(existingWallet.stars, baseline.stars);
+      if (nextCoins !== existingWallet.coins || nextStars !== existingWallet.stars) {
+        await prisma.wallet.update({
+          where: { id: existingWallet.id },
+          data: {
+            coins: nextCoins,
+            stars: nextStars,
+          },
+        });
+      }
+    }
+    walletsCount += 1;
+
+    for (const childConfig of demoChildrenCatalog) {
+      const child = accountState.childrenByKey.get(childConfig.key);
+      if (!child) {
+        continue;
+      }
+
+      const streakSeed =
+        childConfig.key === "lucas"
+          ? { currentDays: 4, bestDays: 7, shieldCount: 1 }
+          : { currentDays: 2, bestDays: 3, shieldCount: 1 };
+
+      const existingStreak = await prisma.childStreak.findUnique({
+        where: { childProfileId: child.id },
+      });
+
+      if (!existingStreak) {
+        await prisma.childStreak.create({
+          data: {
+            id: seedId(account.key, "streak", childConfig.key),
+            userId: accountState.user.id,
+            childProfileId: child.id,
+            currentDays: streakSeed.currentDays,
+            bestDays: streakSeed.bestDays,
+            shieldCount: streakSeed.shieldCount,
+            lastCountedDate: weekStartDate,
+            lastShieldGrantWeekKey: weekKey,
+          },
+        });
+      } else {
+        const nextLastCountedDate =
+          existingStreak.lastCountedDate &&
+          existingStreak.lastCountedDate.getTime() > weekStartDate.getTime()
+            ? existingStreak.lastCountedDate
+            : weekStartDate;
+
+        await prisma.childStreak.update({
+          where: { id: existingStreak.id },
+          data: {
+            userId: accountState.user.id,
+            currentDays: Math.max(existingStreak.currentDays, streakSeed.currentDays),
+            bestDays: Math.max(existingStreak.bestDays, streakSeed.bestDays),
+            shieldCount: Math.max(existingStreak.shieldCount, streakSeed.shieldCount),
+            lastCountedDate: nextLastCountedDate,
+            lastShieldGrantWeekKey: existingStreak.lastShieldGrantWeekKey ?? weekKey,
+          },
+        });
+      }
+      streaksCount += 1;
+
+      const missionsSeed = [
+        {
+          key: "publish_count",
+          kind: "PUBLISH_COUNT",
+          title: "Conte 2 capitulos",
+          description: "Publique 2 capitulos nesta semana.",
+          targetValue: 2,
+          progressValue: 1,
+          virtueId: null,
+          rewardCoins: 35,
+          rewardStars: 1,
+        },
+        {
+          key: "publish_with_virtue",
+          kind: "PUBLISH_WITH_VIRTUE",
+          title: "1 historia sobre coragem",
+          description: "Publique 1 capitulo com a virtude Coragem.",
+          targetValue: 1,
+          progressValue: 1,
+          virtueId: virtueForMissionId,
+          rewardCoins: 40,
+          rewardStars: 1,
+        },
+        {
+          key: "continue_episode",
+          kind: "CONTINUE_EPISODE",
+          title: "Continue 1 episodio",
+          description: "Publique 1 episodio de continuacao nesta semana.",
+          targetValue: 1,
+          progressValue: childConfig.key === "lucas" ? 1 : 0,
+          virtueId: null,
+          rewardCoins: 35,
+          rewardStars: 1,
+        },
+      ];
+
+      for (const mission of missionsSeed) {
+        const status = mission.progressValue >= mission.targetValue ? "COMPLETED" : "ACTIVE";
+        const completedAt = status === "COMPLETED" ? new Date("2026-03-01T12:30:00.000Z") : null;
+
+        const existingMission = await prisma.childWeeklyMission.findFirst({
+          where: {
+            userId: accountState.user.id,
+            childProfileId: child.id,
+            weekKey,
+            kind: mission.kind,
+            virtueId: mission.virtueId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (existingMission) {
+          await prisma.childWeeklyMission.update({
+            where: { id: existingMission.id },
+            data: {
+              title: mission.title,
+              description: mission.description,
+              targetValue: mission.targetValue,
+              progressValue: mission.progressValue,
+              status,
+              rewardCoins: mission.rewardCoins,
+              rewardStars: mission.rewardStars,
+              completedAt,
+            },
+          });
+        } else {
+          await prisma.childWeeklyMission.create({
+            data: {
+              id: seedId(account.key, "mission", childConfig.key, weekKey, mission.key),
+              userId: accountState.user.id,
+              childProfileId: child.id,
+              weekKey,
+              kind: mission.kind,
+              title: mission.title,
+              description: mission.description,
+              targetValue: mission.targetValue,
+              progressValue: mission.progressValue,
+              status,
+              virtueId: mission.virtueId,
+              rewardCoins: mission.rewardCoins,
+              rewardStars: mission.rewardStars,
+              completedAt,
+            },
+          });
+        }
+
+        missionsCount += 1;
+      }
+    }
+
+    for (const unlockConfig of qaGamificationUnlockBlueprint) {
+      const child = accountState.childrenByKey.get(unlockConfig.childKey);
+      if (!child) {
+        continue;
+      }
+
+      for (const itemKey of unlockConfig.unlockItemKeys) {
+        const itemId = coreRefs.gamificationCatalogByKey.get(itemKey);
+        if (!itemId) {
+          continue;
+        }
+
+        await prisma.childInventoryItem.upsert({
+          where: {
+            childProfileId_itemId: {
+              childProfileId: child.id,
+              itemId,
+            },
+          },
+          update: {
+            equipped: itemKey === unlockConfig.equippedItemKey,
+          },
+          create: {
+            id: seedId(account.key, "gamification_unlock", unlockConfig.childKey, itemKey),
+            childProfileId: child.id,
+            itemId,
+            unlockedAt: new Date("2026-02-21T12:00:00.000Z"),
+            equipped: itemKey === unlockConfig.equippedItemKey,
+          },
+        });
+        unlocksCount += 1;
+      }
+    }
+  }
+
+  return {
+    walletsCount,
+    streaksCount,
+    missionsCount,
+    unlocksCount,
+  };
+}
+
 async function main() {
   const usersByKey = await ensureDemoUsersAndProfiles();
   const adminState = usersByKey.get("admin");
@@ -1469,6 +2320,15 @@ async function main() {
 
   const coreRefs = await ensureCoreCatalogData(adminState.user.id);
   const vaultSummary = await ensureDemoStoryVaultData(coreRefs, usersByKey);
+  const artStylesSummary = await ensureQaArtStylesData();
+  const parallelInventorySummary = await ensureQaParallelInventoryData(usersByKey);
+  const memoriesSummary = await ensureQaStoryMemoriesData(usersByKey);
+  const bookProjectsSummary = await ensureQaBookProjectsData(usersByKey);
+  const remoteRoomSummary = await ensureQaRemoteRoomData(usersByKey);
+  const gamificationBaselineSummary = await ensureQaGamificationBaselineData(
+    coreRefs,
+    usersByKey
+  );
 
   console.log(`Virtudes seedadas: ${virtuesCatalog.length}`);
   console.log(`Temas seedados: ${storyThemesCatalog.length}`);
@@ -1476,10 +2336,26 @@ async function main() {
   console.log(`Termos de moderacao seedados: ${moderationSeedTerms.length}`);
   console.log(`Conquistas seedadas: ${coreRefs.achievementsCount}`);
   console.log(`Itens de catalogo seedados: ${gamificationCatalogItems.length}`);
+  console.log(`Art styles seedados: ${artStylesSummary.count}`);
   console.log(`Contas demo seedadas: ${vaultSummary.usersCount}`);
   console.log(`Criancas demo seedadas: ${vaultSummary.childrenCount}`);
   console.log(`Colecoes demo seedadas: ${vaultSummary.collectionsCount}`);
   console.log(`Historias demo seedadas: ${vaultSummary.storiesCount}`);
+  console.log(`Inventario paralelo seedado: ${parallelInventorySummary.itemsCount} itens base`);
+  console.log(
+    `Inventario por crianca seedado: ${parallelInventorySummary.childInventoryCount} vinculos`
+  );
+  console.log(`Memorias seedadas: ${memoriesSummary.memoriesCount}`);
+  console.log(`Book projects READY seedados: ${bookProjectsSummary.projectsCount}`);
+  console.log(`Salas remotas QA seedadas: ${remoteRoomSummary.roomsCount}`);
+  console.log(`Participantes remotos QA seedados: ${remoteRoomSummary.participantsCount}`);
+  console.log(`Interacoes remotas QA seedadas: ${remoteRoomSummary.interactionsCount}`);
+  console.log(`Wallet baseline QA aplicado: ${gamificationBaselineSummary.walletsCount}`);
+  console.log(`Streak baseline QA aplicado: ${gamificationBaselineSummary.streaksCount}`);
+  console.log(`Missoes baseline QA aplicadas: ${gamificationBaselineSummary.missionsCount}`);
+  console.log(
+    `Unlocks de gamificacao QA aplicados: ${gamificationBaselineSummary.unlocksCount}`
+  );
   console.log(`PIN demo configurado para contas seedadas: ${demoPin}`);
 }
 
