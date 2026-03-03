@@ -14,6 +14,7 @@ import '../../story_creation/create_story_wizard_draft_store.dart';
 import '../../story_creation/quick_story_defaults.dart';
 import '../../story_room/models/illustration_models.dart';
 import '../../story_room/models/story_models.dart';
+import '../../story_room/story_api.dart';
 import '../../story_room/story_room_controller.dart';
 
 class CreateStoryScreen extends ConsumerStatefulWidget {
@@ -38,7 +39,6 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   List<ArtStyleModel> _artStyles = const [];
 
   String? _storyId;
-  String? _createdChildId;
   String? _selectedChildId;
   String? _selectedVirtueId;
   String? _selectedTemplateId;
@@ -73,7 +73,9 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   @override
   void dispose() {
     if (!_flowCompleted && !_continuedLater) {
-      final durationMs = DateTime.now().difference(_stepStartedAt).inMilliseconds;
+      final durationMs = DateTime.now()
+          .difference(_stepStartedAt)
+          .inMilliseconds;
       UxAnalytics.log(
         'story_create_abandoned',
         params: <String, Object?>{
@@ -149,13 +151,14 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     if (draft == null) {
       return;
     }
+    final loadedDraft = draft;
 
     StorySessionModel? session;
-    if (draft.storyId != null && draft.storyId!.isNotEmpty) {
+    if (loadedDraft.storyId != null && loadedDraft.storyId!.isNotEmpty) {
       try {
         session = await ref
             .read(storyApiProvider)
-            .getStorySession(token, draft.storyId!);
+            .getStorySession(token, loadedDraft.storyId!);
       } catch (_) {
         try {
           await store.clear(userId);
@@ -168,18 +171,18 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     }
 
     setState(() {
-      _storyId = draft.storyId;
-      _currentStep = draft.currentStep;
-      _selectedChildId = draft.selectedChildId;
-      _selectedVirtueId = draft.selectedVirtueId;
-      _selectedTemplateId = draft.selectedTemplateId;
-      _selectedArtStyleId = draft.selectedArtStyleId;
-      _mode = draft.mode;
-      _titleController.text = draft.titleDraft;
-      _themeController.text = draft.theme;
-      _scenarioController.text = draft.scenario;
-      _objectiveController.text = draft.objective;
-      _charactersController.text = draft.characters;
+      _storyId = loadedDraft.storyId;
+      _currentStep = loadedDraft.currentStep;
+      _selectedChildId = loadedDraft.selectedChildId;
+      _selectedVirtueId = loadedDraft.selectedVirtueId;
+      _selectedTemplateId = loadedDraft.selectedTemplateId;
+      _selectedArtStyleId = loadedDraft.selectedArtStyleId;
+      _mode = loadedDraft.mode;
+      _titleController.text = loadedDraft.titleDraft;
+      _themeController.text = loadedDraft.theme;
+      _scenarioController.text = loadedDraft.scenario;
+      _objectiveController.text = loadedDraft.objective;
+      _charactersController.text = loadedDraft.characters;
 
       if (session != null) {
         _applySessionToForm(session, replaceText: false);
@@ -187,9 +190,11 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     });
   }
 
-  void _applySessionToForm(StorySessionModel session, {bool replaceText = true}) {
+  void _applySessionToForm(
+    StorySessionModel session, {
+    bool replaceText = true,
+  }) {
     _storyId = session.id;
-    _createdChildId = session.childProfileId;
     _selectedChildId ??= session.childProfileId;
     _selectedVirtueId = session.virtue?.id ?? _selectedVirtueId;
     _selectedTemplateId = session.sourceTemplateId ?? _selectedTemplateId;
@@ -234,7 +239,8 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
       setState(() {
         _children = children;
-        _selectedChildId = _selectedChildId ??
+        _selectedChildId =
+            _selectedChildId ??
             (children.isNotEmpty ? children.first.id : null);
       });
     } catch (error) {
@@ -265,8 +271,8 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
       setState(() {
         _virtues = virtues;
-        _selectedVirtueId = _selectedVirtueId ??
-            (virtues.isNotEmpty ? virtues.first.id : null);
+        _selectedVirtueId =
+            _selectedVirtueId ?? (virtues.isNotEmpty ? virtues.first.id : null);
       });
     } catch (error) {
       if (!mounted || !showError) {
@@ -454,12 +460,16 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         }
         return true;
       case 1:
-        if (_virtues.isNotEmpty && (_selectedVirtueId == null || _selectedVirtueId!.isEmpty)) {
+        if (_virtues.isNotEmpty &&
+            (_selectedVirtueId == null || _selectedVirtueId!.isEmpty)) {
           context.showMessage('Selecione uma virtude para continuar.');
           return false;
         }
-        if (_artStyles.isNotEmpty && (_selectedArtStyleId == null || _selectedArtStyleId!.isEmpty)) {
-          context.showMessage('Selecione um estilo de ilustração para continuar.');
+        if (_artStyles.isNotEmpty &&
+            (_selectedArtStyleId == null || _selectedArtStyleId!.isEmpty)) {
+          context.showMessage(
+            'Selecione um estilo de ilustração para continuar.',
+          );
           return false;
         }
         return true;
@@ -632,6 +642,9 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
     if (created == null) {
       final error = ref.read(storyRoomControllerProvider).error;
+      if (!mounted) {
+        return false;
+      }
       context.showMessage(error ?? 'Falha ao criar rascunho.');
       return false;
     }
@@ -656,7 +669,12 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     }
 
     if (storyId == null || storyId.isEmpty) {
-      context.showMessage('Não foi possível identificar o rascunho para salvar.');
+      if (!mounted) {
+        return false;
+      }
+      context.showMessage(
+        'Não foi possível identificar o rascunho para salvar.',
+      );
       return false;
     }
 
@@ -678,6 +696,9 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
     if (updated == null) {
       final error = ref.read(storyRoomControllerProvider).error;
+      if (!mounted) {
+        return false;
+      }
       context.showMessage(error ?? 'Não foi possível salvar o rascunho.');
       return false;
     }
@@ -752,7 +773,11 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     final api = ref.read(storyApiProvider);
     final session = await api.getStorySession(token, storyId);
 
-    for (var stepIndex = session.currentStepIndex + 1; stepIndex <= 3; stepIndex++) {
+    for (
+      var stepIndex = session.currentStepIndex + 1;
+      stepIndex <= 3;
+      stepIndex++
+    ) {
       try {
         await api.createStep(
           token,
@@ -1159,8 +1184,8 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                           OutlinedButton.icon(
                             onPressed:
                                 (_suggestingVirtue || _selectedChildId == null)
-                                    ? null
-                                    : _suggestVirtueAutomatically,
+                                ? null
+                                : _suggestVirtueAutomatically,
                             icon: const Icon(Icons.auto_awesome),
                             label: Text(
                               _suggestingVirtue
@@ -1215,17 +1240,18 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                                 ),
                               ),
                             ],
-                            onChanged:
-                                _loadingTemplates || _applyingTemplate
-                                    ? null
-                                    : _onTemplateSelected,
+                            onChanged: _loadingTemplates || _applyingTemplate
+                                ? null
+                                : _onTemplateSelected,
                           ),
                         ],
                       ),
                     ),
                     Step(
                       title: const Text('Detalhes, revisão e publicar'),
-                      subtitle: const Text('Revise e finalize em poucos toques'),
+                      subtitle: const Text(
+                        'Revise e finalize em poucos toques',
+                      ),
                       isActive: _currentStep >= 2,
                       content: Column(
                         children: [
@@ -1238,7 +1264,9 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                           const SizedBox(height: 12),
                           TextField(
                             controller: _themeController,
-                            decoration: const InputDecoration(labelText: 'Tema'),
+                            decoration: const InputDecoration(
+                              labelText: 'Tema',
+                            ),
                           ),
                           const SizedBox(height: 12),
                           TextField(

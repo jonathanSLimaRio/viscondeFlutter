@@ -134,15 +134,13 @@ void main() {
           ),
         ),
         illustrationApiProvider.overrideWith(
-          (ref) => FakeIllustrationApi(
-            const <ArtStyleModel>[
-              ArtStyleModel(
-                id: 'style-1',
-                name: 'Aquarela',
-                promptTemplate: 'watercolor',
-              ),
-            ],
-          ),
+          (ref) => FakeIllustrationApi(const <ArtStyleModel>[
+            ArtStyleModel(
+              id: 'style-1',
+              name: 'Aquarela',
+              promptTemplate: 'watercolor',
+            ),
+          ]),
         ),
         createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
       ],

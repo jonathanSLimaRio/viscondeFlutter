@@ -40,8 +40,10 @@ abstract final class AppRoute {
     if (!resumeDraft) {
       return storyCreate;
     }
-    return Uri(path: storyCreate, queryParameters: const {'resume': '1'})
-        .toString();
+    return Uri(
+      path: storyCreate,
+      queryParameters: const {'resume': '1'},
+    ).toString();
   }
 
   static bool isAuthRoute(String location) {

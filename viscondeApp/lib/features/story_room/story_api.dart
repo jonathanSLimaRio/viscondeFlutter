@@ -129,12 +129,8 @@ class StoryApi {
           'virtueId': null
         else if (virtueId != null && virtueId.trim().isNotEmpty)
           'virtueId': virtueId.trim(),
-        if (updateSourceTemplate)
-          'sourceTemplateId': sourceTemplateId == null
-              ? null
-              : sourceTemplateId.trim(),
-        if (updateArtStyle)
-          'artStyleId': artStyleId == null ? null : artStyleId.trim(),
+        if (updateSourceTemplate) 'sourceTemplateId': sourceTemplateId?.trim(),
+        if (updateArtStyle) 'artStyleId': artStyleId?.trim(),
         if (mode != null) 'mode': storyModeToApi(mode),
       },
       options: authOptions(accessToken),

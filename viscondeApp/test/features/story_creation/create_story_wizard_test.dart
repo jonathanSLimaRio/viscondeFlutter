@@ -9,6 +9,7 @@ import 'package:visconde_app/features/story_creation/create_story_wizard_draft_s
 import 'package:visconde_app/features/story_room/illustration_api.dart';
 import 'package:visconde_app/features/story_room/models/illustration_models.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
+import 'package:visconde_app/features/story_room/story_api.dart';
 import 'package:visconde_app/features/story_room/ui/story_room_screen.dart';
 import 'package:visconde_app/shared/providers.dart';
 
@@ -154,8 +155,9 @@ class WizardStoryApi extends StoryApi {
       title: titleDraft,
       characters: nextCharacters,
       currentMode: mode ?? session.currentMode,
-      sourceTemplateId:
-          updateSourceTemplate ? sourceTemplateId : session.sourceTemplateId,
+      sourceTemplateId: updateSourceTemplate
+          ? sourceTemplateId
+          : session.sourceTemplateId,
     );
 
     return session;
@@ -300,15 +302,13 @@ void main() {
         ),
         storyApiProvider.overrideWith((ref) => storyApi),
         illustrationApiProvider.overrideWith(
-          (ref) => FakeIllustrationApi(
-            const <ArtStyleModel>[
-              ArtStyleModel(
-                id: 'style-1',
-                name: 'Aquarela',
-                promptTemplate: 'watercolor',
-              ),
-            ],
-          ),
+          (ref) => FakeIllustrationApi(const <ArtStyleModel>[
+            ArtStyleModel(
+              id: 'style-1',
+              name: 'Aquarela',
+              promptTemplate: 'watercolor',
+            ),
+          ]),
         ),
         createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
       ],
@@ -403,15 +403,13 @@ void main() {
         ),
         storyApiProvider.overrideWith((ref) => storyApi),
         illustrationApiProvider.overrideWith(
-          (ref) => FakeIllustrationApi(
-            const <ArtStyleModel>[
-              ArtStyleModel(
-                id: 'style-1',
-                name: 'Aquarela',
-                promptTemplate: 'watercolor',
-              ),
-            ],
-          ),
+          (ref) => FakeIllustrationApi(const <ArtStyleModel>[
+            ArtStyleModel(
+              id: 'style-1',
+              name: 'Aquarela',
+              promptTemplate: 'watercolor',
+            ),
+          ]),
         ),
         createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
       ],
