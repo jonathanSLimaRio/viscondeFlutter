@@ -4,17 +4,11 @@ enum StoryStatus { draft, published, archived }
 
 enum StoryStepKind { narration, childChoice, system }
 
-enum StorySessionKind { presencial, remote }
+enum StorySessionKind { presencial }
 
 enum AgeBand { age4_5, age6_8, age9_10 }
 
 enum VirtueSource { manual, auto }
-
-enum RemoteRoomStatus { open, active, closed, expired }
-
-enum RemoteParticipantRole { hostParent, guestChild }
-
-enum RemoteCallMode { none, audio, video, coop }
 
 StoryMode storyModeFromApi(String value) {
   switch (value) {
@@ -83,62 +77,10 @@ String storyStepKindToApi(StoryStepKind value) {
 
 StorySessionKind storySessionKindFromApi(String? value) {
   switch (value) {
-    case 'REMOTE':
-      return StorySessionKind.remote;
     case 'PRESENTIAL':
+    case 'REMOTE':
     default:
       return StorySessionKind.presencial;
-  }
-}
-
-RemoteRoomStatus remoteRoomStatusFromApi(String? value) {
-  switch (value) {
-    case 'ACTIVE':
-      return RemoteRoomStatus.active;
-    case 'CLOSED':
-      return RemoteRoomStatus.closed;
-    case 'EXPIRED':
-      return RemoteRoomStatus.expired;
-    case 'OPEN':
-    default:
-      return RemoteRoomStatus.open;
-  }
-}
-
-RemoteParticipantRole remoteParticipantRoleFromApi(String? value) {
-  switch (value) {
-    case 'GUEST_CHILD':
-      return RemoteParticipantRole.guestChild;
-    case 'HOST_PARENT':
-    default:
-      return RemoteParticipantRole.hostParent;
-  }
-}
-
-RemoteCallMode remoteCallModeFromApi(String? value) {
-  switch (value) {
-    case 'NONE':
-      return RemoteCallMode.none;
-    case 'VIDEO':
-      return RemoteCallMode.video;
-    case 'COOP':
-      return RemoteCallMode.coop;
-    case 'AUDIO':
-    default:
-      return RemoteCallMode.audio;
-  }
-}
-
-String remoteCallModeToApi(RemoteCallMode value) {
-  switch (value) {
-    case RemoteCallMode.none:
-      return 'NONE';
-    case RemoteCallMode.video:
-      return 'VIDEO';
-    case RemoteCallMode.audio:
-      return 'AUDIO';
-    case RemoteCallMode.coop:
-      return 'COOP';
   }
 }
 

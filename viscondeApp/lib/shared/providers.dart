@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/api_client.dart';
 import '../features/auth/auth_controller.dart';
-import '../features/admin/admin_api.dart';
 import '../features/children/children_api.dart';
 import '../features/gamification/gamification_api.dart';
 import '../features/gamification/inventory_api.dart';
@@ -89,10 +88,6 @@ final storyApiProvider = Provider<StoryApi>((ref) {
 
 final bookApiProvider = Provider<BookApi>((ref) {
   return BookApi(ref.watch(sessionAwareDioProvider));
-});
-
-final adminApiProvider = Provider<AdminApi>((ref) {
-  return AdminApi(ref.watch(sessionAwareDioProvider));
 });
 
 final storySyncQueueProvider = Provider<StorySyncQueue>((ref) {

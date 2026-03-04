@@ -128,7 +128,6 @@ class QueueTestStoryApi extends StoryApi {
       currentMode: mode ?? session.currentMode,
       currentStepIndex: session.currentStepIndex,
       ageSnapshotYears: session.ageSnapshotYears,
-      remote: session.remote,
       child: session.child,
       characters: nextCharacters,
       steps: session.steps,

@@ -143,19 +143,6 @@ async function verifyAccount(account) {
     }
   }
 
-  const remoteDraftOpenCount = await prisma.remoteStoryRoom.count({
-    where: {
-      status: "OPEN",
-      story: {
-        userId: user.id,
-        status: "DRAFT",
-      },
-    },
-  });
-  if (remoteDraftOpenCount < 1) {
-    errors.push(`${account.email}: esperado >=1 sala remota OPEN com historia DRAFT.`);
-  }
-
   const storyIds = stories.map((story) => story.id);
   const stepsCount = await prisma.storyStep.count({
     where: { storyId: { in: storyIds } },

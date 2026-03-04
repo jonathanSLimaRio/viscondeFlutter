@@ -5,7 +5,6 @@ void main() {
   group('AppRoute', () {
     test('builds dynamic routes consistently', () {
       expect(AppRoute.storyRoom('abc'), '/stories/abc/room');
-      expect(AppRoute.storyRemote('abc'), '/stories/abc/remote');
       expect(AppRoute.storySummary('abc'), '/stories/abc/summary');
       expect(AppRoute.vaultDetail('vault-1'), '/vault/vault-1');
     });
@@ -15,17 +14,9 @@ void main() {
       expect(AppRoute.isAuthRoute(AppRoute.signup), isTrue);
       expect(AppRoute.isAuthRoute(AppRoute.home), isFalse);
 
-      expect(AppRoute.isRemotePublicRoute(AppRoute.remoteJoin), isTrue);
-      expect(AppRoute.isRemotePublicRoute(AppRoute.remoteRoom), isTrue);
-      expect(AppRoute.isRemotePublicRoute(AppRoute.storyCreate), isFalse);
-      expect(AppRoute.isAnyRemoteRoute(AppRoute.remoteJoin), isTrue);
-      expect(AppRoute.isAnyRemoteRoute(AppRoute.remoteRoom), isTrue);
-      expect(AppRoute.isAnyRemoteRoute(AppRoute.storyRemote('abc')), isTrue);
-      expect(AppRoute.isAnyRemoteRoute(AppRoute.storyRoom('abc')), isFalse);
-
-      expect(AppRoute.isAdminProtectedRoute(AppRoute.adminHub), isTrue);
-      expect(AppRoute.isAdminProtectedRoute(AppRoute.adminThemes), isTrue);
-      expect(AppRoute.isAdminProtectedRoute(AppRoute.adminDenied), isFalse);
+      expect(AppRoute.isAdultAreaRoute(AppRoute.adultVirtueReports), isTrue);
+      expect(AppRoute.isAdultAreaRoute(AppRoute.adultVoices), isTrue);
+      expect(AppRoute.isAdultAreaRoute(AppRoute.storyCreate), isFalse);
     });
   });
 }

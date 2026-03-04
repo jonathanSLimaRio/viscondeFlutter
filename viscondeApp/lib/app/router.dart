@@ -8,22 +8,10 @@ import '../features/auth/ui/forgot_password_screen.dart';
 import '../features/auth/ui/login_screen.dart';
 import '../features/auth/ui/session_persona_screen.dart';
 import '../features/auth/ui/signup_screen.dart';
-import '../features/admin/ui/admin_access_denied_screen.dart';
-import '../features/admin/ui/admin_hub_screen.dart';
-import '../features/admin/ui/moderation_admin_screen.dart';
-import '../features/admin/ui/prompt_admin_screen.dart';
-import '../features/admin/ui/template_admin_screen.dart';
-import '../features/admin/ui/theme_admin_screen.dart';
-import '../features/admin/ui/ux_funnel_admin_screen.dart';
-import '../features/admin/ui/virtue_admin_screen.dart';
 import '../features/profile/ui/home_shell_screen.dart';
-import '../features/remote_room/ui/remote_join_screen.dart';
-import '../features/remote_room/ui/remote_room_screen.dart';
-import '../features/security/ui/story_interactions_adult_screen.dart';
 import '../features/security/ui/virtue_reports_screen.dart';
 import '../features/security/ui/voice_profiles_screen.dart';
 import '../features/story_creation/ui/create_story_screen.dart';
-import '../features/story_room/models/story_models.dart';
 import '../features/story_room/ui/story_room_entry_screen.dart';
 import '../features/story_room/ui/story_summary_screen.dart';
 import '../features/story_vault/ui/story_vault_collection_redirect_screen.dart';
@@ -59,10 +47,6 @@ String _resolvePostPersonaTarget(
   if (personaState.isChildMode && AppRoute.isAdultAreaRoute(path)) {
     return AppRoute.home;
   }
-
-  if (personaState.isTogetherMode && AppRoute.isAnyRemoteRoute(path)) {
-    return AppRoute.home;
-  }
   return sanitized;
 }
 
@@ -96,59 +80,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const VirtueReportsScreen(),
       ),
       GoRoute(
-        path: AppRoute.adultInteractions,
-        builder: (context, state) => const StoryInteractionsAdultScreen(),
-      ),
-      GoRoute(
         path: AppRoute.adultVoices,
         builder: (context, state) => const VoiceProfilesScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.adminDenied,
-        builder: (context, state) => const AdminAccessDeniedScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.adminHub,
-        builder: (context, state) => const AdminHubScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.adminThemes,
-        builder: (context, state) => const ThemeAdminScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.adminVirtues,
-        builder: (context, state) => const VirtueAdminScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.adminPrompts,
-        builder: (context, state) => const PromptAdminScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.adminTemplates,
-        builder: (context, state) => const TemplateAdminScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.adminModeration,
-        builder: (context, state) => const ModerationAdminScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.adminUxFunnel,
-        builder: (context, state) => const UxFunnelAdminScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.remoteJoin,
-        builder: (context, state) =>
-            RemoteJoinScreen(prefilledCode: state.uri.queryParameters['code']),
-      ),
-      GoRoute(
-        path: AppRoute.remoteRoom,
-        builder: (context, state) {
-          final extra = state.extra;
-          if (extra is RemoteJoinBundle) {
-            return RemoteRoomScreen.guest(joinBundle: extra);
-          }
-          return const RemoteJoinScreen();
-        },
       ),
       GoRoute(
         path: AppRoute.vaultDetailPattern,
@@ -162,13 +95,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => CreateStoryScreen(
           resumeDraft: state.uri.queryParameters['resume'] == '1',
         ),
-      ),
-      GoRoute(
-        path: AppRoute.storyRemotePattern,
-        builder: (context, state) {
-          final storyId = state.pathParameters['id'] ?? '';
-          return RemoteRoomScreen.host(storyId: storyId);
-        },
       ),
       GoRoute(
         path: AppRoute.storyRoomPattern,
@@ -196,9 +122,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final location = state.matchedLocation;
       final isAuthRoute = AppRoute.isAuthRoute(location);
       final isSessionPersonaRoute = AppRoute.isSessionPersonaRoute(location);
-      final isRemotePublicRoute = AppRoute.isRemotePublicRoute(location);
-      final isAdminDeniedRoute = AppRoute.isAdminDeniedRoute(location);
-      final isAdminProtectedRoute = AppRoute.isAdminProtectedRoute(location);
       final personaState = ref.read(sessionPersonaControllerProvider);
 
       if (auth.status == AuthStatus.loading) {
@@ -206,7 +129,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (auth.status == AuthStatus.unauthenticated) {
-        if (isAuthRoute || isRemotePublicRoute) {
+        if (isAuthRoute) {
           return null;
         }
 
@@ -219,11 +142,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (auth.status == AuthStatus.authenticated) {
         if (personaState.isChildMode && AppRoute.isAdultAreaRoute(location)) {
-          return AppRoute.home;
-        }
-
-        if (personaState.isTogetherMode &&
-            AppRoute.isAnyRemoteRoute(location)) {
           return AppRoute.home;
         }
 
@@ -245,16 +163,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return _resolvePostPersonaTarget(from, personaState);
         }
 
-        final isAdmin = auth.user?.isAdmin ?? false;
         if (location == AppRoute.loading || isAuthRoute) {
           final from = state.uri.queryParameters['from'];
           return _resolvePostPersonaTarget(from, personaState);
-        }
-        if (isAdminProtectedRoute && !isAdmin) {
-          return AppRoute.adminDenied;
-        }
-        if (isAdminDeniedRoute && isAdmin) {
-          return AppRoute.adminHub;
         }
       }
 

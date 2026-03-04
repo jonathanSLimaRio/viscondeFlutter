@@ -2,14 +2,6 @@ import 'story_enums.dart';
 
 export 'story_enums.dart';
 
-String _requiredString(Map<String, dynamic> json, String key) {
-  final value = json[key];
-  if (value is String && value.trim().isNotEmpty) {
-    return value;
-  }
-  throw FormatException('Campo obrigatório ausente/inválido: $key');
-}
-
 DateTime _requiredDateTime(Map<String, dynamic> json, String key) {
   final raw = json[key];
   if (raw is! String || raw.trim().isEmpty) {
@@ -280,100 +272,6 @@ class StoryStepModel {
   }
 }
 
-class RemoteParticipantModel {
-  const RemoteParticipantModel({
-    required this.id,
-    required this.role,
-    required this.displayName,
-    required this.status,
-    required this.lastSeenAt,
-    required this.joinedAt,
-    this.leftAt,
-  });
-
-  final String id;
-  final RemoteParticipantRole role;
-  final String displayName;
-  final String status;
-  final DateTime lastSeenAt;
-  final DateTime joinedAt;
-  final DateTime? leftAt;
-
-  factory RemoteParticipantModel.fromJson(Map<String, dynamic> json) {
-    return RemoteParticipantModel(
-      id: (json['id'] as String?) ?? '',
-      role: remoteParticipantRoleFromApi(json['role'] as String?),
-      displayName: (json['displayName'] as String?) ?? '',
-      status: (json['status'] as String?) ?? 'CONNECTED',
-      lastSeenAt: _requiredDateTime(json, 'lastSeenAt'),
-      joinedAt: _requiredDateTime(json, 'joinedAt'),
-      leftAt: DateTime.tryParse(json['leftAt'] as String? ?? ''),
-    );
-  }
-}
-
-class RemoteRoomModel {
-  const RemoteRoomModel({
-    required this.id,
-    required this.status,
-    required this.callMode,
-    required this.maxParticipants,
-    required this.isOpen,
-    required this.joinCodeExpiresAt,
-    this.joinCodeConsumedAt,
-    this.closedAt,
-    required this.participants,
-  });
-
-  final String id;
-  final RemoteRoomStatus status;
-  final RemoteCallMode callMode;
-  final int maxParticipants;
-  final bool isOpen;
-  final DateTime joinCodeExpiresAt;
-  final DateTime? joinCodeConsumedAt;
-  final DateTime? closedAt;
-  final List<RemoteParticipantModel> participants;
-
-  factory RemoteRoomModel.fromJson(Map<String, dynamic> json) {
-    return RemoteRoomModel(
-      id: (json['id'] as String?) ?? '',
-      status: remoteRoomStatusFromApi(json['status'] as String?),
-      callMode: remoteCallModeFromApi(json['callMode'] as String?),
-      maxParticipants: (json['maxParticipants'] as num?)?.toInt() ?? 2,
-      isOpen: (json['isOpen'] as bool?) ?? true,
-      joinCodeExpiresAt: _requiredDateTime(json, 'joinCodeExpiresAt'),
-      joinCodeConsumedAt: DateTime.tryParse(
-        json['joinCodeConsumedAt'] as String? ?? '',
-      ),
-      closedAt: DateTime.tryParse(json['closedAt'] as String? ?? ''),
-      participants: ((json['participants'] as List<dynamic>?) ?? <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .map(RemoteParticipantModel.fromJson)
-          .toList(),
-    );
-  }
-
-  RemoteRoomModel copyWith({
-    RemoteRoomStatus? status,
-    RemoteCallMode? callMode,
-    bool? isOpen,
-    List<RemoteParticipantModel>? participants,
-  }) {
-    return RemoteRoomModel(
-      id: id,
-      status: status ?? this.status,
-      callMode: callMode ?? this.callMode,
-      maxParticipants: maxParticipants,
-      isOpen: isOpen ?? this.isOpen,
-      joinCodeExpiresAt: joinCodeExpiresAt,
-      joinCodeConsumedAt: joinCodeConsumedAt,
-      closedAt: closedAt,
-      participants: participants ?? this.participants,
-    );
-  }
-}
-
 class ContentStoryTemplateModel {
   const ContentStoryTemplateModel({
     required this.id,
@@ -533,7 +431,6 @@ class StorySessionModel {
     required this.currentStepIndex,
     this.game,
     required this.ageSnapshotYears,
-    this.remote,
     required this.child,
     required this.characters,
     required this.steps,
@@ -563,7 +460,6 @@ class StorySessionModel {
   final int currentStepIndex;
   final StoryGameStateModel? game;
   final int ageSnapshotYears;
-  final RemoteRoomModel? remote;
   final StoryChildSnapshot child;
   final List<StoryCharacterModel> characters;
   final List<StoryStepModel> steps;
@@ -601,9 +497,6 @@ class StorySessionModel {
           ? null
           : StoryGameStateModel.fromJson(json['game'] as Map<String, dynamic>),
       ageSnapshotYears: (json['ageSnapshotYears'] as num?)?.toInt() ?? 0,
-      remote: (json['remote'] as Map<String, dynamic>?) == null
-          ? null
-          : RemoteRoomModel.fromJson(json['remote'] as Map<String, dynamic>),
       child: StoryChildSnapshot.fromJson(
         (json['child'] as Map<String, dynamic>?) ?? <String, dynamic>{},
       ),
@@ -636,7 +529,6 @@ class StorySessionModel {
     StoryMode? currentMode,
     int? currentStepIndex,
     StoryGameStateModel? game,
-    RemoteRoomModel? remote,
     List<StoryCharacterModel>? characters,
     List<StoryStepModel>? steps,
   }) {
@@ -665,7 +557,6 @@ class StorySessionModel {
       currentStepIndex: currentStepIndex ?? this.currentStepIndex,
       game: game ?? this.game,
       ageSnapshotYears: ageSnapshotYears,
-      remote: remote ?? this.remote,
       child: child,
       characters: characters ?? this.characters,
       steps: steps ?? this.steps,
@@ -716,7 +607,6 @@ class StoryListItem {
     required this.currentStepIndex,
     required this.stepsCount,
     required this.updatedAt,
-    this.remote,
   });
 
   final String id;
@@ -735,7 +625,6 @@ class StoryListItem {
   final int currentStepIndex;
   final int stepsCount;
   final DateTime updatedAt;
-  final RemoteRoomModel? remote;
 
   factory StoryListItem.fromJson(Map<String, dynamic> json) {
     return StoryListItem(
@@ -759,9 +648,6 @@ class StoryListItem {
       updatedAt:
           DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
-      remote: (json['remote'] as Map<String, dynamic>?) == null
-          ? null
-          : RemoteRoomModel.fromJson(json['remote'] as Map<String, dynamic>),
     );
   }
 }
@@ -903,185 +789,6 @@ class VirtueChildSummaryResult {
           .toList(),
       stories: ((json['stories'] as List<dynamic>?) ?? <dynamic>[])
           .whereType<Map<String, dynamic>>()
-          .toList(),
-    );
-  }
-}
-
-class RemoteOpenResult {
-  const RemoteOpenResult({
-    required this.joinCode,
-    required this.joinLink,
-    required this.participantToken,
-    required this.signalingWsUrl,
-    required this.rtcConfig,
-    required this.expiresAt,
-    required this.remoteRoom,
-  });
-
-  final String joinCode;
-  final String joinLink;
-  final String participantToken;
-  final String signalingWsUrl;
-  final Map<String, dynamic> rtcConfig;
-  final DateTime expiresAt;
-  final RemoteRoomModel remoteRoom;
-
-  factory RemoteOpenResult.fromJson(Map<String, dynamic> json) {
-    return RemoteOpenResult(
-      joinCode: _requiredString(json, 'joinCode'),
-      joinLink: _requiredString(json, 'joinLink'),
-      participantToken: _requiredString(json, 'hostParticipantToken'),
-      signalingWsUrl: _requiredString(json, 'signalingWsUrl'),
-      rtcConfig:
-          (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-      expiresAt: _requiredDateTime(json, 'expiresAt'),
-      remoteRoom: RemoteRoomModel.fromJson(
-        (json['remoteRoom'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-      ),
-    );
-  }
-}
-
-class RemoteRoomStateResult {
-  const RemoteRoomStateResult({
-    required this.remoteRoom,
-    required this.storySnapshot,
-    required this.participantToken,
-    required this.signalingWsUrl,
-    required this.rtcConfig,
-  });
-
-  final RemoteRoomModel remoteRoom;
-  final StorySessionModel storySnapshot;
-  final String participantToken;
-  final String signalingWsUrl;
-  final Map<String, dynamic> rtcConfig;
-
-  factory RemoteRoomStateResult.fromJson(Map<String, dynamic> json) {
-    return RemoteRoomStateResult(
-      remoteRoom: RemoteRoomModel.fromJson(
-        (json['remoteRoom'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-      ),
-      storySnapshot: StorySessionModel.fromJson(
-        (json['storySnapshot'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-      ),
-      participantToken: _requiredString(json, 'hostParticipantToken'),
-      signalingWsUrl: _requiredString(json, 'signalingWsUrl'),
-      rtcConfig:
-          (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-    );
-  }
-}
-
-class RemoteJoinResult {
-  const RemoteJoinResult({
-    required this.participantToken,
-    required this.remoteRoom,
-    required this.storySnapshot,
-    required this.signalingWsUrl,
-    required this.rtcConfig,
-  });
-
-  final String participantToken;
-  final RemoteRoomModel remoteRoom;
-  final StorySessionModel storySnapshot;
-  final String signalingWsUrl;
-  final Map<String, dynamic> rtcConfig;
-
-  factory RemoteJoinResult.fromJson(Map<String, dynamic> json) {
-    return RemoteJoinResult(
-      participantToken: _requiredString(json, 'guestParticipantToken'),
-      remoteRoom: RemoteRoomModel.fromJson(
-        (json['remoteRoom'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-      ),
-      storySnapshot: StorySessionModel.fromJson(
-        (json['storySnapshot'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-      ),
-      signalingWsUrl: _requiredString(json, 'signalingWsUrl'),
-      rtcConfig:
-          (json['rtcConfig'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-    );
-  }
-}
-
-class RemoteJoinBundle {
-  const RemoteJoinBundle({
-    required this.participantToken,
-    required this.remoteRoom,
-    required this.storySnapshot,
-    required this.signalingWsUrl,
-    required this.rtcConfig,
-    required this.isGuest,
-    this.joinCode,
-    this.joinLink,
-  });
-
-  final String participantToken;
-  final RemoteRoomModel remoteRoom;
-  final StorySessionModel storySnapshot;
-  final String signalingWsUrl;
-  final Map<String, dynamic> rtcConfig;
-  final bool isGuest;
-  final String? joinCode;
-  final String? joinLink;
-}
-
-class StoryInteractionModel {
-  const StoryInteractionModel({
-    required this.id,
-    required this.type,
-    required this.authorRole,
-    required this.authorDisplayName,
-    this.messageText,
-    this.emoji,
-    required this.createdAt,
-  });
-
-  final String id;
-  final String type;
-  final RemoteParticipantRole authorRole;
-  final String authorDisplayName;
-  final String? messageText;
-  final String? emoji;
-  final DateTime createdAt;
-
-  factory StoryInteractionModel.fromJson(Map<String, dynamic> json) {
-    return StoryInteractionModel(
-      id: (json['id'] as String?) ?? '',
-      type: (json['type'] as String?) ?? 'CHAT',
-      authorRole: remoteParticipantRoleFromApi(json['authorRole'] as String?),
-      authorDisplayName: (json['authorDisplayName'] as String?) ?? '-',
-      messageText: json['messageText'] as String?,
-      emoji: json['emoji'] as String?,
-      createdAt: _requiredDateTime(json, 'createdAt'),
-    );
-  }
-}
-
-class StoryInteractionsResult {
-  const StoryInteractionsResult({
-    required this.storyId,
-    required this.storyTitle,
-    required this.remoteRoomId,
-    required this.interactions,
-  });
-
-  final String storyId;
-  final String storyTitle;
-  final String? remoteRoomId;
-  final List<StoryInteractionModel> interactions;
-
-  factory StoryInteractionsResult.fromJson(Map<String, dynamic> json) {
-    final story =
-        (json['story'] as Map<String, dynamic>?) ?? <String, dynamic>{};
-    return StoryInteractionsResult(
-      storyId: (story['id'] as String?) ?? '',
-      storyTitle: (story['title'] as String?) ?? '',
-      remoteRoomId: story['remoteRoomId'] as String?,
-      interactions: ((json['interactions'] as List<dynamic>?) ?? <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .map(StoryInteractionModel.fromJson)
           .toList(),
     );
   }

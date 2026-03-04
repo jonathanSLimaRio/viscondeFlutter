@@ -36,11 +36,6 @@ class SessionPersonaScreen extends ConsumerWidget {
       return AppRoute.home;
     }
 
-    if (presenceMode == SessionPresenceMode.together &&
-        AppRoute.isAnyRemoteRoute(path)) {
-      return AppRoute.home;
-    }
-
     return candidate;
   }
 

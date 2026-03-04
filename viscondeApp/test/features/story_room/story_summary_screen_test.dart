@@ -119,7 +119,6 @@ class _SummaryStoryApi extends StoryApi {
       currentMode: _session.currentMode,
       currentStepIndex: 0,
       ageSnapshotYears: _session.ageSnapshotYears,
-      remote: null,
       child: _session.child,
       characters: _session.characters,
       steps: const [],
@@ -232,7 +231,6 @@ StorySessionModel _buildSession({
     currentMode: StoryMode.parentNarrator,
     currentStepIndex: currentStepIndex,
     ageSnapshotYears: 7,
-    remote: null,
     child: StoryChildSnapshot(
       id: 'child-1',
       name: 'Lucas',

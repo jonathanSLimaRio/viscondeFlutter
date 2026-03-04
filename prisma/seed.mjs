@@ -1,6 +1,5 @@
 import "dotenv/config";
 
-import { createHash } from "node:crypto";
 import { hash } from "@node-rs/argon2";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
@@ -977,28 +976,6 @@ const qaBookProjectConfig = {
   includedStoryKeys: ["misterio_ep1", "viagem_espaco_ep1", "viagem_espaco_ep2"],
 };
 
-const qaRemoteRoomConfig = {
-  storyKey: "castelo_ep1",
-  joinCode: "SEED42",
-  callMode: "AUDIO",
-  interactions: [
-    {
-      key: "chat_host_intro",
-      type: "CHAT",
-      authorRole: "HOST_PARENT",
-      messageText: "Sala pronta para testar o modo remoto.",
-      emoji: null,
-    },
-    {
-      key: "reaction_guest_star",
-      type: "REACTION",
-      authorRole: "GUEST_CHILD",
-      messageText: null,
-      emoji: "star",
-    },
-  ],
-};
-
 const qaWalletBaselineByAccount = {
   admin: { coins: 180, stars: 4 },
   demo: { coins: 140, stars: 3 },
@@ -1113,10 +1090,6 @@ function resolveStepGameplayMeta(step) {
     gameActionKey,
     gameActionLabel,
   };
-}
-
-function hashJoinCode(value) {
-  return createHash("sha256").update(value).digest("hex");
 }
 
 function toIsoDateKey(parts) {
@@ -2078,181 +2051,6 @@ async function ensureQaBookProjectsData(usersByKey) {
   };
 }
 
-async function ensureQaRemoteRoomData(usersByKey) {
-  let roomsCount = 0;
-  let participantsCount = 0;
-  let interactionsCount = 0;
-
-  for (const account of demoUsersCatalog) {
-    const accountState = usersByKey.get(account.key);
-    if (!accountState) {
-      continue;
-    }
-
-    const storyId = seedId(accountState.key, "story", qaRemoteRoomConfig.storyKey);
-    const room = await prisma.remoteStoryRoom.upsert({
-      where: { storyId },
-      update: {
-        ownerUserId: accountState.user.id,
-        status: "OPEN",
-        joinCodeHash: hashJoinCode(qaRemoteRoomConfig.joinCode),
-        joinCodeExpiresAt: new Date("2099-12-31T23:59:59.000Z"),
-        joinCodeConsumedAt: null,
-        callMode: qaRemoteRoomConfig.callMode,
-        maxParticipants: 2,
-        closedAt: null,
-      },
-      create: {
-        id: seedId(accountState.key, "remote_room", qaRemoteRoomConfig.storyKey),
-        storyId,
-        ownerUserId: accountState.user.id,
-        status: "OPEN",
-        joinCodeHash: hashJoinCode(qaRemoteRoomConfig.joinCode),
-        joinCodeExpiresAt: new Date("2099-12-31T23:59:59.000Z"),
-        joinCodeConsumedAt: null,
-        callMode: qaRemoteRoomConfig.callMode,
-        maxParticipants: 2,
-        closedAt: null,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    await prisma.story.updateMany({
-      where: {
-        id: storyId,
-        status: "DRAFT",
-      },
-      data: {
-        sessionKind: "REMOTE",
-      },
-    });
-
-    const hostParticipant = await prisma.remoteStoryParticipant.upsert({
-      where: {
-        remoteRoomId_role: {
-          remoteRoomId: room.id,
-          role: "HOST_PARENT",
-        },
-      },
-      update: {
-        displayName: accountState.user.name ?? "Responsavel",
-        status: "CONNECTED",
-        lastSeenAt: new Date("2026-03-01T12:00:00.000Z"),
-        leftAt: null,
-        deviceInfo: "seed-host",
-      },
-      create: {
-        id: seedId(accountState.key, "remote_participant", "host"),
-        remoteRoomId: room.id,
-        role: "HOST_PARENT",
-        displayName: accountState.user.name ?? "Responsavel",
-        status: "CONNECTED",
-        lastSeenAt: new Date("2026-03-01T12:00:00.000Z"),
-        joinedAt: new Date("2026-03-01T11:58:00.000Z"),
-        leftAt: null,
-        deviceInfo: "seed-host",
-      },
-      select: {
-        id: true,
-        displayName: true,
-      },
-    });
-
-    const guestChild = accountState.childrenByKey.get("sofia");
-    const guestParticipant = await prisma.remoteStoryParticipant.upsert({
-      where: {
-        remoteRoomId_role: {
-          remoteRoomId: room.id,
-          role: "GUEST_CHILD",
-        },
-      },
-      update: {
-        displayName: guestChild?.name ?? "Convidado",
-        status: "CONNECTED",
-        lastSeenAt: new Date("2026-03-01T12:01:00.000Z"),
-        leftAt: null,
-        deviceInfo: "seed-guest-tablet",
-      },
-      create: {
-        id: seedId(accountState.key, "remote_participant", "guest"),
-        remoteRoomId: room.id,
-        role: "GUEST_CHILD",
-        displayName: guestChild?.name ?? "Convidado",
-        status: "CONNECTED",
-        lastSeenAt: new Date("2026-03-01T12:01:00.000Z"),
-        joinedAt: new Date("2026-03-01T11:59:00.000Z"),
-        leftAt: null,
-        deviceInfo: "seed-guest-tablet",
-      },
-      select: {
-        id: true,
-        displayName: true,
-      },
-    });
-
-    const interactionIds = [];
-    for (const [index, interaction] of qaRemoteRoomConfig.interactions.entries()) {
-      const interactionId = seedId(accountState.key, "remote_interaction", interaction.key);
-      interactionIds.push(interactionId);
-
-      const isHost = interaction.authorRole === "HOST_PARENT";
-      await prisma.storyInteraction.upsert({
-        where: { id: interactionId },
-        update: {
-          storyId,
-          remoteRoomId: room.id,
-          type: interaction.type,
-          authorRole: interaction.authorRole,
-          authorUserId: isHost ? accountState.user.id : null,
-          authorParticipantId: isHost ? hostParticipant.id : guestParticipant.id,
-          authorDisplayName: isHost
-            ? hostParticipant.displayName
-            : guestParticipant.displayName,
-          messageText: interaction.messageText,
-          emoji: interaction.emoji,
-        },
-        create: {
-          id: interactionId,
-          storyId,
-          remoteRoomId: room.id,
-          type: interaction.type,
-          authorRole: interaction.authorRole,
-          authorUserId: isHost ? accountState.user.id : null,
-          authorParticipantId: isHost ? hostParticipant.id : guestParticipant.id,
-          authorDisplayName: isHost
-            ? hostParticipant.displayName
-            : guestParticipant.displayName,
-          messageText: interaction.messageText,
-          emoji: interaction.emoji,
-          createdAt: new Date(`2026-03-01T12:0${index}:00.000Z`),
-        },
-      });
-    }
-
-    await prisma.storyInteraction.deleteMany({
-      where: {
-        remoteRoomId: room.id,
-        id: {
-          startsWith: `seed_${accountState.key}_remote_interaction_`,
-          notIn: interactionIds,
-        },
-      },
-    });
-
-    roomsCount += 1;
-    participantsCount += 2;
-    interactionsCount += interactionIds.length;
-  }
-
-  return {
-    roomsCount,
-    participantsCount,
-    interactionsCount,
-  };
-}
-
 async function ensureQaGamificationBaselineData(coreRefs, usersByKey) {
   let walletsCount = 0;
   let streaksCount = 0;
@@ -2555,7 +2353,6 @@ async function main() {
   const parallelInventorySummary = await ensureQaParallelInventoryData(usersByKey);
   const memoriesSummary = await ensureQaStoryMemoriesData(usersByKey);
   const bookProjectsSummary = await ensureQaBookProjectsData(usersByKey);
-  const remoteRoomSummary = await ensureQaRemoteRoomData(usersByKey);
   const gamificationBaselineSummary = await ensureQaGamificationBaselineData(
     coreRefs,
     usersByKey
@@ -2578,9 +2375,6 @@ async function main() {
   );
   console.log(`Memorias seedadas: ${memoriesSummary.memoriesCount}`);
   console.log(`Book projects READY seedados: ${bookProjectsSummary.projectsCount}`);
-  console.log(`Salas remotas QA seedadas: ${remoteRoomSummary.roomsCount}`);
-  console.log(`Participantes remotos QA seedados: ${remoteRoomSummary.participantsCount}`);
-  console.log(`Interacoes remotas QA seedadas: ${remoteRoomSummary.interactionsCount}`);
   console.log(`Wallet baseline QA aplicado: ${gamificationBaselineSummary.walletsCount}`);
   console.log(`Streak baseline QA aplicado: ${gamificationBaselineSummary.streaksCount}`);
   console.log(`Missoes baseline QA aplicadas: ${gamificationBaselineSummary.missionsCount}`);

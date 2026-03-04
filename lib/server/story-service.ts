@@ -1,7 +1,5 @@
 import type {
   AgeBand,
-  CallMode,
-  RemoteRoomStatus,
   StoryGameMode,
   StoryMode,
   StorySessionKind,
@@ -20,10 +18,6 @@ import { getChildInventory, getLatestStoryMemory } from "@/lib/server/inventory-
 import { assertSafeContext } from "@/lib/server/story-safety";
 import { resolveVirtueForStoryCreation } from "@/lib/server/virtue-service";
 import { selectVirtueTemplateOrThrow } from "@/lib/server/virtue-template-service";
-import {
-  publishStoryModeChangedEvent,
-  publishStoryStepCreatedEvent,
-} from "@/lib/server/remote-realtime-events";
 
 const MAX_STORY_STEPS = 12;
 const MIN_STORY_STEPS_TO_PUBLISH = 3;
@@ -235,31 +229,6 @@ export type StorySessionInclude = {
       stepIndex: "asc";
     };
   };
-  remoteRoom: {
-    select: {
-      id: true;
-      status: true;
-      callMode: true;
-      maxParticipants: true;
-      joinCodeExpiresAt: true;
-      joinCodeConsumedAt: true;
-      closedAt: true;
-      participants: {
-        select: {
-          id: true;
-          role: true;
-          displayName: true;
-          status: true;
-          lastSeenAt: true;
-          joinedAt: true;
-          leftAt: true;
-        };
-        orderBy: {
-          joinedAt: "asc";
-        };
-      };
-    };
-  };
 };
 
 export const storySessionInclude: StorySessionInclude = {
@@ -289,31 +258,6 @@ export const storySessionInclude: StorySessionInclude = {
   steps: {
     orderBy: {
       stepIndex: "asc",
-    },
-  },
-  remoteRoom: {
-    select: {
-      id: true,
-      status: true,
-      callMode: true,
-      maxParticipants: true,
-      joinCodeExpiresAt: true,
-      joinCodeConsumedAt: true,
-      closedAt: true,
-      participants: {
-        select: {
-          id: true,
-          role: true,
-          displayName: true,
-          status: true,
-          lastSeenAt: true,
-          joinedAt: true,
-          leftAt: true,
-        },
-        orderBy: {
-          joinedAt: "asc",
-        },
-      },
     },
   },
 };
@@ -489,24 +433,6 @@ export function toStorySessionDTO(story: {
     autoSavedAt: Date;
     createdAt: Date;
   }>;
-  remoteRoom: {
-    id: string;
-    status: RemoteRoomStatus;
-    callMode: CallMode;
-    maxParticipants: number;
-    joinCodeExpiresAt: Date;
-    joinCodeConsumedAt: Date | null;
-    closedAt: Date | null;
-    participants: Array<{
-      id: string;
-      role: string;
-      displayName: string;
-      status: string;
-      lastSeenAt: Date;
-      joinedAt: Date;
-      leftAt: Date | null;
-    }>;
-  } | null;
 }) {
   const gameMap = normalizeGameMapJson(story.gameMapJson, story.gameSeed);
 
@@ -559,28 +485,6 @@ export function toStorySessionDTO(story: {
       createdAt: character.createdAt,
     })),
     steps: story.steps.map(toStoryStepDTO),
-    remote: story.remoteRoom
-      ? {
-          id: story.remoteRoom.id,
-          status: story.remoteRoom.status,
-          callMode: story.remoteRoom.callMode,
-          maxParticipants: story.remoteRoom.maxParticipants,
-          joinCodeExpiresAt: story.remoteRoom.joinCodeExpiresAt,
-          joinCodeConsumedAt: story.remoteRoom.joinCodeConsumedAt,
-          closedAt: story.remoteRoom.closedAt,
-          isOpen:
-            story.remoteRoom.status === "OPEN" || story.remoteRoom.status === "ACTIVE",
-          participants: story.remoteRoom.participants.map((participant) => ({
-            id: participant.id,
-            role: participant.role,
-            displayName: participant.displayName,
-            status: participant.status,
-            lastSeenAt: participant.lastSeenAt,
-            joinedAt: participant.joinedAt,
-            leftAt: participant.leftAt,
-          })),
-        }
-      : null,
   };
 }
 
@@ -1079,13 +983,7 @@ export async function updateStoryMode(userId: string, storyId: string, mode: Sto
     },
   });
 
-  const updated = await getStorySession(userId, storyId);
-  await publishStoryModeChangedEvent({
-    storyId,
-    mode,
-  });
-
-  return updated;
+  return getStorySession(userId, storyId);
 }
 
 export async function createStoryStep(
@@ -1203,23 +1101,14 @@ export async function createStoryStep(
     },
   });
 
-  if (existingAtIndex) {
-    if (existingAtIndex.localEventId === input.localEventId) {
-      const result = {
-        idempotent: true,
-        step: toStoryStepDTO(existingAtIndex),
-        story: await getStorySession(userId, storyId),
-      };
-
-      await publishStoryStepCreatedEvent({
-        storyId,
-        step: result.step,
-        story: result.story,
-        idempotent: result.idempotent,
-      });
-
-      return result;
-    }
+    if (existingAtIndex) {
+      if (existingAtIndex.localEventId === input.localEventId) {
+        return {
+          idempotent: true,
+          step: toStoryStepDTO(existingAtIndex),
+          story: await getStorySession(userId, storyId),
+        };
+      }
 
     throw new ApiError(
       "Etapa ja registrada com um evento diferente.",
@@ -1354,20 +1243,11 @@ export async function createStoryStep(
     return step;
   });
 
-  const result = {
+  return {
     idempotent: false,
     step: toStoryStepDTO(created),
     story: await getStorySession(userId, storyId),
   };
-
-  await publishStoryStepCreatedEvent({
-    storyId,
-    step: result.step,
-    story: result.story,
-    idempotent: result.idempotent,
-  });
-
-  return result;
 }
 
 export async function requestStoryIdeas(
@@ -1707,13 +1587,6 @@ export async function listStories(
           name: true,
         },
       },
-      remoteRoom: {
-        select: {
-          id: true,
-          status: true,
-          callMode: true,
-        },
-      },
       _count: {
         select: {
           steps: true,
@@ -1745,7 +1618,6 @@ export async function listStories(
     dilemmaText: story.dilemmaText,
     endQuestionText: story.endQuestionText,
     virtue: story.virtue,
-    remote: story.remoteRoom,
     status: story.status,
     currentMode: story.currentMode,
     currentStepIndex: story.currentStepIndex,

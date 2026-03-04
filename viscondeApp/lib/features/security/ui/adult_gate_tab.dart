@@ -6,9 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
+import '../../auth/auth_controller.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
-import '../../auth/auth_controller.dart';
 import '../parental_gate_controller.dart';
 
 class AdultGateTab extends ConsumerStatefulWidget {
@@ -229,7 +229,6 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authControllerProvider);
     final gate = ref.watch(parentalGateControllerProvider);
     final isUnlocked = gate.isUnlocked;
 
@@ -335,27 +334,11 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
           label: const Text('Relatório de virtudes'),
         ),
         const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () => context.push(AppRoute.adultInteractions),
-          icon: const Icon(Icons.forum_outlined),
-          label: const Text('Interações remotas'),
-        ),
-        const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: () => context.push(AppRoute.adultVoices),
           icon: const Icon(Icons.record_voice_over_outlined),
           label: const Text('Voz inesquecível'),
         ),
-        if (auth.user?.isAdmin ?? false) ...[
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: isUnlocked
-                ? () => context.push(AppRoute.adminHub)
-                : null,
-            icon: const Icon(Icons.admin_panel_settings_outlined),
-            label: const Text('Administração'),
-          ),
-        ],
       ],
     );
   }

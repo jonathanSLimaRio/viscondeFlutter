@@ -9,18 +9,11 @@ class ChildChoicePanel extends StatelessWidget {
     required this.options,
     required this.onSelect,
     this.enabled = true,
-    this.votesByOption = const {},
-    this.participants = const [],
-    this.selectedOptionId,
   });
 
   final List<StoryChoiceOption> options;
   final ValueChanged<StoryChoiceOption> onSelect;
   final bool enabled;
-  final Map<String, List<String>>
-  votesByOption; // optionId -> List of participantIds
-  final List<RemoteParticipantModel> participants;
-  final String? selectedOptionId;
 
   @override
   Widget build(BuildContext context) {
@@ -36,12 +29,6 @@ class ChildChoicePanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: options.map((option) {
-            final isSelected = selectedOptionId == option.id;
-            final votersIds = votesByOption[option.id] ?? [];
-            final voters = participants
-                .where((p) => votersIds.contains(p.id))
-                .toList();
-
             return Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -52,10 +39,8 @@ class ChildChoicePanel extends StatelessWidget {
                       color: const Color(0xFFFDE8C4),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSelected
-                            ? Colors.green
-                            : const Color(0xFFD4B483),
-                        width: isSelected ? 3 : 1,
+                        color: const Color(0xFFD4B483),
+                        width: 1,
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -97,33 +82,6 @@ class ChildChoicePanel extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (voters.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 4,
-                              children: voters
-                                  .map(
-                                    (v) => CircleAvatar(
-                                      radius: 10,
-                                      backgroundColor: Colors.blue.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      child: Text(
-                                        v.displayName
-                                            .substring(0, 1)
-                                            .toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ),
                       ],
                     ),
                   ),

@@ -32,36 +32,6 @@ enum StoryGameMode {
   TRAIL_LINEAR
 }
 
-enum RemoteRoomStatus {
-  OPEN
-  ACTIVE
-  CLOSED
-  EXPIRED
-}
-
-enum RemoteParticipantRole {
-  HOST_PARENT
-  GUEST_CHILD
-}
-
-enum RemoteParticipantStatus {
-  CONNECTED
-  DISCONNECTED
-  LEFT
-}
-
-enum CallMode {
-  NONE
-  AUDIO
-  VIDEO
-  COOP
-}
-
-enum InteractionType {
-  CHAT
-  REACTION
-}
-
 enum AgeBand {
   AGE_4_5
   AGE_6_8
@@ -169,14 +139,6 @@ enum BookProjectStatus {
   FAILED
 }
 
-enum PrintOrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELED
-}
-
 enum RarityLevel {
   COMMON
   RARE
@@ -251,8 +213,6 @@ model User {
   gamificationEvents  GamificationEvent[]
   passwordResetTokens PasswordResetToken[]
   auditEvents         AuditEvent[]
-  remoteRoomsOwned    RemoteStoryRoom[]
-  storyInteractions   StoryInteraction[]
   createdStoryTemplates StoryTemplate[] @relation("StoryTemplateCreatedBy")
   updatedStoryTemplates StoryTemplate[] @relation("StoryTemplateUpdatedBy")
   createdModerationTerms ModerationTerm[] @relation("ModerationTermCreatedBy")
@@ -577,9 +537,6 @@ model Story {
   characters StoryCharacter[]
   steps      StoryStep[]
   ideaLogs   StoryIdeaLog[]
-  remoteRoom RemoteStoryRoom?
-  interactions StoryInteraction[]
-  votes StoryVote[]
   narrationJobs NarrationJob[]
   artStyle            ArtStyle?        @relation(fields: [artStyleId], references: [id], onDelete: SetNull)
   illustrations       StoryIllustration[]
@@ -751,48 +708,6 @@ model ModerationEvent {
   @@index([userId, createdAt])
 }
 
-model RemoteStoryRoom {
-  id                 String            @id @default(cuid())
-  storyId            String            @unique
-  ownerUserId        String
-  status             RemoteRoomStatus  @default(OPEN)
-  joinCodeHash       String
-  joinCodeExpiresAt  DateTime
-  joinCodeConsumedAt DateTime?
-  callMode           CallMode          @default(AUDIO)
-  maxParticipants    Int               @default(2)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  closedAt           DateTime?
-
-  story        Story                   @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  owner        User                    @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-  participants RemoteStoryParticipant[]
-  interactions StoryInteraction[]
-
-  @@index([ownerUserId, status])
-  @@index([joinCodeExpiresAt])
-}
-
-model RemoteStoryParticipant {
-  id             String                  @id @default(cuid())
-  remoteRoomId   String
-  role           RemoteParticipantRole
-  displayName    String
-  status         RemoteParticipantStatus @default(CONNECTED)
-  lastSeenAt     DateTime                @default(now())
-  joinedAt       DateTime                @default(now())
-  leftAt         DateTime?
-  deviceInfo     String?
-
-  remoteRoom    RemoteStoryRoom          @relation(fields: [remoteRoomId], references: [id], onDelete: Cascade)
-  interactions  StoryInteraction[]
-  votes         StoryVote[]
-
-  @@unique([remoteRoomId, role])
-  @@index([remoteRoomId, status])
-}
-
 model Virtue {
   id               String   @id @default(cuid())
   slug             String   @unique
@@ -883,44 +798,6 @@ model StoryIdeaLog {
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
 
   @@index([storyId, createdAt])
-}
-
-model StoryVote {
-  id             String                 @id @default(cuid())
-  storyId        String
-  stepIndex      Int
-  participantId  String
-  optionId       String
-  optionLabel    String
-  createdAt      DateTime               @default(now())
-
-  story       Story                  @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  participant RemoteStoryParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-
-  @@unique([storyId, stepIndex, participantId])
-  @@index([storyId, stepIndex])
-}
-
-model StoryInteraction {
-  id                 String                 @id @default(cuid())
-  storyId            String
-  remoteRoomId       String
-  type               InteractionType
-  authorRole         RemoteParticipantRole
-  authorUserId       String?
-  authorParticipantId String?
-  authorDisplayName  String
-  messageText        String?
-  emoji              String?
-  createdAt          DateTime               @default(now())
-
-  story             Story                   @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  remoteRoom        RemoteStoryRoom         @relation(fields: [remoteRoomId], references: [id], onDelete: Cascade)
-  authorUser        User?                   @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
-  authorParticipant RemoteStoryParticipant? @relation(fields: [authorParticipantId], references: [id], onDelete: SetNull)
-
-  @@index([storyId, createdAt])
-  @@index([remoteRoomId, createdAt])
 }
 
 model PasswordResetToken {
@@ -1126,22 +1003,6 @@ model BookProject {
 
   user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   childProfile   ChildProfile      @relation(fields: [childProfileId], references: [id], onDelete: Cascade)
-  printOrders    PrintOrder[]
 
   @@unique([childProfileId, month])
-}
-
-model PrintOrder {
-  id              String            @id @default(cuid())
-  bookProjectId   String
-  provider        String?
-  status          PrintOrderStatus  @default(PENDING)
-  trackingCode    String?
-  addressSnapshot Json?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  bookProject     BookProject       @relation(fields: [bookProjectId], references: [id], onDelete: Cascade)
-
-  @@index([bookProjectId, status])
 }

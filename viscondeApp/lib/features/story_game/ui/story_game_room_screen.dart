@@ -9,10 +9,8 @@ import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/ui/app_feedback.dart';
 import '../../../shared/ux_analytics.dart';
-import '../../auth/session_persona_controller.dart';
 import '../../story_room/models/story_models.dart';
 import '../../story_room/story_room_controller.dart';
-import '../../story_room/ui/story_room_screen.dart';
 import '../flame/story_trail_game.dart';
 import '../story_game_controller.dart';
 
@@ -32,7 +30,6 @@ class _StoryGameRoomScreenState extends ConsumerState<StoryGameRoomScreen> {
       TextEditingController();
   int _lastRenderedSteps = 0;
   bool _openedTracked = false;
-  bool _fallbackTracked = false;
 
   @override
   void initState() {
@@ -157,9 +154,6 @@ class _StoryGameRoomScreenState extends ConsumerState<StoryGameRoomScreen> {
 
   void _openAdvancedTools(StorySessionModel story) {
     final roomController = ref.read(storyRoomControllerProvider.notifier);
-    final isTogetherMode = ref
-        .read(sessionPersonaControllerProvider)
-        .isTogetherMode;
     showModalBottomSheet<void>(
       context: context,
       builder: (context) {
@@ -174,25 +168,6 @@ class _StoryGameRoomScreenState extends ConsumerState<StoryGameRoomScreen> {
                   Navigator.of(context).pop();
                   roomController.syncPending();
                 },
-              ),
-              ListTile(
-                leading: const Icon(Icons.video_call_outlined),
-                title: Text(
-                  isTogetherMode
-                      ? 'Sala remota indisponível'
-                      : 'Abrir sala remota (fallback clássico)',
-                ),
-                subtitle: isTogetherMode
-                    ? const Text(
-                        'Modo Pai e Filho no mesmo celular desativa o WebRTC.',
-                      )
-                    : null,
-                onTap: isTogetherMode
-                    ? null
-                    : () {
-                        Navigator.of(context).pop();
-                        context.push(AppRoute.storyRemote(story.id));
-                      },
               ),
             ],
           ),
@@ -216,23 +191,6 @@ class _StoryGameRoomScreenState extends ConsumerState<StoryGameRoomScreen> {
         appBar: AppBar(title: const Text('Sala Game')),
         body: const Center(child: Text('Sessão de história não encontrada.')),
       );
-    }
-
-    if ((story.remote?.isOpen ?? false) ||
-        story.sessionKind == StorySessionKind.remote) {
-      if (!_fallbackTracked) {
-        _fallbackTracked = true;
-        UxAnalytics.log(
-          'story_game_fallback_classic',
-          params: <String, Object?>{
-            'source': 'story_game_room_screen',
-            'flow': 'game_room',
-            'story_id': story.id,
-            'reason': 'remote_room',
-          },
-        );
-      }
-      return StoryRoomScreen(storyId: widget.storyId);
     }
 
     if (!_openedTracked) {
