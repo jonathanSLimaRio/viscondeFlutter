@@ -7,6 +7,7 @@ import 'package:visconde_app/app/router.dart';
 import 'package:visconde_app/core/models/child_profile.dart';
 import 'package:visconde_app/features/story_creation/create_story_wizard_draft_store.dart';
 import 'package:visconde_app/features/story_creation/ui/story_game_ready_screen.dart';
+import 'package:visconde_app/features/gamification/game_adventure_session_controller.dart';
 import 'package:visconde_app/features/story_room/illustration_api.dart';
 import 'package:visconde_app/features/story_room/models/illustration_models.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
@@ -97,6 +98,8 @@ class WizardStoryApi extends StoryApi {
     required this.virtues,
     required this.templates,
     this.collections = const <StoryVaultCollectionItem>[],
+    this.failUpdateSetup = false,
+    this.failGetSession = false,
   }) : super(Dio());
 
   StorySessionModel session;
@@ -104,6 +107,8 @@ class WizardStoryApi extends StoryApi {
 
   final List<ContentStoryTemplateModel> templates;
   final List<StoryVaultCollectionItem> collections;
+  final bool failUpdateSetup;
+  final bool failGetSession;
 
   int createSessionCalls = 0;
   int updateSetupCalls = 0;
@@ -142,6 +147,17 @@ class WizardStoryApi extends StoryApi {
     String accessToken,
     String storyId,
   ) async {
+    if (failGetSession) {
+      throw DioException(
+        requestOptions: RequestOptions(path: 'story-sessions/$storyId'),
+        response: Response<dynamic>(
+          requestOptions: RequestOptions(path: 'story-sessions/$storyId'),
+          statusCode: 500,
+          data: {'message': 'Falha ao carregar sessão.'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+    }
     return session;
   }
 
@@ -203,6 +219,17 @@ class WizardStoryApi extends StoryApi {
     bool applyAutoVirtue = false,
   }) async {
     updateSetupCalls += 1;
+    if (failUpdateSetup) {
+      throw DioException(
+        requestOptions: RequestOptions(path: 'story-sessions/$storyId'),
+        response: Response<dynamic>(
+          requestOptions: RequestOptions(path: 'story-sessions/$storyId'),
+          statusCode: 500,
+          data: {'message': 'Falha ao atualizar a história.'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+    }
 
     final nextCharacters = characters
         .map(
@@ -693,4 +720,408 @@ void main() {
     final saved = await draftStore.read(user.id);
     expect(saved, isNull);
   });
+
+  testWidgets(
+    'rascunho existente atualiza setup antes de redirecionar para Game',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+
+      final user = buildTestUser();
+      final draftStore = InMemoryCreateStoryDraftStore();
+      await draftStore.save(
+        CreateStoryWizardDraft(
+          userId: user.id,
+          storyId: 'story-1',
+          currentStep: 0,
+          selectedChildId: 'child-1',
+          selectedVirtueId: 'virtue-1',
+          selectedTemplateId: 'tpl-1',
+          selectedArtStyleId: 'style-1',
+          mode: StoryMode.parentNarrator,
+          titleDraft: 'Aventura de Lia',
+          theme: 'Floresta Lunar',
+          scenario: 'Bosque encantado',
+          objective: 'Aprender algo novo',
+          characters: 'Lia',
+          updatedAt: DateTime(2026, 3, 4, 12, 0),
+        ),
+      );
+
+      final children = <ChildProfile>[
+        ChildProfile(
+          id: 'child-1',
+          name: 'Lia',
+          birthDate: DateTime(2018, 1, 1),
+          favoriteThemes: const <String>['Aventura'],
+          isArchived: false,
+        ),
+      ];
+      final virtues = <VirtueModel>[
+        const VirtueModel(
+          id: 'virtue-1',
+          slug: 'coragem',
+          name: 'Coragem',
+          shortDescription: 'Seguir em frente',
+          iconKey: 'courage',
+          sortOrder: 1,
+        ),
+      ];
+      final templates = <ContentStoryTemplateModel>[
+        const ContentStoryTemplateModel(
+          id: 'tpl-1',
+          slug: 'template-inicial',
+          title: 'Template Inicial',
+          description: 'template',
+          ageBand: AgeBand.age6_8,
+          version: 1,
+          defaultScenario: 'Bosque encantado',
+          defaultObjective: 'Aprender algo novo com coragem e gentileza.',
+          theme: StoryNamedRef(
+            id: 'theme-1',
+            slug: 'aventura',
+            name: 'Aventura',
+          ),
+          virtue: StoryNamedRef(
+            id: 'virtue-1',
+            slug: 'coragem',
+            name: 'Coragem',
+          ),
+          nodesCount: 3,
+          charactersCount: 2,
+        ),
+      ];
+      final storyApi = WizardStoryApi(
+        virtues: virtues,
+        session: _buildSession(),
+        templates: templates,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          ...authOverrides(user: user, authenticated: true),
+          childrenApiProvider.overrideWith(
+            (ref) => FakeChildrenApi(children: children),
+          ),
+          storyApiProvider.overrideWith((ref) => storyApi),
+          illustrationApiProvider.overrideWith(
+            (ref) => FakeIllustrationApi(const <ArtStyleModel>[
+              ArtStyleModel(
+                id: 'style-1',
+                name: 'Aquarela',
+                promptTemplate: 'watercolor',
+              ),
+            ]),
+          ),
+          createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
+          uxAnalyticsServiceProvider.overrideWith(
+            (ref) => UxAnalyticsService(
+              store: NoopUxStore(),
+              transport: NoopUxTransport(),
+              readAccessToken: () => null,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+          child: UncontrolledProviderScope(
+            container: container,
+            child: const ViscondeApp(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final router = container.read(appRouterProvider);
+      router.go('/stories/new?resume=1');
+      await tester.pumpAndSettle();
+
+      await _tapWizardControl(
+        tester,
+        find.byKey(const Key('wizard_save_continue_button')),
+      );
+
+      expect(storyApi.createSessionCalls, 0);
+      expect(storyApi.updateSetupCalls, 1);
+      expect(
+        router.routeInformationProvider.value.uri.toString(),
+        startsWith('/stories/game-ready?'),
+      );
+      expect(find.byType(StoryGameReadyScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'falha ao atualizar rascunho existente não redireciona para Game',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+
+      final user = buildTestUser();
+      final draftStore = InMemoryCreateStoryDraftStore();
+      await draftStore.save(
+        CreateStoryWizardDraft(
+          userId: user.id,
+          storyId: 'story-1',
+          currentStep: 0,
+          selectedChildId: 'child-1',
+          selectedVirtueId: 'virtue-1',
+          selectedTemplateId: 'tpl-1',
+          selectedArtStyleId: 'style-1',
+          mode: StoryMode.parentNarrator,
+          titleDraft: 'Aventura de Lia',
+          theme: 'Floresta Lunar',
+          scenario: 'Bosque encantado',
+          objective: 'Aprender algo novo',
+          characters: 'Lia',
+          updatedAt: DateTime(2026, 3, 4, 12, 0),
+        ),
+      );
+
+      final children = <ChildProfile>[
+        ChildProfile(
+          id: 'child-1',
+          name: 'Lia',
+          birthDate: DateTime(2018, 1, 1),
+          favoriteThemes: const <String>['Aventura'],
+          isArchived: false,
+        ),
+      ];
+      final virtues = <VirtueModel>[
+        const VirtueModel(
+          id: 'virtue-1',
+          slug: 'coragem',
+          name: 'Coragem',
+          shortDescription: 'Seguir em frente',
+          iconKey: 'courage',
+          sortOrder: 1,
+        ),
+      ];
+      final templates = <ContentStoryTemplateModel>[
+        const ContentStoryTemplateModel(
+          id: 'tpl-1',
+          slug: 'template-inicial',
+          title: 'Template Inicial',
+          description: 'template',
+          ageBand: AgeBand.age6_8,
+          version: 1,
+          defaultScenario: 'Bosque encantado',
+          defaultObjective: 'Aprender algo novo com coragem e gentileza.',
+          theme: StoryNamedRef(
+            id: 'theme-1',
+            slug: 'aventura',
+            name: 'Aventura',
+          ),
+          virtue: StoryNamedRef(
+            id: 'virtue-1',
+            slug: 'coragem',
+            name: 'Coragem',
+          ),
+          nodesCount: 3,
+          charactersCount: 2,
+        ),
+      ];
+      final storyApi = WizardStoryApi(
+        virtues: virtues,
+        session: _buildSession(),
+        templates: templates,
+        failUpdateSetup: true,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          ...authOverrides(user: user, authenticated: true),
+          childrenApiProvider.overrideWith(
+            (ref) => FakeChildrenApi(children: children),
+          ),
+          storyApiProvider.overrideWith((ref) => storyApi),
+          illustrationApiProvider.overrideWith(
+            (ref) => FakeIllustrationApi(const <ArtStyleModel>[
+              ArtStyleModel(
+                id: 'style-1',
+                name: 'Aquarela',
+                promptTemplate: 'watercolor',
+              ),
+            ]),
+          ),
+          createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
+          uxAnalyticsServiceProvider.overrideWith(
+            (ref) => UxAnalyticsService(
+              store: NoopUxStore(),
+              transport: NoopUxTransport(),
+              readAccessToken: () => null,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+          child: UncontrolledProviderScope(
+            container: container,
+            child: const ViscondeApp(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final router = container.read(appRouterProvider);
+      router.go('/stories/new?resume=1');
+      await tester.pumpAndSettle();
+
+      await _tapWizardControl(
+        tester,
+        find.byKey(const Key('wizard_save_continue_button')),
+      );
+
+      expect(storyApi.createSessionCalls, 0);
+      expect(storyApi.updateSetupCalls, 1);
+      expect(
+        router.routeInformationProvider.value.uri.toString(),
+        '/stories/new?resume=1',
+      );
+      expect(find.byType(StoryGameReadyScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'StoryGameReady resolve storyId sincroniza sessão de aventura ativa',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+
+      final user = buildTestUser();
+      final children = <ChildProfile>[
+        ChildProfile(
+          id: 'child-1',
+          name: 'Lia',
+          birthDate: DateTime(2018, 1, 1),
+          favoriteThemes: const <String>['Aventura'],
+          isArchived: false,
+        ),
+      ];
+      final storyApi = WizardStoryApi(
+        virtues: const <VirtueModel>[],
+        session: _buildSession(),
+        templates: const <ContentStoryTemplateModel>[],
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          ...authOverrides(user: user, authenticated: true),
+          childrenApiProvider.overrideWith(
+            (ref) => FakeChildrenApi(children: children),
+          ),
+          storyApiProvider.overrideWith((ref) => storyApi),
+          illustrationApiProvider.overrideWith(
+            (ref) => FakeIllustrationApi(const <ArtStyleModel>[]),
+          ),
+          uxAnalyticsServiceProvider.overrideWith(
+            (ref) => UxAnalyticsService(
+              store: NoopUxStore(),
+              transport: NoopUxTransport(),
+              readAccessToken: () => null,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+          child: UncontrolledProviderScope(
+            container: container,
+            child: const ViscondeApp(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final router = container.read(appRouterProvider);
+      router.go('/stories/game-ready?storyId=story-1&title=Rascunho');
+      await tester.pumpAndSettle();
+
+      final adventureState = container.read(
+        gameAdventureSessionControllerProvider,
+      );
+      expect(adventureState.storyId, 'story-1');
+      expect(adventureState.childProfileId, 'child-1');
+      expect(adventureState.title, 'Aventura de Lia');
+    },
+  );
+
+  testWidgets(
+    'StoryGameReady fallback abre Game quando carregar sessão falha',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+
+      final user = buildTestUser();
+      final children = <ChildProfile>[
+        ChildProfile(
+          id: 'child-1',
+          name: 'Lia',
+          birthDate: DateTime(2018, 1, 1),
+          favoriteThemes: const <String>['Aventura'],
+          isArchived: false,
+        ),
+      ];
+      final storyApi = WizardStoryApi(
+        virtues: const <VirtueModel>[],
+        session: _buildSession(),
+        templates: const <ContentStoryTemplateModel>[],
+        failGetSession: true,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          ...authOverrides(user: user, authenticated: true),
+          childrenApiProvider.overrideWith(
+            (ref) => FakeChildrenApi(children: children),
+          ),
+          storyApiProvider.overrideWith((ref) => storyApi),
+          illustrationApiProvider.overrideWith(
+            (ref) => FakeIllustrationApi(const <ArtStyleModel>[]),
+          ),
+          uxAnalyticsServiceProvider.overrideWith(
+            (ref) => UxAnalyticsService(
+              store: NoopUxStore(),
+              transport: NoopUxTransport(),
+              readAccessToken: () => null,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+          child: UncontrolledProviderScope(
+            container: container,
+            child: const ViscondeApp(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final router = container.read(appRouterProvider);
+      router.go('/stories/game-ready?storyId=story-1&title=Rascunho');
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.toString(),
+        '/?tab=game',
+      );
+      expect(
+        container.read(gameAdventureSessionControllerProvider).storyId,
+        null,
+      );
+    },
+  );
 }

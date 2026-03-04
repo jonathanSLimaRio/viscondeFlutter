@@ -51,6 +51,7 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
   String? _selectedChildId;
   late _AvatarDraft _parentDraft;
   final Map<String, _AvatarDraft> _childDraftById = <String, _AvatarDraft>{};
+  bool get _isSaving => _savingParent || _savingChild;
 
   @override
   void initState() {
@@ -155,7 +156,7 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
 
   Future<void> _saveParent() async {
     final token = ref.read(authControllerProvider).accessToken;
-    if (token == null || _savingParent) {
+    if (token == null || _isSaving) {
       return;
     }
 
@@ -205,7 +206,7 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
   Future<void> _saveChild() async {
     final token = ref.read(authControllerProvider).accessToken;
     final child = _selectedChild;
-    if (token == null || child == null || _savingChild) {
+    if (token == null || child == null || _isSaving) {
       return;
     }
 
@@ -319,6 +320,7 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
   Widget _buildPresetEditor({
     required bool isParent,
     required _AvatarDraft draft,
+    required bool enabled,
     required ValueChanged<_AvatarDraft> onChanged,
   }) {
     return Column(
@@ -339,8 +341,9 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
                 return ChoiceChip(
                   selected: draft.presetKey == preset.key,
                   label: Text(preset.label),
-                  onSelected: (_) =>
-                      onChanged(draft.copyWith(presetKey: preset.key)),
+                  onSelected: !enabled
+                      ? null
+                      : (_) => onChanged(draft.copyWith(presetKey: preset.key)),
                 );
               })
               .toList(growable: false),
@@ -376,8 +379,9 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
                       Text('V$variant'),
                     ],
                   ),
-                  onSelected: (_) =>
-                      onChanged(draft.copyWith(variant: variant)),
+                  onSelected: !enabled
+                      ? null
+                      : (_) => onChanged(draft.copyWith(variant: variant)),
                 );
               })
               .toList(growable: false),
@@ -412,8 +416,9 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
                       Text(accent.label),
                     ],
                   ),
-                  onSelected: (_) =>
-                      onChanged(draft.copyWith(accent: accent.key)),
+                  onSelected: !enabled
+                      ? null
+                      : (_) => onChanged(draft.copyWith(accent: accent.key)),
                 );
               })
               .toList(growable: false),
@@ -453,13 +458,14 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
                   _buildPresetEditor(
                     isParent: true,
                     draft: _parentDraft,
+                    enabled: !_isSaving,
                     onChanged: (value) => setState(() => _parentDraft = value),
                   ),
                   const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.centerRight,
                     child: FilledButton.icon(
-                      onPressed: _savingParent ? null : _saveParent,
+                      onPressed: _isSaving ? null : _saveParent,
                       icon: const Icon(Icons.save_outlined),
                       label: Text(_savingParent ? 'Salvando...' : 'Salvar pai'),
                     ),
@@ -496,9 +502,11 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
                             ),
                           )
                           .toList(growable: false),
-                      onChanged: (value) {
-                        setState(() => _selectedChildId = value);
-                      },
+                      onChanged: _isSaving
+                          ? null
+                          : (value) {
+                              setState(() => _selectedChildId = value);
+                            },
                     ),
                     const SizedBox(height: 12),
                     if (selectedChild != null) ...[
@@ -513,6 +521,7 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
                       _buildPresetEditor(
                         isParent: false,
                         draft: _draftForChild(selectedChild),
+                        enabled: !_isSaving,
                         onChanged: (value) {
                           setState(() {
                             _childDraftById[selectedChild.id] = value;
@@ -523,7 +532,7 @@ class _FamilyAvatarScreenState extends ConsumerState<FamilyAvatarScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: FilledButton.icon(
-                          onPressed: _savingChild ? null : _saveChild,
+                          onPressed: _isSaving ? null : _saveChild,
                           icon: const Icon(Icons.save_outlined),
                           label: Text(
                             _savingChild ? 'Salvando...' : 'Salvar criança',

@@ -595,17 +595,53 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     required String completionReason,
   }) async {
     if (_storyId != null && _storyId!.isNotEmpty) {
+      final existingId = _storyId!.trim();
       final existingTitle = _titleController.text.trim();
-      final normalizedTitle = existingTitle.isEmpty
+      final normalizedTitleDraft = existingTitle.isEmpty
           ? 'Aventura sem nome'
           : existingTitle;
+
+      final updated = await ref
+          .read(storyRoomControllerProvider.notifier)
+          .updateSessionSetupById(
+            storyId: existingId,
+            titleDraft: normalizedTitleDraft,
+            theme: _themeController.text.trim(),
+            scenario: _scenarioController.text.trim(),
+            objective: _objectiveController.text.trim(),
+            characters: _characterPayload(),
+            virtueId: _selectedVirtueId,
+            sourceTemplateId: _selectedTemplateId,
+            updateSourceTemplate: true,
+            artStyleId: _selectedArtStyleId,
+            updateArtStyle: true,
+            mode: _mode,
+          );
+
+      if (updated == null) {
+        final error = ref.read(storyRoomControllerProvider).error;
+        if (!mounted) {
+          return false;
+        }
+        context.showMessage(error ?? 'Falha ao atualizar a aventura.');
+        return false;
+      }
+
+      _applySessionToForm(updated, replaceText: false);
+      final normalizedTitle = updated.title.trim().isNotEmpty
+          ? updated.title.trim()
+          : updated.titleDraft.trim();
+
       ref
           .read(gameAdventureSessionControllerProvider.notifier)
           .setFromStory(
-            storyId: _storyId!,
-            title: normalizedTitle,
-            childProfileId: _selectedChildId,
-            theme: _themeController.text.trim(),
+            storyId: updated.id,
+            title: normalizedTitle.isEmpty
+                ? 'Aventura sem nome'
+                : normalizedTitle,
+            childProfileId: updated.childProfileId,
+            theme: updated.theme,
+            biome: updated.gameSummary?.biome ?? updated.game?.map.biome,
           );
       _logStepCompleted(reason: completionReason);
       _flowCompleted = true;
@@ -614,7 +650,12 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         return false;
       }
       context.go(
-        AppRoute.storyGameReadyPath(storyId: _storyId!, title: normalizedTitle),
+        AppRoute.storyGameReadyPath(
+          storyId: updated.id,
+          title: normalizedTitle.isEmpty
+              ? 'Aventura sem nome'
+              : normalizedTitle,
+        ),
       );
       return true;
     }

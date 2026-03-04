@@ -331,9 +331,46 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     StoryMode? mode,
     bool applyAutoVirtue = false,
   }) async {
-    final token = _accessToken();
     final session = state.session;
-    if (token == null || session == null) {
+    if (session == null) {
+      state = state.copyWith(error: 'Sessão de história não encontrada.');
+      return null;
+    }
+
+    return updateSessionSetupById(
+      storyId: session.id,
+      titleDraft: titleDraft,
+      theme: theme,
+      scenario: scenario,
+      characters: characters,
+      objective: objective,
+      virtueId: virtueId,
+      sourceTemplateId: sourceTemplateId,
+      updateSourceTemplate: updateSourceTemplate,
+      artStyleId: artStyleId,
+      updateArtStyle: updateArtStyle,
+      mode: mode,
+      applyAutoVirtue: applyAutoVirtue,
+    );
+  }
+
+  Future<StorySessionModel?> updateSessionSetupById({
+    required String storyId,
+    required String titleDraft,
+    required String theme,
+    required String scenario,
+    required List<Map<String, String?>> characters,
+    required String objective,
+    String? virtueId,
+    String? sourceTemplateId,
+    bool updateSourceTemplate = false,
+    String? artStyleId,
+    bool updateArtStyle = false,
+    StoryMode? mode,
+    bool applyAutoVirtue = false,
+  }) async {
+    final token = _accessToken();
+    if (token == null) {
       state = state.copyWith(error: 'Sessão expirada. Faça login novamente.');
       return null;
     }
@@ -342,7 +379,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     try {
       final updated = await _api.updateStorySessionSetup(
         token,
-        session.id,
+        storyId,
         titleDraft: titleDraft,
         theme: theme,
         scenario: scenario,
@@ -357,8 +394,8 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
         applyAutoVirtue: applyAutoVirtue,
       );
 
-      await _refreshPendingCount();
       state = state.copyWith(loading: false, session: updated);
+      await _refreshPendingCount();
       return updated;
     } catch (error) {
       state = state.copyWith(loading: false, error: parseDioError(error));

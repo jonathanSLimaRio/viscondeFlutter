@@ -9,6 +9,10 @@ void main() {
       expect(AppRoute.vaultDetail('vault-1'), '/vault/vault-1');
       expect(AppRoute.avatarEditorPath(), AppRoute.avatarEditor);
       expect(
+        AppRoute.avatarEditorPath(source: 'game_blank_screen', childId: 'c-1'),
+        '/family/avatars?source=game_blank_screen&childId=c-1',
+      );
+      expect(
         AppRoute.storyGameReadyPath(storyId: 'story-1', title: 'Aventura'),
         '/stories/game-ready?storyId=story-1&title=Aventura',
       );

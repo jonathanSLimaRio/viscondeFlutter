@@ -293,7 +293,7 @@ class _GameBlankScreenState extends ConsumerState<GameBlankScreen> {
     }
   }
 
-  void _openAvatarEditor() {
+  Future<void> _openAvatarEditor() async {
     UxAnalytics.log(
       'avatar_editor_opened',
       params: <String, Object?>{
@@ -302,12 +302,16 @@ class _GameBlankScreenState extends ConsumerState<GameBlankScreen> {
         if (_selectedChildId != null) 'child_id': _selectedChildId,
       },
     );
-    context.push(
+    await context.push(
       AppRoute.avatarEditorPath(
         source: 'game_blank_screen',
         childId: _selectedChildId,
       ),
     );
+    if (!mounted) {
+      return;
+    }
+    await _reloadAll(preferredChildId: _selectedChildId);
   }
 
   void _onChildSelected(String childId) {
