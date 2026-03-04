@@ -49,9 +49,18 @@ String _sanitizeFromForPersonaSelection(String? raw) {
   return candidate;
 }
 
-String _resolvePostPersonaTarget(String? rawFrom, SessionPersona persona) {
+String _resolvePostPersonaTarget(
+  String? rawFrom,
+  SessionPersonaState personaState,
+) {
   final sanitized = _sanitizeFromForPersonaSelection(rawFrom);
-  if (persona == SessionPersona.child && AppRoute.isAdultAreaRoute(sanitized)) {
+  final path = Uri.tryParse(sanitized)?.path ?? sanitized;
+
+  if (personaState.isChildMode && AppRoute.isAdultAreaRoute(path)) {
+    return AppRoute.home;
+  }
+
+  if (personaState.isTogetherMode && AppRoute.isAnyRemoteRoute(path)) {
     return AppRoute.home;
   }
   return sanitized;
@@ -191,7 +200,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAdminDeniedRoute = AppRoute.isAdminDeniedRoute(location);
       final isAdminProtectedRoute = AppRoute.isAdminProtectedRoute(location);
       final personaState = ref.read(sessionPersonaControllerProvider);
-      final persona = personaState.persona;
 
       if (auth.status == AuthStatus.loading) {
         return location == AppRoute.loading ? null : AppRoute.loading;
@@ -210,8 +218,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (auth.status == AuthStatus.authenticated) {
-        if (persona == SessionPersona.child &&
-            AppRoute.isAdultAreaRoute(location)) {
+        if (personaState.isChildMode && AppRoute.isAdultAreaRoute(location)) {
+          return AppRoute.home;
+        }
+
+        if (personaState.isTogetherMode &&
+            AppRoute.isAnyRemoteRoute(location)) {
           return AppRoute.home;
         }
 
@@ -230,13 +242,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
         if (isSessionPersonaRoute) {
           final from = state.uri.queryParameters['from'];
-          return _resolvePostPersonaTarget(from, persona!);
+          return _resolvePostPersonaTarget(from, personaState);
         }
 
         final isAdmin = auth.user?.isAdmin ?? false;
         if (location == AppRoute.loading || isAuthRoute) {
           final from = state.uri.queryParameters['from'];
-          return _resolvePostPersonaTarget(from, persona!);
+          return _resolvePostPersonaTarget(from, personaState);
         }
         if (isAdminProtectedRoute && !isAdmin) {
           return AppRoute.adminDenied;

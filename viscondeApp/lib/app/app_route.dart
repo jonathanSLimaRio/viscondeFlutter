@@ -106,6 +106,10 @@ abstract final class AppRoute {
     return location == remoteJoin || location == remoteRoom;
   }
 
+  static bool isAnyRemoteRoute(String location) {
+    return isRemotePublicRoute(location) || isStoryRemotePath(location);
+  }
+
   static bool isAdminDeniedRoute(String location) {
     return location == adminDenied;
   }

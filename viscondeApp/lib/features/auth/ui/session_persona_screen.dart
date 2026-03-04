@@ -11,7 +11,10 @@ class SessionPersonaScreen extends ConsumerWidget {
 
   final String? from;
 
-  String _resolveNextPath(SessionPersona persona) {
+  String _resolveNextPath(
+    SessionPersona persona,
+    SessionPresenceMode presenceMode,
+  ) {
     final candidate = from?.trim();
     if (candidate == null || candidate.isEmpty) {
       return AppRoute.home;
@@ -33,22 +36,30 @@ class SessionPersonaScreen extends ConsumerWidget {
       return AppRoute.home;
     }
 
+    if (presenceMode == SessionPresenceMode.together &&
+        AppRoute.isAnyRemoteRoute(path)) {
+      return AppRoute.home;
+    }
+
     return candidate;
   }
 
   void _selectPersona(
     BuildContext context,
     WidgetRef ref,
-    SessionPersona persona,
-  ) {
+    SessionPersona persona, {
+    SessionPresenceMode presenceMode = SessionPresenceMode.separated,
+  }) {
     final controller = ref.read(sessionPersonaControllerProvider.notifier);
     if (persona == SessionPersona.child) {
       controller.selectChild();
+    } else if (presenceMode == SessionPresenceMode.together) {
+      controller.selectParentTogether();
     } else {
       controller.selectParent();
     }
 
-    context.go(_resolveNextPath(persona));
+    context.go(_resolveNextPath(persona, presenceMode));
   }
 
   @override
@@ -102,6 +113,21 @@ class SessionPersonaScreen extends ConsumerWidget {
               ],
             ),
             Positioned(
+              top: (MediaQuery.sizeOf(context).height / 2) - 68,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: _TogetherPersonaButton(
+                  onTap: () => _selectPersona(
+                    context,
+                    ref,
+                    SessionPersona.parent,
+                    presenceMode: SessionPresenceMode.together,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
               left: 24,
               right: 24,
               top: MediaQuery.paddingOf(context).top + 18,
@@ -143,6 +169,76 @@ class SessionPersonaScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TogetherPersonaButton extends StatelessWidget {
+  const _TogetherPersonaButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const ValueKey<String>('persona_together_button'),
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Ink(
+          width: 136,
+          height: 136,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF5FA07D), Color(0xFF3A6D52)],
+            ),
+            border: Border.all(color: Colors.white, width: 2.4),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.family_restroom_rounded,
+                  color: Colors.white,
+                  size: 30,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Pai e Filho',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Juntos no mesmo celular',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

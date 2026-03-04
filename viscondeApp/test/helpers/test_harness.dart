@@ -434,6 +434,7 @@ List<Override> authOverrides({
   required AppUser user,
   bool authenticated = true,
   SessionPersona? sessionPersona,
+  SessionPresenceMode? sessionPresenceMode,
   bool selectParentPersonaWhenAuthenticated = true,
 }) {
   final storage = MemorySessionStorage(
@@ -443,13 +444,18 @@ List<Override> authOverrides({
       ? SessionPersona.parent
       : null;
   final effectivePersona = sessionPersona ?? defaultPersona;
+  final effectivePresenceMode =
+      sessionPresenceMode ?? SessionPresenceMode.separated;
 
   return [
     authApiProvider.overrideWith((ref) => FakeAuthApi(user: user)),
     sessionStorageProvider.overrideWith((ref) => storage),
     sessionPersonaControllerProvider.overrideWith((ref) {
       final controller = SessionPersonaController();
-      if (effectivePersona == SessionPersona.parent) {
+      if (effectivePersona == SessionPersona.parent &&
+          effectivePresenceMode == SessionPresenceMode.together) {
+        controller.selectParentTogether();
+      } else if (effectivePersona == SessionPersona.parent) {
         controller.selectParent();
       } else if (effectivePersona == SessionPersona.child) {
         controller.selectChild();

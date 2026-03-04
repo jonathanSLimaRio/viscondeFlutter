@@ -8,6 +8,7 @@ import '../../../shared/providers.dart';
 import '../../../shared/logging/app_logger.dart';
 import '../../../shared/ui/app_feedback.dart';
 import '../../auth/auth_controller.dart';
+import '../../auth/session_persona_controller.dart';
 import '../illustration_api.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
@@ -444,6 +445,8 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
 
     final state = ref.watch(storyRoomControllerProvider);
     final controller = ref.read(storyRoomControllerProvider.notifier);
+    final personaState = ref.watch(sessionPersonaControllerProvider);
+    final isTogetherMode = personaState.isTogetherMode;
     final story = state.session;
 
     if (state.loading && story == null) {
@@ -719,11 +722,21 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                         ? null
                         : controller.syncPending,
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.video_call_outlined),
-                    title: const Text('Abrir sala remota'),
-                    onTap: () => context.push(AppRoute.storyRemote(story.id)),
-                  ),
+                  isTogetherMode
+                      ? const ListTile(
+                          enabled: false,
+                          leading: Icon(Icons.link_off_rounded),
+                          title: Text('Sala remota indisponível'),
+                          subtitle: Text(
+                            'Modo Pai e Filho no mesmo celular desativa o WebRTC.',
+                          ),
+                        )
+                      : ListTile(
+                          leading: const Icon(Icons.video_call_outlined),
+                          title: const Text('Abrir sala remota'),
+                          onTap: () =>
+                              context.push(AppRoute.storyRemote(story.id)),
+                        ),
                 ],
               ),
             ),

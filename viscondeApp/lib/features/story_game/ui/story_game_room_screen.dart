@@ -9,6 +9,7 @@ import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/ui/app_feedback.dart';
 import '../../../shared/ux_analytics.dart';
+import '../../auth/session_persona_controller.dart';
 import '../../story_room/models/story_models.dart';
 import '../../story_room/story_room_controller.dart';
 import '../../story_room/ui/story_room_screen.dart';
@@ -156,6 +157,9 @@ class _StoryGameRoomScreenState extends ConsumerState<StoryGameRoomScreen> {
 
   void _openAdvancedTools(StorySessionModel story) {
     final roomController = ref.read(storyRoomControllerProvider.notifier);
+    final isTogetherMode = ref
+        .read(sessionPersonaControllerProvider)
+        .isTogetherMode;
     showModalBottomSheet<void>(
       context: context,
       builder: (context) {
@@ -173,11 +177,22 @@ class _StoryGameRoomScreenState extends ConsumerState<StoryGameRoomScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.video_call_outlined),
-                title: const Text('Abrir sala remota (fallback clássico)'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  context.push(AppRoute.storyRemote(story.id));
-                },
+                title: Text(
+                  isTogetherMode
+                      ? 'Sala remota indisponível'
+                      : 'Abrir sala remota (fallback clássico)',
+                ),
+                subtitle: isTogetherMode
+                    ? const Text(
+                        'Modo Pai e Filho no mesmo celular desativa o WebRTC.',
+                      )
+                    : null,
+                onTap: isTogetherMode
+                    ? null
+                    : () {
+                        Navigator.of(context).pop();
+                        context.push(AppRoute.storyRemote(story.id));
+                      },
               ),
             ],
           ),

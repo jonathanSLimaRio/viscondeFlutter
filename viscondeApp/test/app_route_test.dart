@@ -18,6 +18,10 @@ void main() {
       expect(AppRoute.isRemotePublicRoute(AppRoute.remoteJoin), isTrue);
       expect(AppRoute.isRemotePublicRoute(AppRoute.remoteRoom), isTrue);
       expect(AppRoute.isRemotePublicRoute(AppRoute.storyCreate), isFalse);
+      expect(AppRoute.isAnyRemoteRoute(AppRoute.remoteJoin), isTrue);
+      expect(AppRoute.isAnyRemoteRoute(AppRoute.remoteRoom), isTrue);
+      expect(AppRoute.isAnyRemoteRoute(AppRoute.storyRemote('abc')), isTrue);
+      expect(AppRoute.isAnyRemoteRoute(AppRoute.storyRoom('abc')), isFalse);
 
       expect(AppRoute.isAdminProtectedRoute(AppRoute.adminHub), isTrue);
       expect(AppRoute.isAdminProtectedRoute(AppRoute.adminThemes), isTrue);

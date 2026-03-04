@@ -148,6 +148,77 @@ void main() {
 
     expect(location.startsWith(AppRoute.sessionPersona), isTrue);
     expect(find.byType(SessionPersonaScreen), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('persona_together_button')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('seleção Pai e Filho define parent+together e navega para home', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+
+    final virtues = [
+      const VirtueModel(
+        id: 'v1',
+        slug: 'coragem',
+        name: 'Coragem',
+        shortDescription: 'Seguir em frente',
+        iconKey: 'courage',
+        sortOrder: 1,
+      ),
+    ];
+
+    final container = ProviderContainer(
+      overrides: [
+        ...authOverrides(
+          user: buildTestUser(),
+          authenticated: true,
+          selectParentPersonaWhenAuthenticated: false,
+        ),
+        childrenApiProvider.overrideWith(
+          (ref) => FakeChildrenApi(children: _children()),
+        ),
+        storyApiProvider.overrideWith(
+          (ref) => FakeStoryApi(
+            collections: _collections(virtues),
+            virtues: virtues,
+          ),
+        ),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: _NoopUxStore(),
+            transport: _NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const ViscondeApp(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('persona_together_button')),
+    );
+    await tester.pumpAndSettle();
+
+    final personaState = container.read(sessionPersonaControllerProvider);
+    expect(personaState.persona, SessionPersona.parent);
+    expect(personaState.presenceMode, SessionPresenceMode.together);
+
+    final router = container.read(appRouterProvider);
+    expect(router.routeInformationProvider.value.uri.toString(), AppRoute.home);
   });
 
   testWidgets('modo FILHO bloqueia deep link em /adult/*', (tester) async {
@@ -214,6 +285,74 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.toString(), AppRoute.home);
     expect(find.byType(HomeShellScreen), findsOneWidget);
+  });
+
+  testWidgets('modo juntos bloqueia deep links remotos', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+
+    final virtues = [
+      const VirtueModel(
+        id: 'v1',
+        slug: 'coragem',
+        name: 'Coragem',
+        shortDescription: 'Seguir em frente',
+        iconKey: 'courage',
+        sortOrder: 1,
+      ),
+    ];
+
+    final container = ProviderContainer(
+      overrides: [
+        ...authOverrides(
+          user: buildTestUser(),
+          authenticated: true,
+          sessionPersona: SessionPersona.parent,
+          sessionPresenceMode: SessionPresenceMode.together,
+        ),
+        childrenApiProvider.overrideWith(
+          (ref) => FakeChildrenApi(children: _children()),
+        ),
+        storyApiProvider.overrideWith(
+          (ref) => FakeStoryApi(
+            collections: _collections(virtues),
+            virtues: virtues,
+          ),
+        ),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: _NoopUxStore(),
+            transport: _NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const ViscondeApp(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final router = container.read(appRouterProvider);
+
+    router.go(AppRoute.storyRemote('story-1'));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.toString(), AppRoute.home);
+
+    router.go(AppRoute.remoteJoin);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.toString(), AppRoute.home);
+
+    router.go(AppRoute.remoteRoom);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.toString(), AppRoute.home);
   });
 
   testWidgets(
@@ -350,6 +489,83 @@ void main() {
     expect(find.byType(VirtueReportsScreen), findsOneWidget);
   });
 
+  testWidgets('modo PAI separado mantém rotas remotas', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+
+    final virtues = [
+      const VirtueModel(
+        id: 'v1',
+        slug: 'coragem',
+        name: 'Coragem',
+        shortDescription: 'Seguir em frente',
+        iconKey: 'courage',
+        sortOrder: 1,
+      ),
+    ];
+
+    final container = ProviderContainer(
+      overrides: [
+        ...authOverrides(
+          user: buildTestUser(),
+          authenticated: true,
+          sessionPersona: SessionPersona.parent,
+          sessionPresenceMode: SessionPresenceMode.separated,
+        ),
+        childrenApiProvider.overrideWith(
+          (ref) => FakeChildrenApi(children: _children()),
+        ),
+        storyApiProvider.overrideWith(
+          (ref) => FakeStoryApi(
+            collections: _collections(virtues),
+            virtues: virtues,
+          ),
+        ),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: _NoopUxStore(),
+            transport: _NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const ViscondeApp(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final router = container.read(appRouterProvider);
+
+    router.go(AppRoute.remoteJoin);
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      AppRoute.remoteJoin,
+    );
+
+    router.go(AppRoute.remoteRoom);
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      AppRoute.remoteRoom,
+    );
+
+    router.go(AppRoute.storyRemote('story-1'));
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      AppRoute.storyRemote('story-1'),
+    );
+  });
+
   testWidgets('logout limpa persona da sessão', (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
 
@@ -411,5 +627,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(sessionPersonaControllerProvider).persona, isNull);
+    expect(
+      container.read(sessionPersonaControllerProvider).presenceMode,
+      SessionPresenceMode.separated,
+    );
   });
 }
