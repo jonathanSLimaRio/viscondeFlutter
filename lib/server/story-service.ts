@@ -2,6 +2,7 @@ import type {
   AgeBand,
   CallMode,
   RemoteRoomStatus,
+  StoryGameMode,
   StoryMode,
   StorySessionKind,
   StoryStatus,
@@ -26,6 +27,156 @@ import {
 
 const MAX_STORY_STEPS = 12;
 const MIN_STORY_STEPS_TO_PUBLISH = 3;
+
+type StoryGameNodeDTO = {
+  index: number;
+  x: number;
+  y: number;
+  kind: "START" | "PATH" | "FINISH";
+};
+
+type StoryGameMapDTO = {
+  biome: "FOREST" | "CASTLE" | "UNDERWATER" | "SPACE" | "TREASURE";
+  totalNodes: number;
+  nodes: StoryGameNodeDTO[];
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function hashSeed(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash >>> 0);
+}
+
+function computeStoryGameSeed(input: {
+  storyId: string;
+  theme: string;
+  scenario: string;
+  objective: string;
+}) {
+  return hashSeed(`${input.storyId}|${input.theme}|${input.scenario}|${input.objective}`);
+}
+
+function buildLinearTrailMap(seed: number): StoryGameMapDTO {
+  let randomState = seed || 1;
+  const nextRandom = () => {
+    randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0;
+    return randomState / 0xffffffff;
+  };
+
+  const biomes: StoryGameMapDTO["biome"][] = [
+    "FOREST",
+    "CASTLE",
+    "UNDERWATER",
+    "SPACE",
+    "TREASURE",
+  ];
+
+  const biome = biomes[seed % biomes.length] ?? "FOREST";
+  const nodes: StoryGameNodeDTO[] = [];
+
+  for (let index = 1; index <= MAX_STORY_STEPS; index += 1) {
+    const progress = (index - 1) / (MAX_STORY_STEPS - 1);
+    const x = clamp(0.08 + progress * 0.84, 0.06, 0.94);
+    const wave = Math.sin(progress * Math.PI * 2.6 + nextRandom() * 0.8) * 0.18;
+    const jitter = (nextRandom() - 0.5) * 0.06;
+    const y = clamp(0.5 + wave + jitter, 0.2, 0.8);
+
+    nodes.push({
+      index,
+      x: Number(x.toFixed(4)),
+      y: Number(y.toFixed(4)),
+      kind: index === 1 ? "START" : index === MAX_STORY_STEPS ? "FINISH" : "PATH",
+    });
+  }
+
+  return {
+    biome,
+    totalNodes: MAX_STORY_STEPS,
+    nodes,
+  };
+}
+
+function parseGameMapNode(value: unknown): StoryGameNodeDTO | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as {
+    index?: unknown;
+    x?: unknown;
+    y?: unknown;
+    kind?: unknown;
+  };
+
+  const index = typeof record.index === "number" ? Math.trunc(record.index) : Number(record.index);
+  const x = typeof record.x === "number" ? record.x : Number(record.x);
+  const y = typeof record.y === "number" ? record.y : Number(record.y);
+  const kind = record.kind;
+
+  if (!Number.isFinite(index) || index < 1 || index > MAX_STORY_STEPS) {
+    return null;
+  }
+
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return null;
+  }
+
+  if (kind !== "START" && kind !== "PATH" && kind !== "FINISH") {
+    return null;
+  }
+
+  return {
+    index,
+    x: clamp(x, 0, 1),
+    y: clamp(y, 0, 1),
+    kind,
+  };
+}
+
+function normalizeGameMapJson(raw: unknown, seed: number): StoryGameMapDTO {
+  if (!raw || typeof raw !== "object") {
+    return buildLinearTrailMap(seed);
+  }
+
+  const record = raw as {
+    biome?: unknown;
+    totalNodes?: unknown;
+    nodes?: unknown;
+  };
+
+  const parsedNodes = Array.isArray(record.nodes)
+    ? record.nodes.map(parseGameMapNode).filter((item): item is StoryGameNodeDTO => Boolean(item))
+    : [];
+
+  if (parsedNodes.length === 0) {
+    return buildLinearTrailMap(seed);
+  }
+
+  const biome =
+    record.biome === "FOREST" ||
+    record.biome === "CASTLE" ||
+    record.biome === "UNDERWATER" ||
+    record.biome === "SPACE" ||
+    record.biome === "TREASURE"
+      ? record.biome
+      : "FOREST";
+
+  const totalNodesRaw =
+    typeof record.totalNodes === "number" ? Math.trunc(record.totalNodes) : Number(record.totalNodes);
+
+  return {
+    biome,
+    totalNodes: Number.isFinite(totalNodesRaw) && totalNodesRaw > 0 ? totalNodesRaw : MAX_STORY_STEPS,
+    nodes: parsedNodes.sort((a, b) => a.index - b.index),
+  };
+}
 
 export type StorySessionInclude = {
   childProfile: {
@@ -220,6 +371,9 @@ function toStoryStepDTO(step: {
   selectedOptionId: string | null;
   selectedOptionLabel: string | null;
   narratorText: string | null;
+  gameNodeIndex: number | null;
+  gameActionKey: string | null;
+  gameActionLabel: string | null;
   autoSavedAt: Date;
   createdAt: Date;
 }) {
@@ -234,6 +388,9 @@ function toStoryStepDTO(step: {
     selectedOptionId: step.selectedOptionId,
     selectedOptionLabel: step.selectedOptionLabel,
     narratorText: step.narratorText,
+    gameNodeIndex: step.gameNodeIndex,
+    gameActionKey: step.gameActionKey,
+    gameActionLabel: step.gameActionLabel,
     autoSavedAt: step.autoSavedAt,
     createdAt: step.createdAt,
   };
@@ -262,6 +419,10 @@ export function toStorySessionDTO(story: {
   status: StoryStatus;
   currentMode: StoryMode;
   currentStepIndex: number;
+  gameMode: StoryGameMode;
+  gameSeed: number;
+  gameMapVersion: number;
+  gameMapJson: unknown;
   ageSnapshotYears: number;
   startedAt: Date;
   publishedAt: Date | null;
@@ -294,6 +455,9 @@ export function toStorySessionDTO(story: {
     selectedOptionId: string | null;
     selectedOptionLabel: string | null;
     narratorText: string | null;
+    gameNodeIndex: number | null;
+    gameActionKey: string | null;
+    gameActionLabel: string | null;
     autoSavedAt: Date;
     createdAt: Date;
   }>;
@@ -316,6 +480,8 @@ export function toStorySessionDTO(story: {
     }>;
   } | null;
 }) {
+  const gameMap = normalizeGameMapJson(story.gameMapJson, story.gameSeed);
+
   return {
     id: story.id,
     userId: story.userId,
@@ -340,6 +506,12 @@ export function toStorySessionDTO(story: {
     status: story.status,
     currentMode: story.currentMode,
     currentStepIndex: story.currentStepIndex,
+    game: {
+      mode: story.gameMode,
+      seed: story.gameSeed,
+      mapVersion: story.gameMapVersion,
+      map: gameMap,
+    },
     ageSnapshotYears: story.ageSnapshotYears,
     startedAt: story.startedAt,
     publishedAt: story.publishedAt,
@@ -576,7 +748,7 @@ export async function createStorySession(
       },
     });
 
-    return tx.story.create({
+    const story = await tx.story.create({
       data: {
         userId,
         childProfileId: child.id,
@@ -604,6 +776,28 @@ export async function createStorySession(
             role: character.role,
           })),
         },
+      },
+      include: storySessionInclude,
+    });
+
+    const gameSeed = computeStoryGameSeed({
+      storyId: story.id,
+      theme: normalizedTheme,
+      scenario: normalizedScenario,
+      objective: normalizedObjective,
+    });
+
+    const gameMap = buildLinearTrailMap(gameSeed);
+
+    return tx.story.update({
+      where: {
+        id: story.id,
+      },
+      data: {
+        gameMode: "TRAIL_LINEAR",
+        gameSeed,
+        gameMapVersion: 1,
+        gameMapJson: gameMap as never,
       },
       include: storySessionInclude,
     });
@@ -876,6 +1070,11 @@ export async function createStoryStep(
     narratorPrompt?: string;
     selectedOptionId?: string;
     selectedOptionLabel?: string;
+    gameNodeIndex?: number;
+    gameAction?: {
+      key: string;
+      label: string;
+    };
     localEventId: string;
   }
 ) {
@@ -892,6 +1091,7 @@ export async function createStoryStep(
       currentStepIndex: true,
       scenario: true,
       objective: true,
+      gameMode: true,
     },
   });
 
@@ -916,6 +1116,15 @@ export async function createStoryStep(
       "Ordem de etapa invalida. Salve a proxima etapa sequencialmente.",
       409,
       "STEP_OUT_OF_ORDER"
+    );
+  }
+
+  const resolvedGameNodeIndex = input.gameNodeIndex ?? input.stepIndex;
+  if (story.gameMode === "TRAIL_LINEAR" && resolvedGameNodeIndex !== input.stepIndex) {
+    throw new ApiError(
+      "No modo linear, gameNodeIndex deve corresponder ao stepIndex.",
+      400,
+      "INVALID_GAME_NODE_INDEX"
     );
   }
 
@@ -977,11 +1186,28 @@ export async function createStoryStep(
         userId,
       })
     : undefined;
+  const moderatedGameActionLabel = input.gameAction?.label
+    ? await moderateTextInput({
+        value: input.gameAction.label,
+        scope: "STORY_TEXT",
+        field: "gameActionLabel",
+        userId,
+      })
+    : undefined;
+
+  const fallbackNarratorText =
+    input.kind === "NARRATION" &&
+    !moderatedNarratorText &&
+    !moderatedNarratorPrompt &&
+    moderatedGameActionLabel
+      ? `Ação escolhida: ${moderatedGameActionLabel}.`
+      : moderatedNarratorText;
 
   assertSafeContext([
-    { field: "narracao", value: moderatedNarratorText },
+    { field: "narracao", value: fallbackNarratorText },
     { field: "prompt", value: moderatedNarratorPrompt },
     { field: "escolha", value: moderatedSelectedOptionLabel },
+    { field: "acao", value: moderatedGameActionLabel },
   ]);
 
   const childOptions =
@@ -991,8 +1217,9 @@ export async function createStoryStep(
           objective: story.objective,
           context:
             moderatedSelectedOptionLabel ??
+            moderatedGameActionLabel ??
             moderatedNarratorPrompt ??
-            moderatedNarratorText ??
+            fallbackNarratorText ??
             story.objective,
           stepIndex: input.stepIndex,
         })
@@ -1012,7 +1239,10 @@ export async function createStoryStep(
         childOptionsJson: childOptions as never,
         selectedOptionId: input.selectedOptionId,
         selectedOptionLabel: moderatedSelectedOptionLabel,
-        narratorText: moderatedNarratorText,
+        narratorText: fallbackNarratorText,
+        gameNodeIndex: resolvedGameNodeIndex,
+        gameActionKey: input.gameAction?.key?.trim() || null,
+        gameActionLabel: moderatedGameActionLabel ?? null,
         autoSavedAt: now,
       },
     });

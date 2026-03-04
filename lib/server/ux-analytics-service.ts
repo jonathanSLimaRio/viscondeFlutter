@@ -29,6 +29,11 @@ const UX_EVENT_NAME_MAP = {
   pin_prompt_success: "PIN_PROMPT_SUCCESS",
   pin_prompt_abandon: "PIN_PROMPT_ABANDON",
   pin_lock_now_clicked: "PIN_LOCK_NOW_CLICKED",
+  story_game_room_opened: "STORY_GAME_ROOM_OPENED",
+  story_game_action_selected: "STORY_GAME_ACTION_SELECTED",
+  story_game_step_saved: "STORY_GAME_STEP_SAVED",
+  story_game_step_failed: "STORY_GAME_STEP_FAILED",
+  story_game_fallback_classic: "STORY_GAME_FALLBACK_CLASSIC",
 } as const;
 
 type UxClientInfo = {
@@ -99,6 +104,28 @@ const PARAM_ALLOWLIST: Record<keyof typeof UX_EVENT_NAME_MAP, readonly string[]>
   pin_prompt_success: ["source", "expires_at"],
   pin_prompt_abandon: ["source", "reason", "message"],
   pin_lock_now_clicked: ["source"],
+  story_game_room_opened: ["source", "flow", "story_id", "steps", "mode"],
+  story_game_action_selected: [
+    "source",
+    "flow",
+    "story_id",
+    "step",
+    "action_key",
+    "action_label",
+    "mode",
+  ],
+  story_game_step_saved: ["source", "flow", "story_id", "step", "node", "pending_count", "mode"],
+  story_game_step_failed: [
+    "source",
+    "flow",
+    "story_id",
+    "step",
+    "node",
+    "error_kind",
+    "status_code",
+    "mode",
+  ],
+  story_game_fallback_classic: ["source", "flow", "story_id", "reason"],
 };
 
 function toUtcStartOfDay(dateValue: string) {

@@ -23,6 +23,15 @@ import 'ux_analytics_api.dart';
 import 'ux_analytics_queue.dart';
 import 'ux_analytics_service.dart';
 
+const storyGameRoomEnabled = bool.fromEnvironment(
+  'STORY_GAME_ROOM_ENABLED',
+  defaultValue: false,
+);
+
+final storyGameRoomEnabledProvider = Provider<bool>((ref) {
+  return storyGameRoomEnabled;
+});
+
 final sessionAwareDioProvider = Provider<Dio>((ref) {
   final baseUrl = ref.watch(apiBaseUrlProvider);
   final accessToken = ref.watch(authControllerProvider).accessToken;

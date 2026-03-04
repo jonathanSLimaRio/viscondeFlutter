@@ -108,6 +108,89 @@ class StoryChoiceOption {
   }
 }
 
+class StoryGameNodeModel {
+  const StoryGameNodeModel({
+    required this.index,
+    required this.x,
+    required this.y,
+    required this.kind,
+  });
+
+  final int index;
+  final double x;
+  final double y;
+  final String kind;
+
+  factory StoryGameNodeModel.fromJson(Map<String, dynamic> json) {
+    return StoryGameNodeModel(
+      index: (json['index'] as num?)?.toInt() ?? 0,
+      x: (json['x'] as num?)?.toDouble() ?? 0.0,
+      y: (json['y'] as num?)?.toDouble() ?? 0.0,
+      kind: (json['kind'] as String?) ?? 'PATH',
+    );
+  }
+}
+
+class StoryGameMapModel {
+  const StoryGameMapModel({
+    required this.biome,
+    required this.totalNodes,
+    required this.nodes,
+  });
+
+  final String biome;
+  final int totalNodes;
+  final List<StoryGameNodeModel> nodes;
+
+  factory StoryGameMapModel.fromJson(Map<String, dynamic> json) {
+    return StoryGameMapModel(
+      biome: (json['biome'] as String?) ?? 'FOREST',
+      totalNodes: (json['totalNodes'] as num?)?.toInt() ?? 12,
+      nodes: ((json['nodes'] as List<dynamic>?) ?? <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(StoryGameNodeModel.fromJson)
+          .toList(),
+    );
+  }
+}
+
+class StoryGameStateModel {
+  const StoryGameStateModel({
+    required this.mode,
+    required this.seed,
+    required this.mapVersion,
+    required this.map,
+  });
+
+  final String mode;
+  final int seed;
+  final int mapVersion;
+  final StoryGameMapModel map;
+
+  factory StoryGameStateModel.fromJson(Map<String, dynamic> json) {
+    return StoryGameStateModel(
+      mode: (json['mode'] as String?) ?? 'TRAIL_LINEAR',
+      seed: (json['seed'] as num?)?.toInt() ?? 0,
+      mapVersion: (json['mapVersion'] as num?)?.toInt() ?? 1,
+      map: StoryGameMapModel.fromJson(
+        (json['map'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+      ),
+    );
+  }
+}
+
+class StoryGameActionModel {
+  const StoryGameActionModel({
+    required this.key,
+    required this.label,
+    this.iconKey,
+  });
+
+  final String key;
+  final String label;
+  final String? iconKey;
+}
+
 class StoryStepModel {
   const StoryStepModel({
     required this.id,
@@ -120,6 +203,9 @@ class StoryStepModel {
     this.selectedOptionId,
     this.selectedOptionLabel,
     this.narratorText,
+    this.gameNodeIndex,
+    this.gameActionKey,
+    this.gameActionLabel,
   });
 
   final String id;
@@ -132,6 +218,9 @@ class StoryStepModel {
   final String? selectedOptionId;
   final String? selectedOptionLabel;
   final String? narratorText;
+  final int? gameNodeIndex;
+  final String? gameActionKey;
+  final String? gameActionLabel;
 
   factory StoryStepModel.fromJson(Map<String, dynamic> json) {
     final childOptionsRaw = json['childOptions'] as List<dynamic>?;
@@ -152,6 +241,9 @@ class StoryStepModel {
       selectedOptionId: json['selectedOptionId'] as String?,
       selectedOptionLabel: json['selectedOptionLabel'] as String?,
       narratorText: json['narratorText'] as String?,
+      gameNodeIndex: (json['gameNodeIndex'] as num?)?.toInt(),
+      gameActionKey: json['gameActionKey'] as String?,
+      gameActionLabel: json['gameActionLabel'] as String?,
     );
   }
 
@@ -166,6 +258,9 @@ class StoryStepModel {
     String? selectedOptionId,
     String? selectedOptionLabel,
     String? narratorText,
+    int? gameNodeIndex,
+    String? gameActionKey,
+    String? gameActionLabel,
   }) {
     return StoryStepModel(
       id: id ?? this.id,
@@ -178,6 +273,9 @@ class StoryStepModel {
       selectedOptionId: selectedOptionId ?? this.selectedOptionId,
       selectedOptionLabel: selectedOptionLabel ?? this.selectedOptionLabel,
       narratorText: narratorText ?? this.narratorText,
+      gameNodeIndex: gameNodeIndex ?? this.gameNodeIndex,
+      gameActionKey: gameActionKey ?? this.gameActionKey,
+      gameActionLabel: gameActionLabel ?? this.gameActionLabel,
     );
   }
 }
@@ -433,6 +531,7 @@ class StorySessionModel {
     required this.status,
     required this.currentMode,
     required this.currentStepIndex,
+    this.game,
     required this.ageSnapshotYears,
     this.remote,
     required this.child,
@@ -462,6 +561,7 @@ class StorySessionModel {
   final StoryStatus status;
   final StoryMode currentMode;
   final int currentStepIndex;
+  final StoryGameStateModel? game;
   final int ageSnapshotYears;
   final RemoteRoomModel? remote;
   final StoryChildSnapshot child;
@@ -497,6 +597,9 @@ class StorySessionModel {
         (json['currentMode'] as String?) ?? 'PARENT_NARRATOR',
       ),
       currentStepIndex: (json['currentStepIndex'] as num?)?.toInt() ?? 0,
+      game: (json['game'] as Map<String, dynamic>?) == null
+          ? null
+          : StoryGameStateModel.fromJson(json['game'] as Map<String, dynamic>),
       ageSnapshotYears: (json['ageSnapshotYears'] as num?)?.toInt() ?? 0,
       remote: (json['remote'] as Map<String, dynamic>?) == null
           ? null
@@ -532,6 +635,7 @@ class StorySessionModel {
     StoryStatus? status,
     StoryMode? currentMode,
     int? currentStepIndex,
+    StoryGameStateModel? game,
     RemoteRoomModel? remote,
     List<StoryCharacterModel>? characters,
     List<StoryStepModel>? steps,
@@ -559,6 +663,7 @@ class StorySessionModel {
       status: status ?? this.status,
       currentMode: currentMode ?? this.currentMode,
       currentStepIndex: currentStepIndex ?? this.currentStepIndex,
+      game: game ?? this.game,
       ageSnapshotYears: ageSnapshotYears,
       remote: remote ?? this.remote,
       child: child,

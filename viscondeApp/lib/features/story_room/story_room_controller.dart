@@ -256,6 +256,11 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
       selectedOptionId: payload['selectedOptionId'] as String?,
       selectedOptionLabel: payload['selectedOptionLabel'] as String?,
       narratorText: payload['narratorText'] as String?,
+      gameNodeIndex: (payload['gameNodeIndex'] as num?)?.toInt(),
+      gameActionKey:
+          (payload['gameAction'] as Map<String, dynamic>?)?['key'] as String?,
+      gameActionLabel:
+          (payload['gameAction'] as Map<String, dynamic>?)?['label'] as String?,
     );
 
     final nextSteps = <StoryStepModel>[
@@ -429,16 +434,24 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     }
   }
 
-  Future<void> addNarrationStep({required String narratorText}) {
+  Future<void> addNarrationStep({
+    required String narratorText,
+    int? gameNodeIndex,
+    StoryGameActionModel? gameAction,
+  }) {
     return _submitStep(
       kind: StoryStepKind.narration,
       narratorText: narratorText,
+      gameNodeIndex: gameNodeIndex,
+      gameAction: gameAction,
     );
   }
 
   Future<void> addChildChoiceStep({
     required String selectedOptionLabel,
     String? selectedOptionId,
+    int? gameNodeIndex,
+    StoryGameActionModel? gameAction,
   }) async {
     final session = state.session;
     final remoteToken = state.session?.remote?.isOpen == true
@@ -479,6 +492,8 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
       kind: StoryStepKind.childChoice,
       selectedOptionLabel: selectedOptionLabel,
       selectedOptionId: selectedOptionId,
+      gameNodeIndex: gameNodeIndex,
+      gameAction: gameAction,
     );
   }
 
@@ -487,6 +502,8 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
     String? narratorText,
     String? selectedOptionLabel,
     String? selectedOptionId,
+    int? gameNodeIndex,
+    StoryGameActionModel? gameAction,
   }) async {
     final token = _accessToken();
     final session = state.session;
@@ -503,6 +520,12 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
         'selectedOptionLabel': selectedOptionLabel.trim(),
       if (selectedOptionId != null && selectedOptionId.trim().isNotEmpty)
         'selectedOptionId': selectedOptionId.trim(),
+      'gameNodeIndex': ?gameNodeIndex,
+      if (gameAction != null)
+        'gameAction': <String, dynamic>{
+          'key': gameAction.key,
+          'label': gameAction.label,
+        },
       'localEventId': _nextLocalEventId(),
     };
 
@@ -517,6 +540,19 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
         narratorText: payload['narratorText'] as String?,
         selectedOptionId: payload['selectedOptionId'] as String?,
         selectedOptionLabel: payload['selectedOptionLabel'] as String?,
+        gameNodeIndex: (payload['gameNodeIndex'] as num?)?.toInt(),
+        gameAction: (payload['gameAction'] as Map<String, dynamic>?) == null
+            ? null
+            : StoryGameActionModel(
+                key:
+                    ((payload['gameAction'] as Map<String, dynamic>)['key']
+                        as String?) ??
+                    '',
+                label:
+                    ((payload['gameAction'] as Map<String, dynamic>)['label']
+                        as String?) ??
+                    '',
+              ),
         localEventId: payload['localEventId'] as String,
       );
 

@@ -196,6 +196,8 @@ class StoryApi {
     String? narratorPrompt,
     String? selectedOptionId,
     String? selectedOptionLabel,
+    int? gameNodeIndex,
+    StoryGameActionModel? gameAction,
     required String localEventId,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
@@ -212,6 +214,9 @@ class StoryApi {
         if (selectedOptionLabel != null &&
             selectedOptionLabel.trim().isNotEmpty)
           'selectedOptionLabel': selectedOptionLabel.trim(),
+        'gameNodeIndex': ?gameNodeIndex,
+        if (gameAction != null)
+          'gameAction': {'key': gameAction.key, 'label': gameAction.label},
         'localEventId': localEventId,
       },
       options: authOptions(accessToken),

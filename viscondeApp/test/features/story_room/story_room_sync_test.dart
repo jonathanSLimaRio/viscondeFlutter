@@ -146,6 +146,8 @@ class QueueTestStoryApi extends StoryApi {
     String? narratorPrompt,
     String? selectedOptionId,
     String? selectedOptionLabel,
+    int? gameNodeIndex,
+    StoryGameActionModel? gameAction,
     required String localEventId,
   }) async {
     createStepCalls += 1;

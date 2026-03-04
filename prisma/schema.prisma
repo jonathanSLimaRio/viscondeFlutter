@@ -28,6 +28,10 @@ enum StorySessionKind {
   REMOTE
 }
 
+enum StoryGameMode {
+  TRAIL_LINEAR
+}
+
 enum RemoteRoomStatus {
   OPEN
   ACTIVE
@@ -208,6 +212,11 @@ enum UxEventName {
   PIN_PROMPT_SUCCESS
   PIN_PROMPT_ABANDON
   PIN_LOCK_NOW_CLICKED
+  STORY_GAME_ROOM_OPENED
+  STORY_GAME_ACTION_SELECTED
+  STORY_GAME_STEP_SAVED
+  STORY_GAME_STEP_FAILED
+  STORY_GAME_FALLBACK_CLASSIC
 }
 
 model User {
@@ -543,6 +552,10 @@ model Story {
   status           StoryStatus @default(DRAFT)
   currentMode      StoryMode   @default(PARENT_NARRATOR)
   currentStepIndex Int         @default(0)
+  gameMode         StoryGameMode @default(TRAIL_LINEAR)
+  gameSeed         Int         @default(0)
+  gameMapVersion   Int         @default(1)
+  gameMapJson      Json?
   ageSnapshotYears Int
   startedAt        DateTime    @default(now())
   publishedAt      DateTime?
@@ -839,6 +852,9 @@ model StoryStep {
   selectedOptionId    String?
   selectedOptionLabel String?
   narratorText        String?
+  gameNodeIndex       Int?
+  gameActionKey       String?
+  gameActionLabel     String?
   autoSavedAt         DateTime     @default(now())
   createdAt           DateTime     @default(now())
 
@@ -847,6 +863,7 @@ model StoryStep {
   @@unique([storyId, stepIndex])
   @@index([storyId, localEventId])
   @@index([storyId, createdAt])
+  @@index([storyId, gameNodeIndex])
 }
 
 model StoryIdeaLog {

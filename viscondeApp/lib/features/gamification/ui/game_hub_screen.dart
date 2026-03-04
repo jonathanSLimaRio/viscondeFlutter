@@ -1123,8 +1123,9 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
   }
 
   Widget _buildShopSliverGrid() {
-    if (_catalog.isEmpty)
+    if (_catalog.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
 
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

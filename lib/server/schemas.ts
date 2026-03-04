@@ -44,6 +44,11 @@ const uxEventNameSchema = z.enum([
   "pin_prompt_success",
   "pin_prompt_abandon",
   "pin_lock_now_clicked",
+  "story_game_room_opened",
+  "story_game_action_selected",
+  "story_game_step_saved",
+  "story_game_step_failed",
+  "story_game_fallback_classic",
 ]);
 
 const optionalString = z
@@ -218,14 +223,21 @@ export const createStoryStepSchema = z
     narratorPrompt: z.string().trim().min(1).max(4000).optional(),
     selectedOptionId: z.string().trim().min(1).max(80).optional(),
     selectedOptionLabel: z.string().trim().min(1).max(200).optional(),
+    gameNodeIndex: z.number().int().min(1).max(12).optional(),
+    gameAction: z
+      .object({
+        key: z.string().trim().min(1).max(80),
+        label: z.string().trim().min(1).max(200),
+      })
+      .optional(),
     localEventId: z.string().trim().min(1).max(120),
   })
   .superRefine((value, context) => {
     if (value.kind === "NARRATION") {
-      if (!value.narratorText && !value.narratorPrompt) {
+      if (!value.narratorText && !value.narratorPrompt && !value.gameAction) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Etapa de narracao exige narratorText ou narratorPrompt.",
+          message: "Etapa de narracao exige narratorText, narratorPrompt ou gameAction.",
           path: ["narratorText"],
         });
       }
