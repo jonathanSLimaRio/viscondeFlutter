@@ -97,16 +97,6 @@ class _StoryVaultDetailScreenState
     }
   }
 
-  StoryVaultEpisodeDetail? _latestPublishedEpisode() {
-    final episodes = _detail?.episodes ?? const <StoryVaultEpisodeDetail>[];
-    for (final episode in episodes.reversed) {
-      if (episode.status == StoryStatus.published) {
-        return episode;
-      }
-    }
-    return null;
-  }
-
   StoryVaultEpisodeDetail? _latestDraftEpisode() {
     final episodes = _detail?.episodes ?? const <StoryVaultEpisodeDetail>[];
     for (final episode in episodes.reversed) {
@@ -168,14 +158,10 @@ class _StoryVaultDetailScreenState
       return;
     }
 
-    final sourceEpisode = _latestPublishedEpisode();
+    final sourceEpisode = _latestEpisode();
     if (sourceEpisode == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Não há capítulo em andamento ou publicado para continuar.',
-          ),
-        ),
+        const SnackBar(content: Text('Não há capítulo para continuar.')),
       );
       return;
     }

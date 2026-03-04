@@ -13,6 +13,8 @@ import '../models/story_models.dart';
 import '../story_room_controller.dart';
 import 'child_choice_panel.dart';
 import 'parent_narrator_panel.dart';
+import 'widgets/story_room_header.dart';
+import 'widgets/story_room_mission_card.dart';
 
 class StoryRoomScreen extends ConsumerStatefulWidget {
   const StoryRoomScreen({super.key, required this.storyId});
@@ -480,14 +482,16 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            ViscondeHeroBanner(
+            StoryRoomHeader(
               title: story.title,
-              subtitle: '${story.theme} · ${story.scenario}',
-              assetPath: ViscondeArtRegistry.resolve(
-                ViscondeArtKey.heroUnderwater,
-              ),
-              showMascot: true,
-              mascotPose: ViscondeMascotPose.speakingMic,
+              currentStep: story.currentStepIndex == 0
+                  ? 1
+                  : story.currentStepIndex,
+              totalSteps: 12,
+              themeArtKey: ViscondeArtKey
+                  .heroUnderwater, // We should dynamically choose based on theme, hardcoded to underwater to match UI
+              xp: 340, // Mocked for UI
+              maxXp: 500, // Mocked for UI
             ),
             if (story.status == StoryStatus.draft) ...[
               const SizedBox(height: 8),
@@ -580,64 +584,95 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
               error: (err, stack) => const SizedBox.shrink(),
             ),
             const SizedBox(height: 12),
-            ViscondeGlassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            StoryRoomMissionCard(missionText: story.objective),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
                 children: [
-                  Text('Objetivo: ${story.objective}'),
-                  if (story.virtue != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Virtude: ${story.virtue!.name} (faixa ${ageBandLabel(story.ageBand)})',
-                    ),
-                  ],
-                  if (story.dilemmaText != null &&
-                      story.dilemmaText!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text('Dilema: ${story.dilemmaText!}'),
-                  ],
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      Chip(label: Text('Etapa ${story.currentStepIndex}/12')),
-                      Chip(label: Text(controller.syncLabel())),
-                      Chip(label: Text('${state.pendingCount} pendentes')),
-                      Chip(
-                        label: Text(
-                          missingStepsForPublish == 0
-                              ? 'Publicação pronta'
-                              : 'Publicação: +$missingStepsForPublish auto',
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () =>
+                          controller.changeMode(StoryMode.parentNarrator),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: story.currentMode == StoryMode.parentNarrator
+                              ? const Color(0xFF426B1F) // Green selected
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.person,
+                              color:
+                                  story.currentMode == StoryMode.parentNarrator
+                                  ? Colors.white
+                                  : Colors.black54,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Pai narrador',
+                              style: TextStyle(
+                                color:
+                                    story.currentMode ==
+                                        StoryMode.parentNarrator
+                                    ? Colors.white
+                                    : Colors.black87,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () =>
+                          controller.changeMode(StoryMode.childChooser),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: story.currentMode == StoryMode.childChooser
+                              ? const Color(
+                                  0xFFEFE8D8,
+                                ) // Light variant selected
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.radio_button_unchecked,
+                              color: story.currentMode == StoryMode.childChooser
+                                  ? Colors.black87
+                                  : Colors.black54,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Criança escolhe',
+                              style: TextStyle(
+                                color:
+                                    story.currentMode == StoryMode.childChooser
+                                    ? Colors.black87
+                                    : Colors.black87,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
-            const ViscondeSectionTitle(
-              title: 'Criar capítulo',
-              subtitle:
-                  'Foque na narrativa. Ferramentas avançadas ficam abaixo.',
-            ),
-            const SizedBox(height: 8),
-            SegmentedButton<StoryMode>(
-              segments: const [
-                ButtonSegment<StoryMode>(
-                  value: StoryMode.parentNarrator,
-                  label: Text('Pai narrador'),
-                ),
-                ButtonSegment<StoryMode>(
-                  value: StoryMode.childChooser,
-                  label: Text('Criança escolhe'),
-                ),
-              ],
-              selected: <StoryMode>{story.currentMode},
-              onSelectionChanged: (values) {
-                controller.changeMode(values.first);
-              },
             ),
             const SizedBox(height: 16),
             if (story.currentMode == StoryMode.parentNarrator)

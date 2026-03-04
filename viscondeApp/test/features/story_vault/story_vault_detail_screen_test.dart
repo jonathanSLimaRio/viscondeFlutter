@@ -62,6 +62,23 @@ class StoryVaultDetailTestApi extends FakeStoryApi {
   }
 }
 
+class StaticAuthController extends AuthController {
+  StaticAuthController()
+    : super(
+        api: FakeAuthApi(user: buildTestUser()),
+        sessionStorage: MemorySessionStorage(
+          buildStoredSession(buildTestUser()),
+        ),
+      ) {
+    state = AuthState(
+      status: AuthStatus.authenticated,
+      user: buildTestUser(),
+      accessToken: 'token-123',
+      refreshToken: 'refresh-123',
+    );
+  }
+}
+
 StoryVaultEpisodeDetail _episode({
   required String storyId,
   required int episodeNumber,
@@ -139,8 +156,6 @@ Future<void> _pumpDetailApp(
   WidgetTester tester, {
   required ProviderContainer container,
 }) async {
-  await _ensureAuthenticated(container);
-
   final router = GoRouter(
     initialLocation: AppRoute.vaultDetail('collection-1'),
     routes: [
@@ -176,21 +191,29 @@ Future<void> _pumpDetailApp(
   );
 }
 
-Future<void> _ensureAuthenticated(ProviderContainer container) async {
-  container.read(authControllerProvider);
-  for (var attempt = 0; attempt < 20; attempt += 1) {
-    final auth = container.read(authControllerProvider);
-    if (auth.status == AuthStatus.authenticated &&
-        auth.accessToken != null &&
-        auth.accessToken!.isNotEmpty) {
+Future<void> _pumpUntilVisible(
+  WidgetTester tester,
+  Finder finder, {
+  int maxTicks = 60,
+}) async {
+  for (var tick = 0; tick < maxTicks; tick += 1) {
+    await tester.pump(const Duration(milliseconds: 16));
+    if (finder.evaluate().isNotEmpty) {
       return;
     }
-    await Future<void>.delayed(const Duration(milliseconds: 10));
   }
-  final auth = container.read(authControllerProvider);
-  throw StateError(
-    'Auth did not become ready for tests. status=${auth.status.name}',
-  );
+  throw StateError('Widget not visible after pumping: $finder');
+}
+
+Future<void> _tapAndAdvance(
+  WidgetTester tester,
+  Finder finder, {
+  int frames = 20,
+}) async {
+  await tester.tap(finder);
+  for (var index = 0; index < frames; index += 1) {
+    await tester.pump(const Duration(milliseconds: 16));
+  }
 }
 
 void main() {
@@ -207,7 +230,7 @@ void main() {
   ProviderContainer _containerWithApi(StoryVaultDetailTestApi api) {
     final container = ProviderContainer(
       overrides: [
-        ...authOverrides(user: buildTestUser(), authenticated: true),
+        authControllerProvider.overrideWith((ref) => StaticAuthController()),
         childrenApiProvider.overrideWith(
           (ref) => FakeChildrenApi(children: children),
         ),
@@ -242,10 +265,9 @@ void main() {
     final container = _containerWithApi(api);
 
     await _pumpDetailApp(tester, container: container);
-    await tester.pumpAndSettle();
+    await _pumpUntilVisible(tester, find.text('Continuar aventura'));
 
-    await tester.tap(find.text('Continuar aventura'));
-    await tester.pumpAndSettle();
+    await _tapAndAdvance(tester, find.text('Continuar aventura'));
 
     expect(api.continueCalls, 0);
     expect(find.text('room:story-draft'), findsOneWidget);
@@ -271,45 +293,58 @@ void main() {
     final container = _containerWithApi(api);
 
     await _pumpDetailApp(tester, container: container);
-    await tester.pumpAndSettle();
+    await _pumpUntilVisible(tester, find.text('Continuar aventura'));
 
-    await tester.tap(find.text('Continuar aventura'));
-    await tester.pumpAndSettle();
+    await _tapAndAdvance(tester, find.text('Continuar aventura'));
 
     expect(api.continueCalls, 1);
     expect(api.lastContinueSourceStoryId, 'story-published');
     expect(find.text('room:story-created'), findsOneWidget);
   });
 
-  testWidgets('sem draft e sem publicado mostra snackbar amigável', (
-    tester,
-  ) async {
+  testWidgets(
+    'sem draft e sem publicado usa último episódio disponível para continuar',
+    (tester) async {
+      final api = StoryVaultDetailTestApi(
+        detailSequence: [
+          _detail(
+            episodes: [
+              _episode(
+                storyId: 'story-archived',
+                episodeNumber: 1,
+                status: StoryStatus.archived,
+              ),
+            ],
+          ),
+        ],
+        continueHandler: (sourceStoryId) async => _session('story-created'),
+      );
+      final container = _containerWithApi(api);
+
+      await _pumpDetailApp(tester, container: container);
+      await _pumpUntilVisible(tester, find.text('Continuar aventura'));
+
+      await _tapAndAdvance(tester, find.text('Continuar aventura'));
+
+      expect(api.continueCalls, 1);
+      expect(api.lastContinueSourceStoryId, 'story-archived');
+      expect(find.text('room:story-created'), findsOneWidget);
+    },
+  );
+
+  testWidgets('sem episódios mostra snackbar amigável', (tester) async {
     final api = StoryVaultDetailTestApi(
-      detailSequence: [
-        _detail(
-          episodes: [
-            _episode(
-              storyId: 'story-archived',
-              episodeNumber: 1,
-              status: StoryStatus.archived,
-            ),
-          ],
-        ),
-      ],
+      detailSequence: [_detail(episodes: const <StoryVaultEpisodeDetail>[])],
     );
     final container = _containerWithApi(api);
 
     await _pumpDetailApp(tester, container: container);
-    await tester.pumpAndSettle();
+    await _pumpUntilVisible(tester, find.text('Continuar aventura'));
 
-    await tester.tap(find.text('Continuar aventura'));
-    await tester.pumpAndSettle();
+    await _tapAndAdvance(tester, find.text('Continuar aventura'));
 
     expect(api.continueCalls, 0);
-    expect(
-      find.text('Não há capítulo em andamento ou publicado para continuar.'),
-      findsOneWidget,
-    );
+    expect(find.text('Não há capítulo para continuar.'), findsOneWidget);
     expect(find.textContaining('room:'), findsNothing);
   });
 
@@ -354,10 +389,9 @@ void main() {
     final container = _containerWithApi(api);
 
     await _pumpDetailApp(tester, container: container);
-    await tester.pumpAndSettle();
+    await _pumpUntilVisible(tester, find.text('Continuar aventura'));
 
-    await tester.tap(find.text('Continuar aventura'));
-    await tester.pumpAndSettle();
+    await _tapAndAdvance(tester, find.text('Continuar aventura'));
 
     expect(api.continueCalls, 1);
     expect(api.getDetailCalls, greaterThanOrEqualTo(2));

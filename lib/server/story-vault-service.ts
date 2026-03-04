@@ -358,14 +358,6 @@ export async function continueStoryAsNextEpisode(
     throw new ApiError("Historia nao encontrada.", 404, "STORY_NOT_FOUND");
   }
 
-  if (source.status !== "PUBLISHED") {
-    throw new ApiError(
-      "Apenas historias publicadas podem ser continuadas.",
-      409,
-      "STORY_CONTINUE_SOURCE_NOT_PUBLISHED"
-    );
-  }
-
   const existingDraft = await prisma.story.findFirst({
     where: {
       collectionId: source.collectionId,
