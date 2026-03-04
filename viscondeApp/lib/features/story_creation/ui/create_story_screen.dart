@@ -476,7 +476,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   List<Map<String, String?>> _characterPayload() {
     return _characterNames()
         .take(8)
-        .map((name) => <String, String?>{'name': name, 'role': null})
+        .map((name) => <String, String?>{'name': name})
         .toList();
   }
 

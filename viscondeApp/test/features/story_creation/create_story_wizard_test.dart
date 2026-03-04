@@ -109,6 +109,8 @@ class WizardStoryApi extends StoryApi {
   int updateSetupCalls = 0;
   int createStepCalls = 0;
   int finalizeCalls = 0;
+  List<Map<String, String?>> lastCreateCharacters =
+      const <Map<String, String?>>[];
 
   @override
   Future<List<ContentStoryTemplateModel>> listPublishedStoryTemplates(
@@ -158,6 +160,9 @@ class WizardStoryApi extends StoryApi {
     String? artStyleId,
   }) async {
     createSessionCalls += 1;
+    lastCreateCharacters = characters
+        .map((item) => Map<String, String?>.from(item))
+        .toList(growable: false);
 
     final nextCharacters = characters
         .map(
@@ -442,6 +447,15 @@ void main() {
     );
 
     expect(storyApi.createSessionCalls, 1);
+    expect(
+      storyApi.lastCreateCharacters,
+      everyElement(
+        predicate<Map<String, String?>>(
+          (item) => !item.containsKey('role'),
+          'character payload without nullable role',
+        ),
+      ),
+    );
     final location = router.routeInformationProvider.value.uri.toString();
     expect(location, '/?tab=game');
     expect(find.byType(GameBlankScreen), findsOneWidget);
@@ -554,6 +568,15 @@ void main() {
       );
 
       expect(storyApi.createSessionCalls, 1);
+      expect(
+        storyApi.lastCreateCharacters,
+        everyElement(
+          predicate<Map<String, String?>>(
+            (item) => !item.containsKey('role'),
+            'character payload without nullable role',
+          ),
+        ),
+      );
       expect(storyApi.updateSetupCalls, 0);
       final location = router.routeInformationProvider.value.uri.toString();
       expect(location, '/?tab=game');

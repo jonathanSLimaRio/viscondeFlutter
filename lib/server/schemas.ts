@@ -163,7 +163,11 @@ export const resetPinSchema = z.object({
 
 const storyCharacterInputSchema = z.object({
   name: z.string().trim().min(1).max(80),
-  role: z.string().trim().min(1).max(80).optional(),
+  role: z
+    .preprocess(
+      (value) => (value === null ? undefined : value),
+      z.string().trim().min(1).max(80).optional()
+    ),
 });
 
 export const createStorySessionSchema = z.object({

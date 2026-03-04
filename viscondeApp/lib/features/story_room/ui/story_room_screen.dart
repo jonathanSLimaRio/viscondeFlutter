@@ -250,14 +250,15 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
 
               final characters = characterNames
                   .take(8)
-                  .map(
-                    (name) => <String, String?>{
+                  .map((name) {
+                    final role =
+                        roleByName[name.toLowerCase()] ??
+                        (name.toLowerCase() == 'visconde' ? 'guia' : null);
+                    return <String, String?>{
                       'name': name,
-                      'role':
-                          roleByName[name.toLowerCase()] ??
-                          (name.toLowerCase() == 'visconde' ? 'guia' : null),
-                    },
-                  )
+                      if (role != null && role.trim().isNotEmpty) 'role': role,
+                    };
+                  })
                   .toList(growable: false);
 
               setModalState(() => submitting = true);

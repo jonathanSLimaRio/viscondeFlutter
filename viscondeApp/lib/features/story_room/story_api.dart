@@ -63,6 +63,26 @@ class StoryApi {
 
   final Dio _dio;
 
+  List<Map<String, String>> _sanitizeCharacters(
+    List<Map<String, String?>> characters,
+  ) {
+    return characters
+        .map((entry) {
+          final name = (entry['name'] ?? '').trim();
+          if (name.isEmpty) {
+            return null;
+          }
+          final role = entry['role']?.trim();
+          return <String, String>{
+            'name': name,
+            if (role != null && role.isNotEmpty) 'role': role,
+          };
+        })
+        .whereType<Map<String, String>>()
+        .take(8)
+        .toList(growable: false);
+  }
+
   String _formatDateOnly(DateTime value) {
     final year = value.year.toString().padLeft(4, '0');
     final month = value.month.toString().padLeft(2, '0');
@@ -90,7 +110,7 @@ class StoryApi {
         'titleDraft': titleDraft,
         'theme': theme,
         'scenario': scenario,
-        'characters': characters,
+        'characters': _sanitizeCharacters(characters),
         'objective': objective,
         'startMode': storyModeToApi(startMode),
         if (virtueId != null && virtueId.trim().isNotEmpty)
@@ -129,7 +149,7 @@ class StoryApi {
         'theme': theme,
         'scenario': scenario,
         'objective': objective,
-        'characters': characters,
+        'characters': _sanitizeCharacters(characters),
         if (applyAutoVirtue)
           'virtueId': null
         else if (virtueId != null && virtueId.trim().isNotEmpty)

@@ -65,6 +65,14 @@ function isPrismaGameFieldCompatibilityError(error: unknown) {
   );
 }
 
+function resolveTimezoneOrUtc(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return "UTC";
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : "UTC";
+}
+
 function hashSeed(value: string) {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -658,7 +666,7 @@ export async function createStorySession(
     titleDraft: string;
     theme: string;
     scenario: string;
-    characters: Array<{ name: string; role?: string }>;
+    characters: Array<{ name: string; role?: string | null }>;
     objective: string;
     startMode: StoryMode;
     virtueId?: string;
@@ -839,7 +847,7 @@ export async function updateStorySessionSetup(
     theme?: string;
     scenario?: string;
     objective?: string;
-    characters?: Array<{ name: string; role?: string }>;
+    characters?: Array<{ name: string; role?: string | null }>;
     virtueId?: string | null;
     sourceTemplateId?: string | null;
     artStyleId?: string | null;
@@ -1639,7 +1647,7 @@ export async function finalizeStorySession(
       virtueSlug: story.virtue?.slug ?? null,
       continuedFromStoryId: story.continuedFromStoryId,
       publishedAt: now,
-      timezone: story.user.timezone,
+      timezone: resolveTimezoneOrUtc(story.user.timezone),
       source: "LIVE",
     });
   });
