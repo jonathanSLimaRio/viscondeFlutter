@@ -107,6 +107,16 @@ class _StoryVaultDetailScreenState
     return null;
   }
 
+  StoryVaultEpisodeDetail? _latestDraftEpisode() {
+    final episodes = _detail?.episodes ?? const <StoryVaultEpisodeDetail>[];
+    for (final episode in episodes.reversed) {
+      if (episode.status == StoryStatus.draft) {
+        return episode;
+      }
+    }
+    return null;
+  }
+
   StoryVaultEpisodeDetail? _latestEpisode() {
     final episodes = _detail?.episodes ?? const <StoryVaultEpisodeDetail>[];
     if (episodes.isEmpty) {
@@ -148,12 +158,22 @@ class _StoryVaultDetailScreenState
 
   Future<void> _continueAdventure() async {
     final token = _accessToken();
+    if (token == null) {
+      return;
+    }
+
+    final existingDraft = _latestDraftEpisode();
+    if (existingDraft != null) {
+      context.push(AppRoute.storyRoom(existingDraft.storyId));
+      return;
+    }
+
     final sourceEpisode = _latestPublishedEpisode();
-    if (token == null || sourceEpisode == null) {
+    if (sourceEpisode == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'E necessário ao menos um episodio publicado para continuar a aventura.',
+            'Não há capítulo em andamento ou publicado para continuar.',
           ),
         ),
       );
@@ -173,9 +193,21 @@ class _StoryVaultDetailScreenState
       if (!mounted) {
         return;
       }
+      final presentation = describeApiError(error);
+      if (presentation.code == 'STORY_COLLECTION_DRAFT_EXISTS') {
+        await _loadDetail();
+        if (!mounted) {
+          return;
+        }
+        final recoveredDraft = _latestDraftEpisode();
+        if (recoveredDraft != null) {
+          context.push(AppRoute.storyRoom(recoveredDraft.storyId));
+          return;
+        }
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
+      ).showSnackBar(SnackBar(content: Text(presentation.message)));
     } finally {
       if (mounted) {
         setState(() => _working = false);
@@ -351,6 +383,13 @@ class _StoryVaultDetailScreenState
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Abre o capítulo em andamento ou cria o próximo.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
             ),
             const SizedBox(height: 8),
             Row(
