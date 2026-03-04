@@ -21,7 +21,6 @@ class StoryRoomHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.viscondeColors;
     final radii = context.viscondeRadii;
 
     return Column(
@@ -34,8 +33,8 @@ class StoryRoomHeader extends StatelessWidget {
               height: 180,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.only(
-                  topLeft: radii.base,
-                  topRight: radii.base,
+                  topLeft: Radius.circular(radii.md),
+                  topRight: Radius.circular(radii.md),
                 ),
                 image: DecorationImage(
                   image: AssetImage(ViscondeArtRegistry.resolve(themeArtKey)),
@@ -55,7 +54,7 @@ class StoryRoomHeader extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.8),
-                  borderRadius: radii.base,
+                  borderRadius: radii.radius(radii.md),
                 ),
                 child: Row(
                   children: [
@@ -113,8 +112,8 @@ class StoryRoomHeader extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF1F5B6F), // Match badge color or background
             borderRadius: BorderRadius.only(
-              bottomLeft: radii.base,
-              bottomRight: radii.base,
+              bottomLeft: Radius.circular(radii.md),
+              bottomRight: Radius.circular(radii.md),
             ),
           ),
           child: Row(
@@ -125,9 +124,9 @@ class StoryRoomHeader extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.amber,
                     borderRadius: BorderRadius.only(
-                      bottomLeft: radii.base,
+                      bottomLeft: Radius.circular(radii.md),
                       bottomRight: currentStep == totalSteps
-                          ? radii.base
+                          ? Radius.circular(radii.md)
                           : Radius.zero,
                     ),
                   ),

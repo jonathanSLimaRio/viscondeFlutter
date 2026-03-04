@@ -1314,6 +1314,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
             assetPath: ViscondeArtRegistry.resolve(
               ViscondeArtKey.heroUnderwater,
             ),
+            variant: ViscondeHeroBannerVariant.compactModern,
             showMascot: true,
             mascotPose: ViscondeMascotPose.observingSpyglass,
           ),

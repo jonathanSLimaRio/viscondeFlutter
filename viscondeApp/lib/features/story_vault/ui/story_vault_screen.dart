@@ -17,6 +17,7 @@ import '../../story_creation/create_story_wizard_draft_store.dart';
 import '../../story_creation/quick_story_defaults.dart';
 import '../../story_room/models/story_models.dart';
 import '../../story_room/story_room_controller.dart';
+import '../story_vault_adventure_resolver.dart';
 import '../story_pdf_exporter.dart';
 
 class StoryVaultScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,8 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
   bool _loadingFilters = false;
   bool _favoriteOnly = false;
   bool _quickCreating = false;
+  bool _isFilterExpanded = false;
+  String? _busyCollectionId;
   CreateStoryWizardDraft? _resumeDraft;
   String? _blockingError;
   String? _inlineError;
@@ -332,6 +335,67 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
         _themeController.text.trim().isNotEmpty;
   }
 
+  int get _activeFiltersCount {
+    var count = 0;
+    if (_selectedChildId != null) {
+      count += 1;
+    }
+    if (_selectedVirtueId != null) {
+      count += 1;
+    }
+    if (_dateFrom != null || _dateTo != null) {
+      count += 1;
+    }
+    if (_favoriteOnly) {
+      count += 1;
+    }
+    if (_themeController.text.trim().isNotEmpty) {
+      count += 1;
+    }
+    return count;
+  }
+
+  String? _childLabel(String childId) {
+    for (final child in _children) {
+      if (child.id == childId) {
+        return child.name;
+      }
+    }
+    return null;
+  }
+
+  String? _virtueLabel(String virtueId) {
+    for (final virtue in _virtues) {
+      if (virtue.id == virtueId) {
+        return virtue.name;
+      }
+    }
+    return null;
+  }
+
+  List<String> _activeFilterLabels(DateFormat dateFormat) {
+    final labels = <String>[];
+    final theme = _themeController.text.trim();
+    if (theme.isNotEmpty) {
+      labels.add('Tema: $theme');
+    }
+    if (_selectedChildId case final childId?) {
+      labels.add('Criança: ${_childLabel(childId) ?? 'Selecionada'}');
+    }
+    if (_selectedVirtueId case final virtueId?) {
+      labels.add('Virtude: ${_virtueLabel(virtueId) ?? 'Selecionada'}');
+    }
+    if (_dateFrom != null || _dateTo != null) {
+      final from = _dateFrom == null ? '...' : dateFormat.format(_dateFrom!);
+      final to = _dateTo == null ? '...' : dateFormat.format(_dateTo!);
+      labels.add('Período: $from - $to');
+    }
+    if (_favoriteOnly) {
+      labels.add('Somente favoritas');
+    }
+    return labels;
+  }
+
   String _computeVaultState() {
     if (_loadingInitial) {
       return 'loading';
@@ -393,6 +457,372 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
 
   void _showSnackMessage(String message) {
     context.showMessage(message);
+  }
+
+  bool _isCollectionBusy(String collectionId) {
+    return _busyCollectionId == collectionId;
+  }
+
+  StoryVaultCollectionItem? _collectionById(String collectionId) {
+    for (final item in _collections) {
+      if (item.id == collectionId) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  StoryVaultEpisodeDetail? _latestEpisodeFromDetail(
+    StoryVaultCollectionDetail detail,
+  ) {
+    if (detail.episodes.isEmpty) {
+      return null;
+    }
+    return detail.episodes.last;
+  }
+
+  String _episodeStatusLabel(StoryStatus status) {
+    switch (status) {
+      case StoryStatus.published:
+        return 'Publicado';
+      case StoryStatus.archived:
+        return 'Arquivado';
+      case StoryStatus.draft:
+        return 'Rascunho';
+    }
+  }
+
+  Future<void> _openCollectionAdventure(StoryVaultCollectionItem item) async {
+    if (_busyCollectionId != null) {
+      return;
+    }
+
+    final token = _accessToken();
+    if (token == null) {
+      return;
+    }
+
+    setState(() => _busyCollectionId = item.id);
+    try {
+      final resolver = StoryVaultAdventureResolver(ref.read(storyApiProvider));
+      var result = await resolver.resolve(
+        accessToken: token,
+        collectionId: item.id,
+        collectionItem: item,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (result.code == 'STORY_COLLECTION_DRAFT_EXISTS' &&
+          !result.hasStoryTarget) {
+        await _loadCollections();
+        if (!mounted) {
+          return;
+        }
+        final refreshed = _collectionById(item.id);
+        result = await resolver.resolve(
+          accessToken: token,
+          collectionId: item.id,
+          collectionItem: refreshed,
+        );
+        if (!mounted) {
+          return;
+        }
+      }
+
+      if (!result.hasStoryTarget) {
+        UxAnalytics.log(
+          'vault_story_open_failed',
+          params: <String, Object?>{
+            'source': 'vault_card_tap',
+            'collection_id': item.id,
+            if (result.code != null && result.code!.trim().isNotEmpty)
+              'code': result.code,
+            if (result.message != null && result.message!.trim().isNotEmpty)
+              'message': result.message,
+          },
+        );
+        _showSnackMessage(
+          result.message ?? 'Não foi possível abrir a aventura agora.',
+        );
+        return;
+      }
+
+      var targetStoryId = result.storyId!;
+      if (result.recoveredFromConflict) {
+        await _loadCollections();
+        if (!mounted) {
+          return;
+        }
+        final refreshed = _collectionById(item.id);
+        final latestRefreshed = refreshed?.latestEpisode;
+        if ((refreshed?.draftCount ?? 0) > 0 &&
+            latestRefreshed != null &&
+            latestRefreshed.status == StoryStatus.draft &&
+            latestRefreshed.storyId.trim().isNotEmpty) {
+          targetStoryId = latestRefreshed.storyId;
+        }
+      }
+
+      UxAnalytics.log(
+        'vault_story_opened',
+        params: <String, Object?>{
+          'source': 'vault_card_tap',
+          'collection_id': item.id,
+          'outcome': result.outcome == StoryVaultAdventureOutcome.draftOpened
+              ? 'draft_opened'
+              : 'continued_opened',
+        },
+      );
+
+      context.push(AppRoute.storyRoom(targetStoryId));
+    } catch (error, stackTrace) {
+      AppLogger.warn(
+        'Falha ao abrir aventura a partir do card do Baú.',
+        error: error,
+        stackTrace: stackTrace,
+        scope: 'story_vault',
+      );
+      if (!mounted) {
+        return;
+      }
+      final presentation = describeApiError(error);
+      UxAnalytics.log(
+        'vault_story_open_failed',
+        params: <String, Object?>{
+          'source': 'vault_card_tap',
+          'collection_id': item.id,
+          if (presentation.code != null && presentation.code!.trim().isNotEmpty)
+            'code': presentation.code,
+          'message': presentation.message,
+        },
+      );
+      _showSnackMessage(presentation.message);
+    } finally {
+      if (mounted && _busyCollectionId == item.id) {
+        setState(() => _busyCollectionId = null);
+      }
+    }
+  }
+
+  Future<String?> _askTargetChildId(String defaultChildId) async {
+    final childOptions = _children.isNotEmpty
+        ? _children
+        : <ChildProfile>[
+            ChildProfile(
+              id: defaultChildId,
+              name: 'Criança atual',
+              birthDate: DateTime(2018, 1, 1),
+              favoriteThemes: const <String>[],
+              isArchived: false,
+            ),
+          ];
+    var selected = defaultChildId;
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Repetir aventura'),
+          content: DropdownButtonFormField<String>(
+            initialValue: selected,
+            decoration: const InputDecoration(labelText: 'Criança destino'),
+            items: childOptions
+                .map(
+                  (child) => DropdownMenuItem<String>(
+                    value: child.id,
+                    child: Text(child.name),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                selected = value;
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(selected),
+              child: const Text('Criar template'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _duplicateCollectionFromDetail(
+    StoryVaultCollectionDetail detail,
+  ) async {
+    if (_busyCollectionId != null) {
+      return;
+    }
+    final token = _accessToken();
+    if (token == null) {
+      return;
+    }
+
+    final sourceEpisode = _latestEpisodeFromDetail(detail);
+    if (sourceEpisode == null) {
+      _showSnackMessage('Esta saga ainda não possui capítulos para repetir.');
+      return;
+    }
+
+    final targetChildId = await _askTargetChildId(detail.child.id);
+    if (!mounted || targetChildId == null || targetChildId.isEmpty) {
+      return;
+    }
+
+    setState(() => _busyCollectionId = detail.id);
+    try {
+      final created = await ref
+          .read(storyApiProvider)
+          .duplicateStoryAsTemplate(
+            token,
+            sourceEpisode.storyId,
+            childProfileId: targetChildId,
+          );
+      if (!mounted) {
+        return;
+      }
+      await _loadCollections();
+      if (!mounted) {
+        return;
+      }
+      context.push(AppRoute.storyRoom(created.id));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackMessage(parseDioError(error));
+    } finally {
+      if (mounted && _busyCollectionId == detail.id) {
+        setState(() => _busyCollectionId = null);
+      }
+    }
+  }
+
+  Future<void> _openCollectionActionsSheet(
+    StoryVaultCollectionItem item,
+  ) async {
+    if (_busyCollectionId != null) {
+      return;
+    }
+
+    final token = _accessToken();
+    if (token == null) {
+      return;
+    }
+
+    UxAnalytics.log(
+      'vault_collection_actions_opened',
+      params: <String, Object?>{
+        'source': 'vault_card_actions',
+        'collection_id': item.id,
+      },
+    );
+
+    setState(() => _busyCollectionId = item.id);
+    StoryVaultCollectionDetail? detail;
+    try {
+      detail = await ref
+          .read(storyApiProvider)
+          .getStoryVaultCollection(token, item.id);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackMessage(parseDioError(error));
+      return;
+    } finally {
+      if (mounted && _busyCollectionId == item.id) {
+        setState(() => _busyCollectionId = null);
+      }
+    }
+
+    if (!mounted || detail == null) {
+      return;
+    }
+
+    final detailData = detail;
+    final dateFormat = DateFormat('dd/MM HH:mm');
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  detailData.title,
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${detailData.child.name} · ${detailData.theme}',
+                  style: Theme.of(sheetContext).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: const Icon(Icons.copy),
+                  title: const Text('Repetir aventura'),
+                  subtitle: const Text('Criar uma cópia para outra criança'),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await _duplicateCollectionFromDetail(detailData);
+                  },
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Capítulos',
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                if (detailData.episodes.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2, bottom: 8),
+                    child: Text('Sem capítulos nesta saga.'),
+                  ),
+                ...detailData.episodes.reversed.map((episode) {
+                  return ListTile(
+                    dense: true,
+                    leading: CircleAvatar(
+                      radius: 14,
+                      child: Text(episode.episodeNumber.toString()),
+                    ),
+                    title: Text(
+                      'Ep ${episode.episodeNumber} · ${episode.title}',
+                    ),
+                    subtitle: Text(
+                      '${_episodeStatusLabel(episode.status)} · ${dateFormat.format(episode.updatedAt)}',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      context.push(AppRoute.storyRoom(episode.storyId));
+                    },
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _trackVaultEmptyCta(String cta) {
@@ -674,136 +1104,227 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
   }
 
   Widget _buildFiltersCard(DateFormat dateFormat) {
+    final activeCount = _activeFiltersCount;
+    final activeLabels = _activeFilterLabels(dateFormat);
+    final headerSubtitle = activeCount == 0
+        ? 'Refine por criança, virtude e período.'
+        : '$activeCount filtro(s) ativo(s)';
+
     return ViscondeGlassCard(
-      child: Column(
-        children: [
-          const ViscondeSectionTitle(
-            title: 'Filtros',
-            subtitle: 'Refine por criança, virtude e período.',
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _themeController,
-                  decoration: InputDecoration(
-                    labelText: 'Filtro por tema',
-                    suffixIcon: IconButton(
-                      onPressed: _loadCollections,
-                      icon: const Icon(Icons.search),
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        child: Column(
+          children: [
+            InkWell(
+              key: const Key('vault_filter_accordion_header'),
+              borderRadius: BorderRadius.circular(context.viscondeRadii.md),
+              onTap: () {
+                setState(() => _isFilterExpanded = !_isFilterExpanded);
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Filtro',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            headerSubtitle,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  onSubmitted: (_) => _loadCollections(),
+                    if (_hasActiveFilters)
+                      TextButton(
+                        onPressed: (_loadingCollections || _loadingFilters)
+                            ? null
+                            : _clearFiltersAndReload,
+                        child: const Text('Limpar'),
+                      ),
+                    Icon(
+                      _isFilterExpanded
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (_loadingFilters)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: LinearProgressIndicator(),
             ),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String?>(
-                  initialValue: _selectedChildId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Criança'),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Todas'),
-                    ),
-                    ..._children.map(
-                      (child) => DropdownMenuItem<String?>(
-                        value: child.id,
-                        child: Text(child.name),
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 220),
+              crossFadeState: _isFilterExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              firstCurve: Curves.easeOut,
+              secondCurve: Curves.easeIn,
+              sizeCurve: Curves.easeInOut,
+              firstChild: Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: activeLabels.isEmpty
+                      ? Text(
+                          'Nenhum filtro ativo.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        )
+                      : Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: activeLabels
+                              .map(
+                                (label) => Chip(
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                  label: Text(label),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                ),
+              ),
+              secondChild: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _themeController,
+                          decoration: InputDecoration(
+                            labelText: 'Filtro por tema',
+                            suffixIcon: IconButton(
+                              onPressed: _loadCollections,
+                              icon: const Icon(Icons.search),
+                            ),
+                          ),
+                          onSubmitted: (_) => _loadCollections(),
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (_loadingFilters)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: LinearProgressIndicator(),
                     ),
-                  ],
-                  onChanged: (value) async {
-                    setState(() => _selectedChildId = value);
-                    await _loadCollections();
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String?>(
-                  initialValue: _selectedVirtueId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Virtude'),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('Todas'),
-                    ),
-                    ..._virtues.map(
-                      (virtue) => DropdownMenuItem<String?>(
-                        value: virtue.id,
-                        child: Text(virtue.name),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String?>(
+                          initialValue: _selectedChildId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Criança',
+                          ),
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('Todas'),
+                            ),
+                            ..._children.map(
+                              (child) => DropdownMenuItem<String?>(
+                                value: child.id,
+                                child: Text(child.name),
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) async {
+                            setState(() => _selectedChildId = value);
+                            await _loadCollections();
+                          },
+                        ),
                       ),
-                    ),
-                  ],
-                  onChanged: (value) async {
-                    setState(() => _selectedVirtueId = value);
-                    await _loadCollections();
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickFromDate,
-                  icon: const Icon(Icons.date_range),
-                  label: Text(
-                    _dateFrom == null
-                        ? 'Data inicial'
-                        : 'De ${dateFormat.format(_dateFrom!)}',
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String?>(
+                          initialValue: _selectedVirtueId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Virtude',
+                          ),
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('Todas'),
+                            ),
+                            ..._virtues.map(
+                              (virtue) => DropdownMenuItem<String?>(
+                                value: virtue.id,
+                                child: Text(virtue.name),
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) async {
+                            setState(() => _selectedVirtueId = value);
+                            await _loadCollections();
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _pickToDate,
-                  icon: const Icon(Icons.event),
-                  label: Text(
-                    _dateTo == null
-                        ? 'Data final'
-                        : 'Até ${dateFormat.format(_dateTo!)}',
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _pickFromDate,
+                          icon: const Icon(Icons.date_range),
+                          label: Text(
+                            _dateFrom == null
+                                ? 'Data inicial'
+                                : 'De ${dateFormat.format(_dateFrom!)}',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _pickToDate,
+                          icon: const Icon(Icons.event),
+                          label: Text(
+                            _dateTo == null
+                                ? 'Data final'
+                                : 'Até ${dateFormat.format(_dateTo!)}',
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: _favoriteOnly,
-                  onChanged: (value) async {
-                    setState(() => _favoriteOnly = value);
-                    await _loadCollections();
-                  },
-                  title: const Text(
-                    'Somente favoritas',
-                    style: TextStyle(fontSize: 14),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SwitchListTile.adaptive(
+                          contentPadding: EdgeInsets.zero,
+                          value: _favoriteOnly,
+                          onChanged: (value) async {
+                            setState(() => _favoriteOnly = value);
+                            await _loadCollections();
+                          },
+                          title: const Text(
+                            'Somente favoritas',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -911,10 +1432,11 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
               child: ViscondeHeroBanner(
                 title: 'Baú de Aventuras',
                 subtitle:
-                    '${_collections.length} sagas encontradas · publique em 1 toque',
+                    '${_collections.length} sagas encontradas · toque e continue em 1 toque',
                 assetPath: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.heroTreasure,
                 ),
+                variant: ViscondeHeroBannerVariant.compactModern,
                 showMascot: true,
                 mascotPose: ViscondeMascotPose.readingBook,
               ),
@@ -1011,6 +1533,17 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
 
           if (!_loadingInitial && !hasBlockingError && _collections.isNotEmpty)
             SliverPadding(
+              padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+              sliver: SliverToBoxAdapter(
+                child: Text(
+                  'Toque em uma saga para continuar direto.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ),
+
+          if (!_loadingInitial && !hasBlockingError && _collections.isNotEmpty)
+            SliverPadding(
               padding: const EdgeInsets.only(
                 top: 12,
                 left: 16,
@@ -1021,10 +1554,13 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                 itemCount: _collections.length,
                 itemBuilder: (context, index) {
                   final item = _collections[index];
+                  final isBusy = _isCollectionBusy(item.id);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: ViscondeStoryRowCard(
-                      onTap: () => context.push(AppRoute.vaultDetail(item.id)),
+                      onTap: isBusy
+                          ? null
+                          : () => _openCollectionAdventure(item),
                       title: item.title,
                       badgeLabel: item.virtue?.name ?? item.theme,
                       backgroundAsset: ViscondeArtRegistry.resolve(
@@ -1035,8 +1571,28 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                       trailing: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (isBusy)
+                            const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          else
+                            IconButton(
+                              onPressed: () =>
+                                  _openCollectionActionsSheet(item),
+                              icon: const Icon(Icons.more_horiz),
+                              tooltip: 'Ações da saga',
+                            ),
                           IconButton(
-                            onPressed: () => _toggleFavorite(item),
+                            onPressed: isBusy
+                                ? null
+                                : () => _toggleFavorite(item),
                             icon: Icon(
                               item.isFavorite ? Icons.star : Icons.star_border,
                               color: item.isFavorite

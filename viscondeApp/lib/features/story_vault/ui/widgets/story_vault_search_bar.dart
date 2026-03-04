@@ -52,7 +52,7 @@ class StoryVaultSearchBar extends StatelessWidget {
           const VerticalDivider(indent: 8, endIndent: 8),
           IconButton(
             onPressed: onOpenFilters,
-            tooltip: 'Filtros',
+            tooltip: 'Filtro',
             icon: Icon(Icons.tune_rounded, color: colors.textStrong, size: 28),
           ),
           const SizedBox(width: 4),

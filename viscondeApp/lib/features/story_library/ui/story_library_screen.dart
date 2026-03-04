@@ -96,6 +96,7 @@ class _StoryLibraryScreenState extends ConsumerState<StoryLibraryScreen> {
                 assetPath: ViscondeArtRegistry.resolve(
                   ViscondeArtKey.heroTreasure,
                 ),
+                variant: ViscondeHeroBannerVariant.compactModern,
                 showMascot: true,
                 mascotPose: ViscondeMascotPose.readingBook,
               ),

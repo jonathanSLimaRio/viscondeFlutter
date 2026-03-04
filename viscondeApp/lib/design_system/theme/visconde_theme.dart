@@ -162,7 +162,7 @@ class ViscondeTheme {
         subtitleTextStyle: TextStyle(color: colors.textMuted),
       ),
       snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.fixed,
         backgroundColor: colors.textStrong,
         contentTextStyle: const TextStyle(color: Colors.white),
         shape: RoundedRectangleBorder(

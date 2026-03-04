@@ -181,12 +181,43 @@ void main() {
 
     await tester.pumpAndSettle();
 
+    expect(find.text('Filtro'), findsOneWidget);
+    expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
     expect(find.text(UiStateCopy.vaultEmptyTitle), findsOneWidget);
     expect(
       find.textContaining('Criar história rápida'),
       findsAtLeastNWidgets(1),
     );
     expect(find.text('Criar com detalhes'), findsAtLeastNWidgets(1));
+  });
+
+  testWidgets('filtro inicia recolhido e expande no acordeon', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+
+    await _pumpApp(
+      tester,
+      overrides: [
+        ...authOverrides(user: buildTestUser(), authenticated: true),
+        childrenApiProvider.overrideWith(
+          (ref) => FakeChildrenApi(children: children),
+        ),
+        storyApiProvider.overrideWith(
+          (ref) => FakeStoryApi(
+            collections: const <StoryVaultCollectionItem>[],
+            virtues: const <VirtueModel>[],
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
+    await tester.tap(find.byKey(const Key('vault_filter_accordion_header')));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.expand_less_rounded), findsOneWidget);
+    expect(find.text('Somente favoritas'), findsOneWidget);
   });
 
   testWidgets('empty com filtro mostra opção de limpar filtros', (
@@ -212,6 +243,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const Key('vault_filter_accordion_header')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Somente favoritas'));
     await tester.pumpAndSettle();
 

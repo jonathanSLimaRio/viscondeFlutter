@@ -24,7 +24,7 @@ import '../features/story_creation/ui/create_story_screen.dart';
 import '../features/story_room/models/story_models.dart';
 import '../features/story_room/ui/story_room_entry_screen.dart';
 import '../features/story_room/ui/story_summary_screen.dart';
-import '../features/story_vault/ui/story_vault_detail_screen.dart';
+import '../features/story_vault/ui/story_vault_collection_redirect_screen.dart';
 import '../shared/loading_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -110,7 +110,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoute.vaultDetailPattern,
         builder: (context, state) {
           final collectionId = state.pathParameters['id'] ?? '';
-          return StoryVaultDetailScreen(collectionId: collectionId);
+          return StoryVaultCollectionRedirectScreen(collectionId: collectionId);
         },
       ),
       GoRoute(

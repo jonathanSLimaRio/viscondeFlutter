@@ -50,43 +50,53 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Painel do pai narrador',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _narrationController,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            labelText: 'Narrativa da etapa',
-            alignLabelWithHint: true,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFAF2E6),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFD4B483)),
           ),
-        ),
-        const SizedBox(height: 8),
-        ViscondePrimaryCta(
-          onPressed: widget.loading ? null : _saveNarration,
-          icon: Icons.save_outlined,
-          label: 'Salvar etapa (autosave)',
+          child: TextField(
+            controller: _narrationController,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: 'Escreva a próxima parte da história...',
+              border: InputBorder.none,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: _hintController,
-          decoration: const InputDecoration(
-            labelText: 'Dica opcional para ideias',
-          ),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: widget.loading
-              ? null
-              : () {
-                  widget.onRequestIdeas(_hintController.text.trim());
-                },
-          icon: const Icon(Icons.auto_awesome),
-          label: const Text('Me dá ideias'),
+        Row(
+          children: [
+            Expanded(
+              child: ViscondePrimaryCta(
+                onPressed: widget.loading ? null : _saveNarration,
+                icon: Icons.save_outlined,
+                label: 'Salvar Etapa',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F5B6F),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+                onPressed: widget.loading
+                    ? null
+                    : () {
+                        widget.onRequestIdeas(_hintController.text.trim());
+                      },
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('Gerar ideia'),
+              ),
+            ),
+          ],
         ),
         if (widget.ideas.isNotEmpty) ...[
           const SizedBox(height: 12),

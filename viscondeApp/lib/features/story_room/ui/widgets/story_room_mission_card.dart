@@ -12,7 +12,7 @@ class StoryRoomMissionCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFDE8C4), // Light parchment look
-        borderRadius: context.viscondeRadii.base,
+        borderRadius: context.viscondeRadii.radius(context.viscondeRadii.md),
         border: Border.all(color: const Color(0xFFD4B483), width: 2),
         boxShadow: [
           BoxShadow(

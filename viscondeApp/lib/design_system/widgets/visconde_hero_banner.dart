@@ -4,6 +4,8 @@ import '../tokens/visconde_tokens.dart';
 import 'visconde_glass_card.dart';
 import 'visconde_mascot.dart';
 
+enum ViscondeHeroBannerVariant { classic, compactModern }
+
 class ViscondeHeroBanner extends StatelessWidget {
   const ViscondeHeroBanner({
     super.key,
@@ -16,6 +18,7 @@ class ViscondeHeroBanner extends StatelessWidget {
     this.mascotAlignment = Alignment.bottomRight,
     this.mascotSize = 96,
     this.mascotOpacity = 1,
+    this.variant = ViscondeHeroBannerVariant.classic,
   });
 
   final String title;
@@ -27,15 +30,28 @@ class ViscondeHeroBanner extends StatelessWidget {
   final Alignment mascotAlignment;
   final double mascotSize;
   final double mascotOpacity;
+  final ViscondeHeroBannerVariant variant;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.viscondeColors;
+    final isCompact = variant == ViscondeHeroBannerVariant.compactModern;
+    final resolvedHeight = isCompact && height == 170 ? 132.0 : height;
+    final resolvedMascotSize = isCompact && mascotSize == 96
+        ? 72.0
+        : mascotSize;
+    final textPadding = isCompact
+        ? const EdgeInsets.fromLTRB(12, 10, 12, 10)
+        : const EdgeInsets.all(16);
+    final mascotPadding = isCompact
+        ? const EdgeInsets.only(right: 10, bottom: 2)
+        : const EdgeInsets.only(right: 12, bottom: 4);
+
     return ViscondeGlassCard(
       padding: EdgeInsets.zero,
       radius: context.viscondeRadii.xl,
       child: SizedBox(
-        height: height,
+        height: resolvedHeight,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -47,14 +63,24 @@ class ViscondeHeroBanner extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(context.viscondeRadii.xl),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.1),
-                    colors.parchment.withValues(alpha: 0.82),
-                  ],
-                ),
+                gradient: isCompact
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.08),
+                          colors.parchment.withValues(alpha: 0.74),
+                          colors.parchment.withValues(alpha: 0.9),
+                        ],
+                      )
+                    : LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.1),
+                          colors.parchment.withValues(alpha: 0.82),
+                        ],
+                      ),
               ),
             ),
             if (showMascot)
@@ -63,10 +89,10 @@ class ViscondeHeroBanner extends StatelessWidget {
                   child: Align(
                     alignment: mascotAlignment,
                     child: Padding(
-                      padding: const EdgeInsets.only(right: 12, bottom: 4),
+                      padding: mascotPadding,
                       child: ViscondeMascot(
                         pose: mascotPose,
-                        size: mascotSize,
+                        size: resolvedMascotSize,
                         glow: true,
                         opacity: mascotOpacity,
                       ),
@@ -75,7 +101,7 @@ class ViscondeHeroBanner extends StatelessWidget {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: textPadding,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -87,13 +113,19 @@ class ViscondeHeroBanner extends StatelessWidget {
                         Text(
                           title,
                           style: Theme.of(context).textTheme.headlineSmall,
+                          maxLines: isCompact ? 2 : null,
+                          overflow: isCompact ? TextOverflow.ellipsis : null,
                         ),
                         if (subtitle case final text? when text.isNotEmpty)
                           Padding(
-                            padding: const EdgeInsets.only(top: 4),
+                            padding: EdgeInsets.only(top: isCompact ? 2 : 4),
                             child: Text(
                               text,
                               style: Theme.of(context).textTheme.bodyLarge,
+                              maxLines: isCompact ? 2 : null,
+                              overflow: isCompact
+                                  ? TextOverflow.ellipsis
+                                  : null,
                             ),
                           ),
                       ],

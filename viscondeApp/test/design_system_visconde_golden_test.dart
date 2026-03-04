@@ -134,4 +134,28 @@ void main() {
       ),
     );
   });
+
+  testWidgets('ViscondeHeroBanner golden compact modern', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 280));
+    await tester.pumpWidget(
+      wrapTestApp(
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: ViscondeHeroBanner(
+            title: 'Baú de Aventuras',
+            subtitle: '4 histórias salvas · continuar em 1 toque',
+            variant: ViscondeHeroBannerVariant.compactModern,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile(
+        'goldens/design_system/visconde_hero_banner_compact_modern.png',
+      ),
+    );
+  });
 }

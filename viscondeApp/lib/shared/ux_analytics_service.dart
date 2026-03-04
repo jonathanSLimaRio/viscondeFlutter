@@ -48,6 +48,9 @@ class UxAnalyticsService {
     'pin_prompt_success',
     'pin_prompt_abandon',
     'pin_lock_now_clicked',
+    'vault_story_opened',
+    'vault_story_open_failed',
+    'vault_collection_actions_opened',
   };
 
   bool _started = false;

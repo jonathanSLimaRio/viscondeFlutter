@@ -256,6 +256,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
             title: 'Fechar capítulo',
             subtitle: 'Revise a história antes de publicar.',
             assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroCastle),
+            variant: ViscondeHeroBannerVariant.compactModern,
             showMascot: true,
             mascotPose: ViscondeMascotPose.enchantedHearts,
           ),

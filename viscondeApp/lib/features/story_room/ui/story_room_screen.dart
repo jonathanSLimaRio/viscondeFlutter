@@ -656,14 +656,19 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                                   : Colors.black54,
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              'Criança escolhe',
-                              style: TextStyle(
-                                color:
-                                    story.currentMode == StoryMode.childChooser
-                                    ? Colors.black87
-                                    : Colors.black87,
-                                fontWeight: FontWeight.bold,
+                            Flexible(
+                              child: Text(
+                                'Criança escolhe',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color:
+                                      story.currentMode ==
+                                          StoryMode.childChooser
+                                      ? Colors.black87
+                                      : Colors.black87,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
@@ -724,7 +729,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
             ),
             const SizedBox(height: 12),
             const ViscondeSectionTitle(
-              title: 'Timeline da sessão',
+              title: 'Sua jornada até aqui',
               subtitle: 'Cada passo salvo da aventura.',
             ),
             const SizedBox(height: 8),
@@ -734,18 +739,73 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                 child: Text('Ainda sem etapas salvas.'),
               ),
             ...story.steps.map(
-              (step) => Card(
-                child: ListTile(
-                  leading: CircleAvatar(child: Text(step.stepIndex.toString())),
-                  title: Text(_stepTitle(step)),
-                  subtitle: Text(_stepText(step)),
-                  trailing: step.kind == StoryStepKind.narration
-                      ? IconButton(
-                          icon: const Icon(Icons.record_voice_over),
-                          tooltip: 'Narrar com Voz da Família',
-                          onPressed: () => _showNarrateDialog(step),
-                        )
-                      : null,
+              (step) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDE8C4),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD4B483),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.star,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _stepTitle(step),
+                            style: const TextStyle(
+                              color: Color(0xFF3E281B),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _stepText(step),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF6B5446),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (step.kind == StoryStepKind.narration)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.record_voice_over,
+                          color: Color(0xFF3E281B),
+                        ),
+                        tooltip: 'Narrar com Voz da Família',
+                        onPressed: () => _showNarrateDialog(step),
+                      ),
+                  ],
                 ),
               ),
             ),

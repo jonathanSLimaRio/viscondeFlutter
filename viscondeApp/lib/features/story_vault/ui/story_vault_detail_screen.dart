@@ -341,6 +341,7 @@ class _StoryVaultDetailScreenState
               title: detail.title,
               subtitle: '${detail.child.name} · ${detail.theme}',
               assetPath: ViscondeArtRegistry.resolve(ViscondeArtKey.heroForest),
+              variant: ViscondeHeroBannerVariant.compactModern,
               showMascot: true,
               mascotPose: ViscondeMascotPose.readingBook,
             ),
