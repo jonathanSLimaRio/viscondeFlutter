@@ -1006,6 +1006,7 @@ const qaWalletBaselineByAccount = {
 
 const MAX_STORY_STEPS = 12;
 const GAME_MAP_VERSION = 1;
+const INT32_MAX = 2_147_483_647;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -1017,7 +1018,7 @@ function hashSeed(value) {
     hashValue ^= value.charCodeAt(index);
     hashValue = Math.imul(hashValue, 16777619);
   }
-  return Math.abs(hashValue >>> 0);
+  return (Math.abs(hashValue >>> 0) % INT32_MAX) || 1;
 }
 
 function computeStoryGameSeed(input) {

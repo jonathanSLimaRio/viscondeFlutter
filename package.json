@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "db:reset": "prisma migrate reset --force --skip-seed --skip-generate",
+    "db:reset": "prisma migrate reset --force",
     "db:seed:qa": "node prisma/seed.mjs && node prisma/gamification-backfill.mjs && node prisma/seed-verify.mjs",
     "db:reset:seed:qa": "node prisma/reset-seed-qa.mjs",
     "seed": "node prisma/seed.mjs",

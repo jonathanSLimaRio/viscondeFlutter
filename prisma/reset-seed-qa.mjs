@@ -42,7 +42,7 @@ function runStep(label, command, args) {
   }
 }
 
-function main() {
+async function main() {
   const databaseUrl = getDatabaseUrl();
   if (!databaseUrl) {
     throw new Error(
