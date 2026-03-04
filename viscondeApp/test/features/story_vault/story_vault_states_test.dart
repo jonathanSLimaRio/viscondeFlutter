@@ -56,6 +56,26 @@ class ErrorStoryApi extends FakeStoryApi {
   }
 }
 
+class FilterAwareStoryApi extends FakeStoryApi {
+  FilterAwareStoryApi({required super.collections, required super.virtues});
+
+  @override
+  Future<List<StoryVaultCollectionItem>> listStoryVaultCollections(
+    String accessToken, {
+    String? childProfileId,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+    String? theme,
+    String? virtueId,
+    bool favoriteOnly = false,
+  }) async {
+    if (favoriteOnly) {
+      return const <StoryVaultCollectionItem>[];
+    }
+    return collections;
+  }
+}
+
 class NoopUxStore implements UxAnalyticsStore {
   @override
   Future<void> dispose() async {}
@@ -134,6 +154,38 @@ void main() {
       isArchived: false,
     ),
   ];
+  final virtues = <VirtueModel>[
+    const VirtueModel(
+      id: 'virtue-1',
+      slug: 'coragem',
+      name: 'Coragem',
+      shortDescription: 'Seguir em frente',
+      iconKey: 'courage',
+      sortOrder: 1,
+    ),
+  ];
+  final collections = <StoryVaultCollectionItem>[
+    StoryVaultCollectionItem(
+      id: 'collection-1',
+      title: 'Aventura da Lia',
+      theme: 'Floresta',
+      virtue: virtues.first,
+      isFavorite: false,
+      child: const StoryVaultChild(id: 'child-1', name: 'Lia'),
+      episodesCount: 2,
+      publishedCount: 1,
+      draftCount: 1,
+      lastReferenceAt: DateTime(2026, 3, 4, 10, 0),
+      latestEpisode: StoryVaultLatestEpisode(
+        storyId: 'story-1',
+        episodeNumber: 2,
+        title: 'Misterio na Floresta',
+        status: StoryStatus.draft,
+        updatedAt: DateTime(2026, 3, 4, 10, 0),
+        currentStepIndex: 1,
+      ),
+    ),
+  ];
 
   testWidgets('renderiza skeleton no carregamento inicial', (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
@@ -181,14 +233,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Filtro'), findsOneWidget);
-    expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
     expect(find.text(UiStateCopy.vaultEmptyTitle), findsOneWidget);
-    expect(
-      find.textContaining('Criar história rápida'),
-      findsAtLeastNWidgets(1),
-    );
-    expect(find.text('Criar com detalhes'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('Criar história rápida'), findsNothing);
+    expect(find.text('Criar Aventura'), findsAtLeastNWidgets(1));
   });
 
   testWidgets('filtro inicia recolhido e expande no acordeon', (tester) async {
@@ -202,10 +249,7 @@ void main() {
           (ref) => FakeChildrenApi(children: children),
         ),
         storyApiProvider.overrideWith(
-          (ref) => FakeStoryApi(
-            collections: const <StoryVaultCollectionItem>[],
-            virtues: const <VirtueModel>[],
-          ),
+          (ref) => FakeStoryApi(collections: collections, virtues: virtues),
         ),
       ],
     );
@@ -233,10 +277,8 @@ void main() {
           (ref) => FakeChildrenApi(children: children),
         ),
         storyApiProvider.overrideWith(
-          (ref) => FakeStoryApi(
-            collections: const <StoryVaultCollectionItem>[],
-            virtues: const <VirtueModel>[],
-          ),
+          (ref) =>
+              FilterAwareStoryApi(collections: collections, virtues: virtues),
         ),
       ],
     );

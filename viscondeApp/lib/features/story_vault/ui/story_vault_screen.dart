@@ -14,9 +14,7 @@ import '../../../shared/providers.dart';
 import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
 import '../../story_creation/create_story_wizard_draft_store.dart';
-import '../../story_creation/quick_story_defaults.dart';
 import '../../story_room/models/story_models.dart';
-import '../../story_room/story_room_controller.dart';
 import '../story_vault_adventure_resolver.dart';
 import '../story_pdf_exporter.dart';
 
@@ -36,7 +34,6 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
   bool _loadingCollections = false;
   bool _loadingFilters = false;
   bool _favoriteOnly = false;
-  bool _quickCreating = false;
   bool _isFilterExpanded = false;
   String? _busyCollectionId;
   CreateStoryWizardDraft? _resumeDraft;
@@ -837,241 +834,19 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     );
   }
 
-  Future<void> _createQuickStory() async {
-    if (_quickCreating) {
-      return;
-    }
-
-    final token = _accessToken();
-    if (token == null) {
-      return;
-    }
-
-    final startedAt = DateTime.now();
-    setState(() => _quickCreating = true);
-
-    UxAnalytics.log(
-      'story_create_started',
-      params: const <String, Object?>{
-        'source': 'story_vault_quick',
-        'flow': 'quick',
-      },
-    );
-
-    try {
-      if (_children.isEmpty) {
-        await _loadFiltersData();
-      }
-      if (!mounted) {
-        return;
-      }
-
-      final selectedChild = selectQuickStoryChild(
-        children: _children,
-        collections: _collections,
-        selectedChildId: _selectedChildId,
-      );
-      if (selectedChild == null) {
-        final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
-        UxAnalytics.log(
-          'story_create_abandoned',
-          params: <String, Object?>{
-            'step': 1,
-            'source': 'story_vault_quick',
-            'flow': 'quick',
-            'reason': 'no_child',
-            'duration_ms': elapsed,
-          },
-        );
-        _showSnackMessage(
-          'Cadastre uma criança em Perfil > Crianças para começar a aventura.',
-        );
-        return;
-      }
-
-      final templates = await ref
-          .read(storyApiProvider)
-          .listPublishedStoryTemplates(token);
-
-      String? suggestedVirtueId;
-      try {
-        final suggestion = await ref
-            .read(storyApiProvider)
-            .suggestVirtue(token, childProfileId: selectedChild.id);
-        suggestedVirtueId = suggestion.virtue.id;
-      } catch (error, stackTrace) {
-        AppLogger.warn(
-          'Falha ao sugerir virtude no quick create. Seguindo com fallback.',
-          error: error,
-          stackTrace: stackTrace,
-          scope: 'story_vault',
-        );
-        // O backend já resolve virtude automaticamente quando necessário.
-      }
-
-      final defaults = buildQuickStoryDefaults(
-        children: _children,
-        collections: _collections,
-        templates: templates,
-        selectedChildId: _selectedChildId,
-        suggestedVirtueId: suggestedVirtueId,
-      );
-
-      if (defaults == null) {
-        final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
-        UxAnalytics.log(
-          'story_create_abandoned',
-          params: <String, Object?>{
-            'step': 1,
-            'source': 'story_vault_quick',
-            'flow': 'quick',
-            'reason': 'defaults_unavailable',
-            'duration_ms': elapsed,
-          },
-        );
-        _showSnackMessage('Não foi possível montar uma história rápida agora.');
-        return;
-      }
-
-      UxAnalytics.log(
-        'story_create_step_completed',
-        params: <String, Object?>{
-          'step': 1,
-          'source': 'story_vault_quick',
-          'flow': 'quick',
-          'child_id': defaults.child.id,
-        },
-      );
-
-      final created = await ref
-          .read(storyRoomControllerProvider.notifier)
-          .createSession(
-            childProfileId: defaults.child.id,
-            titleDraft: defaults.titleDraft,
-            theme: defaults.theme,
-            scenario: defaults.scenario,
-            characters: defaults.characters,
-            objective: defaults.objective,
-            startMode: StoryMode.parentNarrator,
-            virtueId: defaults.virtueId,
-            sourceTemplateId: defaults.sourceTemplateId,
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      if (created == null) {
-        final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
-        UxAnalytics.log(
-          'story_create_abandoned',
-          params: <String, Object?>{
-            'step': 2,
-            'source': 'story_vault_quick',
-            'flow': 'quick',
-            'reason': 'create_failed',
-            'child_id': defaults.child.id,
-            'duration_ms': elapsed,
-          },
-        );
-        final error = ref.read(storyRoomControllerProvider).error;
-        _showSnackMessage(error ?? 'Não foi possível criar a história rápida.');
-        return;
-      }
-
-      UxAnalytics.log(
-        'story_create_step_completed',
-        params: <String, Object?>{
-          'step': 2,
-          'source': 'story_vault_quick',
-          'flow': 'quick',
-          'child_id': defaults.child.id,
-        },
-      );
-
-      final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
-      UxAnalytics.log(
-        'story_create_step_completed',
-        params: <String, Object?>{
-          'step': 3,
-          'source': 'story_vault_quick',
-          'flow': 'quick',
-          'child_id': defaults.child.id,
-          'duration_ms': elapsed,
-        },
-      );
-      context.push(AppRoute.storyRoom(created.id));
-      final userId = ref.read(authControllerProvider).user?.id;
-      if (userId != null) {
-        try {
-          await ref.read(createStoryWizardDraftStoreProvider).clear(userId);
-        } catch (error, stackTrace) {
-          AppLogger.warn(
-            'Falha ao limpar rascunho local após quick create.',
-            error: error,
-            stackTrace: stackTrace,
-            scope: 'story_vault',
-          );
-        }
-      }
-      if (mounted) {
-        setState(() {
-          _resumeDraft = null;
-        });
-      }
-    } catch (error) {
-      final elapsed = DateTime.now().difference(startedAt).inMilliseconds;
-      UxAnalytics.log(
-        'story_create_abandoned',
-        params: <String, Object?>{
-          'step': 1,
-          'source': 'story_vault_quick',
-          'flow': 'quick',
-          'reason': 'request_error',
-          'duration_ms': elapsed,
-        },
-      );
-      if (!mounted) {
-        return;
-      }
-      _showSnackMessage(parseDioError(error));
-    } finally {
-      if (mounted) {
-        setState(() => _quickCreating = false);
-      }
-    }
-  }
-
   Widget _buildCreationActions({bool trackAsEmptyCta = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ViscondePrimaryCta(
-          onPressed: _quickCreating
-              ? null
-              : () {
-                  if (trackAsEmptyCta) {
-                    _trackVaultEmptyCta('quick_create');
-                  }
-                  _createQuickStory();
-                },
-          icon: Icons.flash_on_rounded,
-          label: _quickCreating
-              ? 'Criando história rápida...'
-              : 'Criar história rápida (1 toque)',
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _quickCreating
-              ? null
-              : () {
-                  if (trackAsEmptyCta) {
-                    _trackVaultEmptyCta('create_with_details');
-                  }
-                  _openCreateWithResume(resume: false);
-                },
-          icon: const Icon(Icons.tune),
-          label: const Text('Criar com detalhes'),
+          onPressed: () {
+            if (trackAsEmptyCta) {
+              _trackVaultEmptyCta('create_with_details');
+            }
+            _openCreateWithResume(resume: false);
+          },
+          icon: Icons.auto_stories_rounded,
+          label: 'Criar Aventura',
         ),
         const SizedBox(height: 8),
         Text(
@@ -1341,30 +1116,23 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     return ViscondeContentState.empty(
       title: title,
       description: description,
-      primaryActionLabel: filtered
-          ? 'Limpar filtros'
-          : 'Criar história rápida (1 toque)',
+      primaryActionLabel: filtered ? 'Limpar filtros' : 'Criar Aventura',
       onPrimaryAction: filtered
           ? () {
               _trackVaultEmptyCta('clear_filters');
               _clearFiltersAndReload();
             }
           : () {
-              _trackVaultEmptyCta('quick_create');
-              _createQuickStory();
+              _trackVaultEmptyCta('create_with_details');
+              _openCreateWithResume(resume: false);
             },
-      secondaryActionLabel: filtered
-          ? 'Tentar novamente'
-          : 'Criar com detalhes',
+      secondaryActionLabel: filtered ? 'Tentar novamente' : null,
       onSecondaryAction: filtered
           ? () {
               _trackVaultEmptyCta('retry');
               _retryVaultLoad();
             }
-          : () {
-              _trackVaultEmptyCta('create_with_details');
-              _openCreateWithResume(resume: false);
-            },
+          : null,
       mascotPose: filtered
           ? ViscondeMascotPose.enchantedHearts
           : ViscondeMascotPose.readingBook,
@@ -1585,10 +1353,10 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
                       _blockingError ?? UiStateCopy.genericErrorDescription,
                   primaryActionLabel: 'Tentar novamente',
                   onPrimaryAction: _retryVaultLoad,
-                  secondaryActionLabel: 'Criar história rápida (1 toque)',
+                  secondaryActionLabel: 'Criar Aventura',
                   onSecondaryAction: () {
-                    _trackVaultEmptyCta('quick_create_error');
-                    _createQuickStory();
+                    _trackVaultEmptyCta('create_with_details_error');
+                    _openCreateWithResume(resume: false);
                   },
                 ),
               ),
