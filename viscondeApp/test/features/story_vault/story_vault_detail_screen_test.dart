@@ -227,7 +227,7 @@ void main() {
     ),
   ];
 
-  ProviderContainer _containerWithApi(StoryVaultDetailTestApi api) {
+  ProviderContainer containerWithApi(StoryVaultDetailTestApi api) {
     final container = ProviderContainer(
       overrides: [
         authControllerProvider.overrideWith((ref) => StaticAuthController()),
@@ -262,7 +262,7 @@ void main() {
         ),
       ],
     );
-    final container = _containerWithApi(api);
+    final container = containerWithApi(api);
 
     await _pumpDetailApp(tester, container: container);
     await _pumpUntilVisible(tester, find.text('Continuar aventura'));
@@ -290,7 +290,7 @@ void main() {
       ],
       continueHandler: (sourceStoryId) async => _session('story-created'),
     );
-    final container = _containerWithApi(api);
+    final container = containerWithApi(api);
 
     await _pumpDetailApp(tester, container: container);
     await _pumpUntilVisible(tester, find.text('Continuar aventura'));
@@ -319,7 +319,7 @@ void main() {
         ],
         continueHandler: (sourceStoryId) async => _session('story-created'),
       );
-      final container = _containerWithApi(api);
+      final container = containerWithApi(api);
 
       await _pumpDetailApp(tester, container: container);
       await _pumpUntilVisible(tester, find.text('Continuar aventura'));
@@ -336,7 +336,7 @@ void main() {
     final api = StoryVaultDetailTestApi(
       detailSequence: [_detail(episodes: const <StoryVaultEpisodeDetail>[])],
     );
-    final container = _containerWithApi(api);
+    final container = containerWithApi(api);
 
     await _pumpDetailApp(tester, container: container);
     await _pumpUntilVisible(tester, find.text('Continuar aventura'));
@@ -386,7 +386,7 @@ void main() {
         );
       },
     );
-    final container = _containerWithApi(api);
+    final container = containerWithApi(api);
 
     await _pumpDetailApp(tester, container: container);
     await _pumpUntilVisible(tester, find.text('Continuar aventura'));

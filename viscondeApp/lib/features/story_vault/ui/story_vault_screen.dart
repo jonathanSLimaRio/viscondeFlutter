@@ -746,7 +746,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
       }
     }
 
-    if (!mounted || detail == null) {
+    if (!mounted) {
       return;
     }
 

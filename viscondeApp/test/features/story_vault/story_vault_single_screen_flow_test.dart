@@ -97,12 +97,11 @@ class StoryVaultSingleFlowApi extends FakeStoryApi {
     required this.detailSequences,
     this.continueHandler,
     this.duplicateHandler,
-    required List<VirtueModel> virtues,
+    required super.virtues,
   }) : super(
          collections: collectionsSequence.isEmpty
              ? const <StoryVaultCollectionItem>[]
              : collectionsSequence.first,
-         virtues: virtues,
        );
 
   final List<List<StoryVaultCollectionItem>> collectionsSequence;
