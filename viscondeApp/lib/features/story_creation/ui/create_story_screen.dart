@@ -601,14 +601,21 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
           : existingTitle;
       ref
           .read(gameAdventureSessionControllerProvider.notifier)
-          .setFromStory(storyId: _storyId!, title: normalizedTitle);
+          .setFromStory(
+            storyId: _storyId!,
+            title: normalizedTitle,
+            childProfileId: _selectedChildId,
+            theme: _themeController.text.trim(),
+          );
       _logStepCompleted(reason: completionReason);
       _flowCompleted = true;
       await _clearLocalDraft();
       if (!mounted) {
         return false;
       }
-      context.go(AppRoute.homePath(tab: HomeTab.game));
+      context.go(
+        AppRoute.storyGameReadyPath(storyId: _storyId!, title: normalizedTitle),
+      );
       return true;
     }
 
@@ -679,6 +686,9 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         .setFromStory(
           storyId: created.id,
           title: createdTitle.isEmpty ? 'Aventura sem nome' : createdTitle,
+          childProfileId: created.childProfileId,
+          theme: created.theme,
+          biome: created.gameSummary?.biome ?? created.game?.map.biome,
         );
 
     _logStepCompleted(reason: completionReason);
@@ -687,7 +697,12 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     if (!mounted) {
       return false;
     }
-    context.go(AppRoute.homePath(tab: HomeTab.game));
+    context.go(
+      AppRoute.storyGameReadyPath(
+        storyId: created.id,
+        title: createdTitle.isEmpty ? 'Aventura sem nome' : createdTitle,
+      ),
+    );
     return true;
   }
 

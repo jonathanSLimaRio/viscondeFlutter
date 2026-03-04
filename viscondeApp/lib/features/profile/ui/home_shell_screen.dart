@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../features/auth/auth_controller.dart';
 import '../../../features/auth/session_persona_controller.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ux_analytics.dart';
 import '../../gamification/ui/game_blank_screen.dart';
 import '../../gamification/ui/game_hub_screen.dart';
 import '../../security/parental_gate_controller.dart';
@@ -197,6 +199,17 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
         index: _index,
         showParentArea: !isChildMode,
         onTabSelected: _onMenuTabSelected,
+        onOpenAvatars: () {
+          Navigator.of(context).pop();
+          UxAnalytics.log(
+            'avatar_editor_opened',
+            params: const <String, Object?>{
+              'source': 'home_drawer',
+              'target': 'family',
+            },
+          );
+          context.push(AppRoute.avatarEditorPath(source: 'home_drawer'));
+        },
         onLogout: () {
           Navigator.of(context).pop();
           _confirmLogout();
@@ -347,12 +360,14 @@ class _HomeDrawer extends ConsumerWidget {
     required this.index,
     required this.showParentArea,
     required this.onTabSelected,
+    required this.onOpenAvatars,
     required this.onLogout,
   });
 
   final int index;
   final bool showParentArea;
   final ValueChanged<int> onTabSelected;
+  final VoidCallback onOpenAvatars;
   final VoidCallback onLogout;
 
   @override
@@ -380,6 +395,23 @@ class _HomeDrawer extends ConsumerWidget {
                   index: 3,
                   icon: Icons.person_outline_rounded,
                   label: 'Meu Perfil',
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.palette_outlined,
+                    color: colors.textMuted,
+                  ),
+                  title: Text(
+                    'Avatares',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: colors.textStrong,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onTap: onOpenAvatars,
                 ),
                 if (showParentArea)
                   _buildItem(

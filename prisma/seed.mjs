@@ -1715,7 +1715,7 @@ async function applyDemoForUser(accountState, coreRefs) {
       });
 
       const characterIds = [];
-      for (const [index, character] of story.characters.entries()) {
+      for (const character of story.characters) {
         const characterId = seedId(
           accountState.key,
           "story",

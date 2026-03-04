@@ -47,12 +47,10 @@ abstract final class AppRoute {
   }) {
     return Uri(
       path: storyGameReady,
-      queryParameters: <String, String>{
-        'storyId': storyId,
-        'title': title,
-      },
+      queryParameters: <String, String>{'storyId': storyId, 'title': title},
     ).toString();
   }
+
   static String homePath({HomeTab tab = HomeTab.stories}) {
     if (tab == HomeTab.stories) {
       return home;

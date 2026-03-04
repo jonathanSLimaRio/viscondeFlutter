@@ -74,21 +74,13 @@ const List<AvatarPresetOption> avatarPresetOptions = <AvatarPresetOption>[
 ];
 
 const List<AvatarAccentOption> avatarAccentOptions = <AvatarAccentOption>[
-  AvatarAccentOption(
-    key: 'amber',
-    label: 'Âmbar',
-    color: Color(0xFFFFC107),
-  ),
+  AvatarAccentOption(key: 'amber', label: 'Âmbar', color: Color(0xFFFFC107)),
   AvatarAccentOption(
     key: 'emerald',
     label: 'Esmeralda',
     color: Color(0xFF10B981),
   ),
-  AvatarAccentOption(
-    key: 'sky',
-    label: 'Céu',
-    color: Color(0xFF0EA5E9),
-  ),
+  AvatarAccentOption(key: 'sky', label: 'Céu', color: Color(0xFF0EA5E9)),
 ];
 
 AvatarPresetOption _presetOrDefault(String? key) {
@@ -132,4 +124,3 @@ Color resolveAvatarAccentColor(String? key) {
   }
   return avatarAccentOptions.first.color;
 }
-

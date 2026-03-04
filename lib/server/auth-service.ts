@@ -21,7 +21,17 @@ import { toUserDTO } from "@/lib/server/user";
 
 type AuthUser = Pick<
   User,
-  "id" | "name" | "email" | "timezone" | "imageUrl" | "role" | "createdAt" | "updatedAt"
+  | "id"
+  | "name"
+  | "email"
+  | "timezone"
+  | "imageUrl"
+  | "avatarPresetKey"
+  | "avatarVariant"
+  | "avatarAccent"
+  | "role"
+  | "createdAt"
+  | "updatedAt"
 >;
 
 type SocialIdentity = {
@@ -97,6 +107,9 @@ async function getSafeUserById(userId: string): Promise<AuthUser> {
       email: true,
       timezone: true,
       imageUrl: true,
+      avatarPresetKey: true,
+      avatarVariant: true,
+      avatarAccent: true,
       role: true,
       createdAt: true,
       updatedAt: true,

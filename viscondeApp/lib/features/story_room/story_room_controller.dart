@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/api_error.dart';
 import '../../shared/logging/app_logger.dart';
 import '../../shared/providers.dart';
+import '../../shared/ux_analytics.dart';
 import '../auth/auth_controller.dart';
 import '../story_sync/story_sync_queue.dart';
 import 'models/story_models.dart';
@@ -414,6 +415,19 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
         session.id,
         contextHint: contextHint,
       );
+
+      if (ideas.source.toUpperCase() == 'TEMPLATE') {
+        UxAnalytics.log(
+          'content_fallback_used',
+          params: <String, Object?>{
+            'source': 'story_room_controller',
+            'flow': 'story_ideas',
+            'story_id': session.id,
+            'idea_source': ideas.source,
+            'safety_adjusted': ideas.safetyAdjusted,
+          },
+        );
+      }
 
       state = state.copyWith(
         loading: false,

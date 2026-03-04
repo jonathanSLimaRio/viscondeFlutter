@@ -96,9 +96,9 @@ class _StoryGameReadyScreenState extends State<StoryGameReadyScreen> {
                   const SizedBox(height: 12),
                   Text(
                     'Entrando no Game em ${_remainingSeconds}s...',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colors.textMuted,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -118,4 +118,3 @@ class _StoryGameReadyScreenState extends State<StoryGameReadyScreen> {
     );
   }
 }
-

@@ -6,8 +6,8 @@ import 'package:visconde_app/app/app.dart';
 import 'package:visconde_app/app/router.dart';
 import 'package:visconde_app/core/models/child_profile.dart';
 import 'package:visconde_app/features/story_creation/create_story_wizard_draft_store.dart';
+import 'package:visconde_app/features/story_creation/ui/story_game_ready_screen.dart';
 import 'package:visconde_app/features/story_room/illustration_api.dart';
-import 'package:visconde_app/features/gamification/ui/game_blank_screen.dart';
 import 'package:visconde_app/features/story_room/models/illustration_models.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
 import 'package:visconde_app/features/story_room/story_api.dart';
@@ -457,9 +457,8 @@ void main() {
       ),
     );
     final location = router.routeInformationProvider.value.uri.toString();
-    expect(location, '/?tab=game');
-    expect(find.byType(GameBlankScreen), findsOneWidget);
-    expect(find.text('Aventura de Lia'), findsOneWidget);
+    expect(location, startsWith('/stories/game-ready?'));
+    expect(find.byType(StoryGameReadyScreen), findsOneWidget);
     expect(find.text('Passo 2 de 3'), findsNothing);
   });
 
@@ -579,9 +578,8 @@ void main() {
       );
       expect(storyApi.updateSetupCalls, 0);
       final location = router.routeInformationProvider.value.uri.toString();
-      expect(location, '/?tab=game');
-      expect(find.byType(GameBlankScreen), findsOneWidget);
-      expect(find.text('Aventura de Lia'), findsOneWidget);
+      expect(location, startsWith('/stories/game-ready?'));
+      expect(find.byType(StoryGameReadyScreen), findsOneWidget);
 
       final saved = await draftStore.read(user.id);
       expect(saved, isNull);
@@ -688,8 +686,8 @@ void main() {
     expect(storyApi.createStepCalls, 0);
     expect(storyApi.finalizeCalls, 0);
     final location = router.routeInformationProvider.value.uri.toString();
-    expect(location, '/?tab=game');
-    expect(find.byType(GameBlankScreen), findsOneWidget);
+    expect(location, startsWith('/stories/game-ready?'));
+    expect(find.byType(StoryGameReadyScreen), findsOneWidget);
     expect(find.byType(StoryRoomScreen), findsNothing);
     expect(find.text('Passo 2 de 3'), findsNothing);
     final saved = await draftStore.read(user.id);

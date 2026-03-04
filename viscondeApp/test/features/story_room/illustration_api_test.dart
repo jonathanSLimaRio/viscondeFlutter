@@ -20,7 +20,7 @@ void main() {
       final api = IllustrationApi(dio);
       final result = await api.listArtStyles();
 
-      expect(captured?.path, '/art-styles');
+      expect(captured?.path, 'art-styles');
       expect(result, hasLength(1));
       expect(result.first.id, 'style-1');
     });
@@ -48,7 +48,7 @@ void main() {
           artStyleId: 'style-1',
         );
 
-        expect(captured?.path, '/stories/story-1/illustrations');
+        expect(captured?.path, 'stories/story-1/illustrations');
         expect(captured?.data, {'stepIndex': 2, 'artStyleId': 'style-1'});
         expect(result.id, 'ill-1');
         expect(result.status, 'COMPLETED');

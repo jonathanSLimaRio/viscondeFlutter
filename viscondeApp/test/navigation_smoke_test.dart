@@ -194,9 +194,7 @@ void main() {
     await tester.pumpAndSettle();
     final locationAfterCreate = router.routeInformationProvider.value.uri
         .toString();
-    expect(locationAfterCreate, '/?tab=game');
-    expect(find.byType(GameBlankScreen), findsOneWidget);
-    expect(find.text('Aventura de Teste'), findsOneWidget);
+    expect(locationAfterCreate, startsWith('/stories/game-ready?'));
 
     router.go('/stories/new?resume=1');
     await tester.pumpAndSettle();

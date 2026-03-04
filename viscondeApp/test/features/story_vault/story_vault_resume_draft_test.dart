@@ -214,7 +214,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CreateStoryScreen), findsOneWidget);
-    expect(find.text('Passo 3 de 3'), findsOneWidget);
+    expect(find.text('Criar Aventura'), findsOneWidget);
   });
 
   testWidgets('descartar remove card e limpa store local', (tester) async {

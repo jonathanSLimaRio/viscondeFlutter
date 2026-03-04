@@ -66,12 +66,17 @@ class FakeChildrenApi extends ChildrenApi {
 }
 
 class FakeStoryApi extends StoryApi {
-  FakeStoryApi({required this.collections, required this.virtues, this.session})
-    : super(Dio());
+  FakeStoryApi({
+    required this.collections,
+    required this.virtues,
+    this.session,
+    this.listItems = const <StoryListItem>[],
+  }) : super(Dio());
 
   final List<StoryVaultCollectionItem> collections;
   final List<VirtueModel> virtues;
   final StorySessionModel? session;
+  final List<StoryListItem> listItems;
 
   @override
   Future<List<StoryVaultCollectionItem>> listStoryVaultCollections(
@@ -114,6 +119,28 @@ class FakeStoryApi extends StoryApi {
     String? artStyleId,
   }) async {
     return session ?? _sampleSession('story-test');
+  }
+
+  @override
+  Future<List<StoryListItem>> listStories(
+    String accessToken, {
+    String? childProfileId,
+    StoryStatus? status,
+  }) async {
+    Iterable<StoryListItem> items = listItems;
+    if (status != null) {
+      items = items.where((item) => item.status == status);
+    }
+    return items.toList(growable: false);
+  }
+
+  @override
+  Future<StorySessionModel> continueStory(
+    String accessToken,
+    String storyId, {
+    String? titleDraft,
+  }) async {
+    return session ?? _sampleSession('$storyId-next');
   }
 
   StorySessionModel _sampleSession(String storyId) {

@@ -199,7 +199,7 @@ class StoryApi {
         if (selectedOptionLabel != null &&
             selectedOptionLabel.trim().isNotEmpty)
           'selectedOptionLabel': selectedOptionLabel.trim(),
-        'gameNodeIndex': ?gameNodeIndex,
+        'gameNodeIndex': gameNodeIndex,
         if (gameAction != null)
           'gameAction': {'key': gameAction.key, 'label': gameAction.label},
         'localEventId': localEventId,
@@ -499,5 +499,4 @@ class StoryApi {
       response.data ?? <String, dynamic>{},
     );
   }
-
 }

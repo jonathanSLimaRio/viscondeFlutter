@@ -78,13 +78,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Área adulta desbloqueada por'), findsOneWidget);
-    expect(find.text('Bloquear agora'), findsOneWidget);
+    expect(find.textContaining('Área do pai:'), findsOneWidget);
+    expect(find.text('BLOQUEAR'), findsOneWidget);
 
-    await tester.tap(find.text('Bloquear agora'));
+    await tester.tap(find.text('BLOQUEAR'));
     await tester.pumpAndSettle();
 
     expect(container.read(parentalGateControllerProvider).isUnlocked, isFalse);
-    expect(find.textContaining('Área adulta desbloqueada por'), findsNothing);
+    expect(find.textContaining('Área do pai:'), findsNothing);
   });
 }

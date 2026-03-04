@@ -283,6 +283,28 @@ class _StoryGameRoomScreenState extends ConsumerState<StoryGameRoomScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: story.currentMode == StoryMode.parentNarrator
+                          ? const Color(0x1A1565C0)
+                          : const Color(0x1AE67E22),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      story.currentMode == StoryMode.parentNarrator
+                          ? 'Agora é o pai'
+                          : 'Agora é a criança',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     story.currentMode == StoryMode.parentNarrator
                         ? 'Ação do narrador'

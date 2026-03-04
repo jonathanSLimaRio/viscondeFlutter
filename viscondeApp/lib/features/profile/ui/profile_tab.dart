@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../shared/api_error.dart';
 import '../../../shared/providers.dart';
+import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
 
 class ProfileTab extends ConsumerStatefulWidget {
@@ -226,6 +229,27 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
           ),
           label: Text(
             'Alterar foto',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: colors.textMuted,
+              fontWeight: FontWeight.w600,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+        TextButton.icon(
+          onPressed: () {
+            UxAnalytics.log(
+              'avatar_editor_opened',
+              params: const <String, Object?>{
+                'source': 'profile_tab',
+                'target': 'family',
+              },
+            );
+            context.push(AppRoute.avatarEditorPath(source: 'profile_tab'));
+          },
+          icon: Icon(Icons.palette_outlined, size: 18, color: colors.textMuted),
+          label: Text(
+            'Avatares da família',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: colors.textMuted,
               fontWeight: FontWeight.w600,

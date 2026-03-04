@@ -435,6 +435,17 @@ export function toStorySessionDTO(story: {
   }>;
 }) {
   const gameMap = normalizeGameMapJson(story.gameMapJson, story.gameSeed);
+  const totalNodes = gameMap.totalNodes > 0 ? gameMap.totalNodes : MAX_STORY_STEPS;
+  const completedNodes = Math.max(0, Math.min(totalNodes, story.steps.length));
+  const currentNodeIndex =
+    story.status === "PUBLISHED"
+      ? Math.max(1, completedNodes)
+      : Math.max(1, Math.min(totalNodes, completedNodes + 1));
+  const lastStep = story.steps.length > 0 ? story.steps[story.steps.length - 1] : null;
+  const lastNodeIndex = lastStep
+    ? (lastStep.gameNodeIndex ?? lastStep.stepIndex)
+    : 0;
+  const progressPercent = Number((completedNodes / totalNodes).toFixed(4));
 
   return {
     id: story.id,
@@ -465,6 +476,14 @@ export function toStorySessionDTO(story: {
       seed: story.gameSeed,
       mapVersion: story.gameMapVersion,
       map: gameMap,
+    },
+    gameSummary: {
+      biome: gameMap.biome,
+      totalNodes,
+      currentNodeIndex,
+      completedNodes,
+      progressPercent,
+      lastNodeIndex,
     },
     ageSnapshotYears: story.ageSnapshotYears,
     startedAt: story.startedAt,

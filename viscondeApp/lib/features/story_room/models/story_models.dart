@@ -171,6 +171,35 @@ class StoryGameStateModel {
   }
 }
 
+class StoryGameSummaryModel {
+  const StoryGameSummaryModel({
+    required this.biome,
+    required this.totalNodes,
+    required this.currentNodeIndex,
+    required this.completedNodes,
+    required this.progressPercent,
+    required this.lastNodeIndex,
+  });
+
+  final String biome;
+  final int totalNodes;
+  final int currentNodeIndex;
+  final int completedNodes;
+  final double progressPercent;
+  final int lastNodeIndex;
+
+  factory StoryGameSummaryModel.fromJson(Map<String, dynamic> json) {
+    return StoryGameSummaryModel(
+      biome: (json['biome'] as String?) ?? 'FOREST',
+      totalNodes: (json['totalNodes'] as num?)?.toInt() ?? 12,
+      currentNodeIndex: (json['currentNodeIndex'] as num?)?.toInt() ?? 1,
+      completedNodes: (json['completedNodes'] as num?)?.toInt() ?? 0,
+      progressPercent: (json['progressPercent'] as num?)?.toDouble() ?? 0.0,
+      lastNodeIndex: (json['lastNodeIndex'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class StoryGameActionModel {
   const StoryGameActionModel({
     required this.key,
@@ -430,6 +459,7 @@ class StorySessionModel {
     required this.currentMode,
     required this.currentStepIndex,
     this.game,
+    this.gameSummary,
     required this.ageSnapshotYears,
     required this.child,
     required this.characters,
@@ -459,6 +489,7 @@ class StorySessionModel {
   final StoryMode currentMode;
   final int currentStepIndex;
   final StoryGameStateModel? game;
+  final StoryGameSummaryModel? gameSummary;
   final int ageSnapshotYears;
   final StoryChildSnapshot child;
   final List<StoryCharacterModel> characters;
@@ -496,6 +527,11 @@ class StorySessionModel {
       game: (json['game'] as Map<String, dynamic>?) == null
           ? null
           : StoryGameStateModel.fromJson(json['game'] as Map<String, dynamic>),
+      gameSummary: (json['gameSummary'] as Map<String, dynamic>?) == null
+          ? null
+          : StoryGameSummaryModel.fromJson(
+              json['gameSummary'] as Map<String, dynamic>,
+            ),
       ageSnapshotYears: (json['ageSnapshotYears'] as num?)?.toInt() ?? 0,
       child: StoryChildSnapshot.fromJson(
         (json['child'] as Map<String, dynamic>?) ?? <String, dynamic>{},
@@ -529,6 +565,7 @@ class StorySessionModel {
     StoryMode? currentMode,
     int? currentStepIndex,
     StoryGameStateModel? game,
+    StoryGameSummaryModel? gameSummary,
     List<StoryCharacterModel>? characters,
     List<StoryStepModel>? steps,
   }) {
@@ -556,6 +593,7 @@ class StorySessionModel {
       currentMode: currentMode ?? this.currentMode,
       currentStepIndex: currentStepIndex ?? this.currentStepIndex,
       game: game ?? this.game,
+      gameSummary: gameSummary ?? this.gameSummary,
       ageSnapshotYears: ageSnapshotYears,
       child: child,
       characters: characters ?? this.characters,

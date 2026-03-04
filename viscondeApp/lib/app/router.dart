@@ -9,9 +9,11 @@ import '../features/auth/ui/login_screen.dart';
 import '../features/auth/ui/session_persona_screen.dart';
 import '../features/auth/ui/signup_screen.dart';
 import '../features/profile/ui/home_shell_screen.dart';
+import '../features/profile/ui/family_avatar_screen.dart';
 import '../features/security/ui/virtue_reports_screen.dart';
 import '../features/security/ui/voice_profiles_screen.dart';
 import '../features/story_creation/ui/create_story_screen.dart';
+import '../features/story_creation/ui/story_game_ready_screen.dart';
 import '../features/story_room/ui/story_room_entry_screen.dart';
 import '../features/story_room/ui/story_summary_screen.dart';
 import '../features/story_vault/ui/story_vault_collection_redirect_screen.dart';
@@ -97,11 +99,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: AppRoute.storyGameReady,
+        builder: (context, state) => StoryGameReadyScreen(
+          storyId: state.uri.queryParameters['storyId'] ?? '',
+          title: state.uri.queryParameters['title']?.trim().isNotEmpty == true
+              ? state.uri.queryParameters['title']!
+              : 'Aventura pronta',
+        ),
+      ),
+      GoRoute(
         path: AppRoute.storyRoomPattern,
         builder: (context, state) {
           final storyId = state.pathParameters['id'] ?? '';
           return StoryRoomEntryScreen(storyId: storyId);
         },
+      ),
+      GoRoute(
+        path: AppRoute.avatarEditor,
+        builder: (context, state) => FamilyAvatarScreen(
+          source: state.uri.queryParameters['source'] ?? 'route',
+          preferredChildId: state.uri.queryParameters['childId'],
+        ),
       ),
       GoRoute(
         path: AppRoute.storySummaryPattern,
