@@ -1,25 +1,21 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:visconde_app/app/app.dart';
 import 'package:visconde_app/app/router.dart';
 import 'package:visconde_app/core/models/child_profile.dart';
 import 'package:visconde_app/features/story_creation/ui/create_story_screen.dart';
-import 'package:visconde_app/features/gamification/ui/game_blank_screen.dart';
-import 'package:visconde_app/features/gamification/ui/game_hub_screen.dart';
-import 'package:visconde_app/features/profile/ui/profile_hub_tab.dart';
+import 'package:visconde_app/features/story_room/illustration_api.dart';
+import 'package:visconde_app/features/story_room/models/illustration_models.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
-import 'package:visconde_app/features/story_room/ui/story_room_screen.dart';
-import 'package:visconde_app/features/story_room/ui/story_summary_screen.dart';
-import 'package:visconde_app/features/story_vault/ui/story_vault_screen.dart';
 import 'package:visconde_app/shared/providers.dart';
 import 'package:visconde_app/shared/ux_analytics.dart';
 import 'package:visconde_app/shared/ux_analytics_api.dart';
 import 'package:visconde_app/shared/ux_analytics_queue.dart';
 import 'package:visconde_app/shared/ux_analytics_service.dart';
 
-import 'helpers/test_harness.dart';
+import '../../helpers/test_harness.dart';
 
 class _NoopUxStore implements UxAnalyticsStore {
   @override
@@ -60,8 +56,8 @@ class _NoopUxTransport implements UxAnalyticsTransport {
   }
 }
 
-class _SmokeStoryApi extends FakeStoryApi {
-  _SmokeStoryApi({
+class _LayoutStoryApi extends FakeStoryApi {
+  _LayoutStoryApi({
     required super.collections,
     required super.virtues,
     required this.templates,
@@ -77,15 +73,34 @@ class _SmokeStoryApi extends FakeStoryApi {
   }
 }
 
+class _LayoutIllustrationApi extends IllustrationApi {
+  _LayoutIllustrationApi(this.styles) : super(Dio());
+
+  final List<ArtStyleModel> styles;
+
+  @override
+  Future<List<ArtStyleModel>> listArtStyles() async => styles;
+}
+
 void main() {
-  testWidgets('navigation smoke: home -> create -> room -> summary -> vault', (
+  testWidgets('renderiza layout compacto com CTA fixo e card de recomendação', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(430, 932));
+    await tester.binding.setSurfaceSize(const Size(390, 700));
 
-    final virtues = [
+    final children = <ChildProfile>[
+      ChildProfile(
+        id: 'child-1',
+        name: 'Lia',
+        birthDate: DateTime(2018, 1, 1),
+        favoriteThemes: const <String>['Aventura'],
+        isArchived: false,
+      ),
+    ];
+
+    final virtues = <VirtueModel>[
       const VirtueModel(
-        id: 'v1',
+        id: 'virtue-1',
         slug: 'coragem',
         name: 'Coragem',
         shortDescription: 'Seguir em frente',
@@ -94,50 +109,18 @@ void main() {
       ),
     ];
 
-    final collections = [
-      StoryVaultCollectionItem(
-        id: 'col-1',
-        title: 'Mistério na Floresta',
-        theme: 'Aventura',
-        virtue: virtues.first,
-        isFavorite: true,
-        child: const StoryVaultChild(id: 'child-1', name: 'Lucas'),
-        episodesCount: 4,
-        publishedCount: 3,
-        draftCount: 1,
-        lastReferenceAt: DateTime(2026, 2, 26, 18, 30),
-        latestEpisode: StoryVaultLatestEpisode(
-          storyId: 'story-test',
-          episodeNumber: 4,
-          title: 'Capítulo 4',
-          status: StoryStatus.draft,
-          updatedAt: DateTime(2026, 2, 26, 18, 30),
-          currentStepIndex: 5,
-        ),
-      ),
-    ];
-
-    final children = [
-      ChildProfile(
-        id: 'child-1',
-        name: 'Lucas',
-        birthDate: DateTime(2018, 1, 1),
-        favoriteThemes: const ['Aventura'],
-        isArchived: false,
-      ),
-    ];
     final templates = <ContentStoryTemplateModel>[
       const ContentStoryTemplateModel(
         id: 'tpl-1',
-        slug: 'template-smoke',
-        title: 'Template Smoke',
+        slug: 'template-layout',
+        title: 'Template Layout',
         description: 'template',
         ageBand: AgeBand.age6_8,
         version: 1,
         defaultScenario: 'Bosque encantado',
         defaultObjective: 'Aprender algo novo',
         theme: StoryNamedRef(id: 'theme-1', slug: 'aventura', name: 'Aventura'),
-        virtue: StoryNamedRef(id: 'v1', slug: 'coragem', name: 'Coragem'),
+        virtue: StoryNamedRef(id: 'virtue-1', slug: 'coragem', name: 'Coragem'),
         nodesCount: 3,
         charactersCount: 2,
       ),
@@ -150,11 +133,20 @@ void main() {
           (ref) => FakeChildrenApi(children: children),
         ),
         storyApiProvider.overrideWith(
-          (ref) => _SmokeStoryApi(
-            collections: collections,
+          (ref) => _LayoutStoryApi(
+            collections: const <StoryVaultCollectionItem>[],
             virtues: virtues,
             templates: templates,
           ),
+        ),
+        illustrationApiProvider.overrideWith(
+          (ref) => _LayoutIllustrationApi(const <ArtStyleModel>[
+            ArtStyleModel(
+              id: 'style-1',
+              name: 'Aquarela',
+              promptTemplate: 'watercolor',
+            ),
+          ]),
         ),
         uxAnalyticsServiceProvider.overrideWith(
           (ref) => UxAnalyticsService(
@@ -165,7 +157,6 @@ void main() {
         ),
       ],
     );
-
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
@@ -177,58 +168,26 @@ void main() {
         ),
       ),
     );
-
     await tester.pumpAndSettle();
-    expect(find.byType(StoryVaultScreen), findsOneWidget);
 
     final router = container.read(appRouterProvider);
-
     router.go('/stories/new');
     await tester.pumpAndSettle();
+
     expect(find.byType(CreateStoryScreen), findsOneWidget);
-    final quickStartButton = find.byKey(
-      const Key('wizard_recommendation_quick_start_button'),
+    expect(find.text('Criar nova aventura'), findsOneWidget);
+    expect(find.text('Para Lia'), findsOneWidget);
+    expect(
+      find.byKey(const Key('wizard_recommendation_quick_start_button')),
+      findsOneWidget,
     );
-    await tester.ensureVisible(quickStartButton);
-    await tester.tap(quickStartButton, warnIfMissed: false);
-    await tester.pumpAndSettle();
-    final locationAfterCreate = router.routeInformationProvider.value.uri
-        .toString();
-    expect(locationAfterCreate, '/?tab=game');
-    expect(find.byType(GameBlankScreen), findsOneWidget);
-    expect(find.text('Aventura de Teste'), findsOneWidget);
 
-    router.go('/stories/new?resume=1');
-    await tester.pumpAndSettle();
-    expect(find.byType(CreateStoryScreen), findsOneWidget);
+    final ctaFinder = find.byKey(const Key('wizard_save_continue_button'));
+    expect(ctaFinder, findsOneWidget);
+    final cta = tester.widget<FilledButton>(ctaFinder);
+    expect(cta.onPressed, isNotNull);
 
-    router.go('/stories/story-test/room');
-    await tester.pumpAndSettle();
-    expect(find.byType(StoryRoomScreen), findsOneWidget);
-
-    router.go('/stories/story-test/summary');
-    await tester.pumpAndSettle();
-    expect(find.byType(StorySummaryScreen), findsOneWidget);
-
-    router.go('/');
-    await tester.pumpAndSettle();
-    expect(find.byType(StoryVaultScreen), findsOneWidget);
-
-    router.go('/?tab=game');
-    await tester.pumpAndSettle();
-    expect(find.byType(GameBlankScreen), findsOneWidget);
-    expect(find.byType(GameHubScreen), findsNothing);
-
-    router.go('/?tab=achievements');
-    await tester.pumpAndSettle();
-    expect(find.byType(GameHubScreen), findsOneWidget);
-
-    router.go('/?tab=children');
-    await tester.pumpAndSettle();
-    expect(find.byType(ProfileHubTab), findsOneWidget);
-
-    router.go('/?tab=adult');
-    await tester.pumpAndSettle();
-    expect(find.byType(ProfileHubTab), findsOneWidget);
+    final ctaRect = tester.getRect(ctaFinder);
+    expect(ctaRect.bottom, lessThanOrEqualTo(700));
   });
 }

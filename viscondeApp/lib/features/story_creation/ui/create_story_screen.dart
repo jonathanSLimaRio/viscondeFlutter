@@ -8,13 +8,11 @@ import '../../../design_system/visconde.dart';
 import '../../../shared/logging/app_logger.dart';
 import '../../../shared/providers.dart';
 import '../../../shared/ui/app_feedback.dart';
-import '../../../shared/ui/post_publish_celebration_dialog.dart';
 import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
-import '../../gamification/inventory_models.dart';
+import '../../gamification/game_adventure_session_controller.dart';
 import '../../story_creation/create_story_wizard_draft_store.dart';
 import '../../story_creation/quick_story_defaults.dart';
-import '../../story_room/models/illustration_models.dart';
 import '../../story_room/models/story_models.dart';
 import '../../story_room/story_room_controller.dart';
 
@@ -38,14 +36,13 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   List<StoryVaultCollectionItem> _recentCollections = const [];
   List<VirtueModel> _virtues = const [];
   List<ContentStoryTemplateModel> _templates = const [];
-  List<ArtStyleModel> _artStyles = const [];
-
   String? _storyId;
   String? _selectedChildId;
   String? _selectedVirtueId;
   String? _selectedTemplateId;
   String? _selectedArtStyleId;
   String? _suggestionReason;
+  String? _recommendationFeedback;
 
   StoryMode _mode = StoryMode.parentNarrator;
 
@@ -55,17 +52,10 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   bool _loadingArtStyles = false;
   bool _loadingCollections = false;
   bool _applyingTemplate = false;
-  bool _suggestingVirtue = false;
   bool _busyAction = false;
   bool _bootstrapLoading = true;
   bool _flowCompleted = false;
-  bool _continuedLater = false;
-  bool _step3Logged = false;
-  bool _stepOneUsedRecommendation = false;
 
-  String? _recommendationFeedback;
-
-  int _currentStep = 0;
   DateTime _stepStartedAt = DateTime.now();
 
   @override
@@ -78,14 +68,14 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
   @override
   void dispose() {
-    if (!_flowCompleted && !_continuedLater) {
+    if (!_flowCompleted) {
       final durationMs = DateTime.now()
           .difference(_stepStartedAt)
           .inMilliseconds;
       UxAnalytics.log(
         'story_create_abandoned',
         params: <String, Object?>{
-          'step': _currentStep + 1,
+          'step': 1,
           'child_id': _selectedChildId,
           'source': 'create_story_screen',
           'flow': 'wizard',
@@ -164,14 +154,13 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     if (draft == null) {
       return;
     }
-    final loadedDraft = draft;
 
     StorySessionModel? session;
-    if (loadedDraft.storyId != null && loadedDraft.storyId!.isNotEmpty) {
+    if (draft.storyId != null && draft.storyId!.isNotEmpty) {
       try {
         session = await ref
             .read(storyApiProvider)
-            .getStorySession(token, loadedDraft.storyId!);
+            .getStorySession(token, draft.storyId!);
       } catch (error, stackTrace) {
         AppLogger.warn(
           'Falha ao carregar sessão para retomar wizard. Limpando rascunho local.',
@@ -197,18 +186,17 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     }
 
     setState(() {
-      _storyId = loadedDraft.storyId;
-      _currentStep = loadedDraft.currentStep;
-      _selectedChildId = loadedDraft.selectedChildId;
-      _selectedVirtueId = loadedDraft.selectedVirtueId;
-      _selectedTemplateId = loadedDraft.selectedTemplateId;
-      _selectedArtStyleId = loadedDraft.selectedArtStyleId;
-      _mode = loadedDraft.mode;
-      _titleController.text = loadedDraft.titleDraft;
-      _themeController.text = loadedDraft.theme;
-      _scenarioController.text = loadedDraft.scenario;
-      _objectiveController.text = loadedDraft.objective;
-      _charactersController.text = loadedDraft.characters;
+      _storyId = draft?.storyId;
+      _selectedChildId = draft?.selectedChildId;
+      _selectedVirtueId = draft?.selectedVirtueId;
+      _selectedTemplateId = draft?.selectedTemplateId;
+      _selectedArtStyleId = draft?.selectedArtStyleId;
+      _mode = draft?.mode ?? StoryMode.parentNarrator;
+      _titleController.text = draft?.titleDraft ?? '';
+      _themeController.text = draft?.theme ?? '';
+      _scenarioController.text = draft?.scenario ?? '';
+      _objectiveController.text = draft?.objective ?? '';
+      _charactersController.text = draft?.characters ?? '';
 
       if (session != null) {
         _applySessionToForm(session, replaceText: false);
@@ -394,7 +382,6 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
       }
 
       setState(() {
-        _artStyles = styles;
         _selectedArtStyleId =
             _selectedArtStyleId ?? (styles.isNotEmpty ? styles.first.id : null);
       });
@@ -451,7 +438,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
             _virtues.any((virtue) => virtue.id == prefill.virtueId)) {
           _selectedVirtueId = prefill.virtueId;
         }
-        _suggestionReason = 'Template aplicado: ${prefill.title}.';
+        _suggestionReason = 'Template aplicado: ${prefill.title}';
       });
     } catch (error) {
       if (!mounted) {
@@ -469,97 +456,13 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     setState(() {
       _selectedTemplateId = templateId;
       _suggestionReason = null;
+      _recommendationFeedback = null;
     });
 
     if (templateId == null || templateId.isEmpty) {
       return;
     }
     await _applyTemplatePrefill(templateId);
-  }
-
-  Future<void> _suggestVirtueAutomatically() async {
-    final token = _accessToken();
-    final childId = _selectedChildId;
-
-    if (token == null || childId == null) {
-      return;
-    }
-
-    setState(() => _suggestingVirtue = true);
-
-    try {
-      final suggestion = await ref
-          .read(storyApiProvider)
-          .suggestVirtue(token, childProfileId: childId);
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _selectedVirtueId = suggestion.virtue.id;
-        _suggestionReason = suggestion.reason;
-      });
-
-      context.showMessage('Sugestão: ${suggestion.virtue.name}');
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      context.showError(error);
-    } finally {
-      if (mounted) {
-        setState(() => _suggestingVirtue = false);
-      }
-    }
-  }
-
-  bool _validateStep(int step) {
-    switch (step) {
-      case 0:
-        if (_selectedChildId == null) {
-          context.showMessage('Selecione uma criança para continuar.');
-          return false;
-        }
-        return true;
-      case 1:
-        if (_virtues.isNotEmpty &&
-            (_selectedVirtueId == null || _selectedVirtueId!.isEmpty)) {
-          context.showMessage('Selecione uma virtude para continuar.');
-          return false;
-        }
-        if (_artStyles.isNotEmpty &&
-            (_selectedArtStyleId == null || _selectedArtStyleId!.isEmpty)) {
-          context.showMessage(
-            'Selecione um estilo de ilustração para continuar.',
-          );
-          return false;
-        }
-        return true;
-      case 2:
-        final title = _titleController.text.trim();
-        final theme = _themeController.text.trim();
-        final scenario = _scenarioController.text.trim();
-        final objective = _objectiveController.text.trim();
-
-        if (title.isEmpty ||
-            theme.isEmpty ||
-            scenario.isEmpty ||
-            objective.isEmpty) {
-          context.showMessage('Preencha título, tema, cenário e objetivo.');
-          return false;
-        }
-
-        final characters = _characterNames();
-        if (characters.isEmpty) {
-          context.showMessage(
-            'Informe ao menos um personagem (separados por vírgula).',
-          );
-          return false;
-        }
-        return true;
-      default:
-        return true;
-    }
   }
 
   List<String> _characterNames() {
@@ -577,12 +480,12 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         .toList();
   }
 
-  QuickStoryDefaults? _buildDefaults() {
+  QuickStoryDefaults? _buildDefaults({String? selectedChildId}) {
     return buildQuickStoryDefaults(
       children: _children,
       collections: _recentCollections,
       templates: _templates,
-      selectedChildId: _selectedChildId,
+      selectedChildId: selectedChildId ?? _selectedChildId,
       suggestedVirtueId: _selectedVirtueId,
     );
   }
@@ -599,33 +502,20 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
   void _applyRecommendationSelection({
     required QuickStoryRecommendations recommendation,
-    String? theme,
-    String? virtueId,
     bool withFeedback = true,
   }) {
-    final selectedTheme = (theme ?? '').trim();
-    final effectiveVirtueId = (virtueId ?? '').trim().isNotEmpty
-        ? virtueId!.trim()
-        : recommendation.virtueSuggestions.isNotEmpty
+    final suggestedVirtueId = recommendation.virtueSuggestions.isNotEmpty
         ? recommendation.virtueSuggestions.first.id
         : _selectedVirtueId;
-    final defaults = buildQuickStoryDefaults(
-      children: _children,
-      collections: _recentCollections,
-      templates: _templates,
-      selectedChildId: recommendation.child.id,
-      suggestedVirtueId: effectiveVirtueId,
-    );
+    final defaults = _buildDefaults(selectedChildId: recommendation.child.id);
 
     setState(() {
       _selectedChildId = recommendation.child.id;
       _selectedTemplateId =
           _selectedTemplateId ?? recommendation.sourceTemplateId;
-      _selectedVirtueId = effectiveVirtueId ?? defaults?.virtueId;
+      _selectedVirtueId = suggestedVirtueId ?? defaults?.virtueId;
 
-      if (selectedTheme.isNotEmpty) {
-        _themeController.text = selectedTheme;
-      } else if (_themeController.text.trim().isEmpty &&
+      if (_themeController.text.trim().isEmpty &&
           recommendation.themeSuggestions.isNotEmpty) {
         _themeController.text = recommendation.themeSuggestions.first;
       }
@@ -646,7 +536,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
             .join(', ');
       }
 
-      _stepOneUsedRecommendation = true;
+      _suggestionReason = recommendation.reason;
       if (withFeedback) {
         _recommendationFeedback =
             'Sugestão aplicada para ${recommendation.child.name}.';
@@ -665,164 +555,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
       recommendation: recommendation,
       withFeedback: false,
     );
-    await _goNextStep();
-  }
-
-  Widget _buildRecommendationsBlock(BuildContext context) {
-    final recommendation = _buildRecommendations();
-    if (recommendation == null || _children.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final selectedTheme = _themeController.text.trim();
-    final hasLoadingDependencies =
-        _loadingVirtues || _loadingTemplates || _loadingCollections;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-        ),
-        gradient: context.viscondeGradients.hero,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Para ${recommendation.child.name}',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            recommendation.reason,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          if (recommendation.fallbackUsed)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'Quando houver mais histórico, as sugestões ficam ainda mais personalizadas.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          const SizedBox(height: 10),
-          Text(
-            'Temas recomendados',
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: recommendation.themeSuggestions
-                .map(
-                  (theme) => ViscondePillChip(
-                    label: theme,
-                    selected:
-                        selectedTheme.isNotEmpty &&
-                        selectedTheme.toLowerCase() == theme.toLowerCase(),
-                    onTap: _busyAction
-                        ? null
-                        : () {
-                            _applyRecommendationSelection(
-                              recommendation: recommendation,
-                              theme: theme,
-                            );
-                          },
-                  ),
-                )
-                .toList(growable: false),
-          ),
-          if (recommendation.virtueSuggestions.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              'Virtudes recomendadas',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: recommendation.virtueSuggestions
-                  .map(
-                    (virtue) => ViscondePillChip(
-                      label: virtue.name,
-                      selected: _selectedVirtueId == virtue.id,
-                      onTap: _busyAction
-                          ? null
-                          : () {
-                              _applyRecommendationSelection(
-                                recommendation: recommendation,
-                                virtueId: virtue.id,
-                              );
-                            },
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-          ],
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            key: const Key('wizard_recommendation_quick_start_button'),
-            onPressed:
-                (_storyId != null || _busyAction || hasLoadingDependencies)
-                ? null
-                : () => _startWithRecommendation(recommendation),
-            icon: const Icon(Icons.flash_on),
-            label: const Text('Criar com sugestão rápida'),
-          ),
-          if (_recommendationFeedback != null &&
-              _recommendationFeedback!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                _recommendationFeedback!,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _saveLocalDraft({required int currentStep}) async {
-    final userId = ref.read(authControllerProvider).user?.id;
-    if (userId == null) {
-      return;
-    }
-
-    final draft = CreateStoryWizardDraft(
-      userId: userId,
-      storyId: _storyId,
-      currentStep: currentStep,
-      selectedChildId: _selectedChildId,
-      selectedVirtueId: _selectedVirtueId,
-      selectedTemplateId: _selectedTemplateId,
-      selectedArtStyleId: _selectedArtStyleId,
-      mode: _mode,
-      titleDraft: _titleController.text.trim(),
-      theme: _themeController.text.trim(),
-      scenario: _scenarioController.text.trim(),
-      objective: _objectiveController.text.trim(),
-      characters: _charactersController.text.trim(),
-      updatedAt: DateTime.now(),
-    );
-
-    try {
-      await ref.read(createStoryWizardDraftStoreProvider).save(draft);
-    } catch (error, stackTrace) {
-      AppLogger.warn(
-        'Falha ao salvar rascunho local do wizard.',
-        error: error,
-        stackTrace: stackTrace,
-        scope: 'story_creation',
-      );
-    }
+    await _createAdventure(completionReason: 'recommendation_applied');
   }
 
   Future<void> _clearLocalDraft() async {
@@ -842,31 +575,40 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     }
   }
 
-  void _logStepCompleted(int step, {String? reason}) {
+  void _logStepCompleted({required String reason}) {
     final durationMs = DateTime.now().difference(_stepStartedAt).inMilliseconds;
 
     UxAnalytics.log(
       'story_create_step_completed',
       params: <String, Object?>{
-        'step': step,
+        'step': 1,
         'child_id': _selectedChildId,
         'source': 'create_story_screen',
         'flow': 'wizard',
         'duration_ms': durationMs,
-        if (reason != null && reason.isNotEmpty) 'reason': reason,
+        'reason': reason,
       },
     );
   }
 
-  void _enterStep(int step) {
-    setState(() {
-      _currentStep = step;
-      _stepStartedAt = DateTime.now();
-    });
-  }
-
-  Future<bool> _createDraftFromStepOne() async {
+  Future<bool> _createDraftFromStepOne({
+    required String completionReason,
+  }) async {
     if (_storyId != null && _storyId!.isNotEmpty) {
+      final existingTitle = _titleController.text.trim();
+      final normalizedTitle = existingTitle.isEmpty
+          ? 'Aventura sem nome'
+          : existingTitle;
+      ref
+          .read(gameAdventureSessionControllerProvider.notifier)
+          .setFromStory(storyId: _storyId!, title: normalizedTitle);
+      _logStepCompleted(reason: completionReason);
+      _flowCompleted = true;
+      await _clearLocalDraft();
+      if (!mounted) {
+        return false;
+      }
+      context.go(AppRoute.homePath(tab: HomeTab.game));
       return true;
     }
 
@@ -929,684 +671,72 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
     }
 
     _applySessionToForm(created, replaceText: false);
-    await _saveLocalDraft(currentStep: 1);
-    return true;
-  }
-
-  Future<bool> _autosaveSetup({required int currentStepToPersist}) async {
-    if (!_validateStep(2)) {
-      return false;
-    }
-
-    var storyId = _storyId;
-    if (storyId == null || storyId.isEmpty) {
-      final created = await _createDraftFromStepOne();
-      if (!created) {
-        return false;
-      }
-      storyId = _storyId;
-    }
-
-    if (storyId == null || storyId.isEmpty) {
-      if (!mounted) {
-        return false;
-      }
-      context.showMessage(
-        'Não foi possível identificar o rascunho para salvar.',
-      );
-      return false;
-    }
-
-    final updated = await ref
-        .read(storyRoomControllerProvider.notifier)
-        .updateSessionSetup(
-          titleDraft: _titleController.text.trim(),
-          theme: _themeController.text.trim(),
-          scenario: _scenarioController.text.trim(),
-          objective: _objectiveController.text.trim(),
-          characters: _characterPayload(),
-          virtueId: _selectedVirtueId,
-          sourceTemplateId: _selectedTemplateId,
-          updateSourceTemplate: true,
-          artStyleId: _selectedArtStyleId,
-          updateArtStyle: true,
-          mode: _mode,
+    final createdTitle = created.title.trim().isNotEmpty
+        ? created.title.trim()
+        : created.titleDraft.trim();
+    ref
+        .read(gameAdventureSessionControllerProvider.notifier)
+        .setFromStory(
+          storyId: created.id,
+          title: createdTitle.isEmpty ? 'Aventura sem nome' : createdTitle,
         );
 
-    if (updated == null) {
-      final error = ref.read(storyRoomControllerProvider).error;
-      if (!mounted) {
-        return false;
-      }
-      context.showMessage(error ?? 'Não foi possível salvar o rascunho.');
-      return false;
-    }
-
-    _applySessionToForm(updated);
-    await _saveLocalDraft(currentStep: currentStepToPersist);
-    return true;
-  }
-
-  Future<void> _goNextStep() async {
-    if (_busyAction || _currentStep >= 2) {
-      return;
-    }
-
-    if (!_validateStep(_currentStep)) {
-      return;
-    }
-
-    setState(() => _busyAction = true);
-
-    final completionReason = _currentStep == 0 && _stepOneUsedRecommendation
-        ? 'recommendation_applied'
-        : null;
-    var proceed = false;
-    if (_currentStep == 0) {
-      proceed = await _createDraftFromStepOne();
-      if (proceed) {
-        await _saveLocalDraft(currentStep: 1);
-      }
-    } else if (_currentStep == 1) {
-      proceed = await _autosaveSetup(currentStepToPersist: 2);
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() => _busyAction = false);
-
-    if (!proceed) {
-      return;
-    }
-
-    _logStepCompleted(_currentStep + 1, reason: completionReason);
-    if (_currentStep == 0) {
-      _stepOneUsedRecommendation = false;
-    }
-    _enterStep(_currentStep + 1);
-  }
-
-  void _goPreviousStep() {
-    if (_busyAction || _currentStep == 0) {
-      return;
-    }
-    _enterStep(_currentStep - 1);
-  }
-
-  void _logStep3Once({required String reason}) {
-    if (_step3Logged) {
-      return;
-    }
-    _step3Logged = true;
-    _logStepCompleted(3, reason: reason);
-  }
-
-  bool _isOnCreateRoute() {
-    final currentPath = GoRouter.of(
-      context,
-    ).routeInformationProvider.value.uri.path;
-    return currentPath == AppRoute.storyCreate;
-  }
-
-  Future<void> _ensurePostPublishNavigation() async {
-    await Future<void>.delayed(Duration.zero);
-    if (!mounted) {
-      return;
-    }
-    if (_isOnCreateRoute()) {
-      context.go(AppRoute.homePath(tab: HomeTab.stories));
-    }
-  }
-
-  Future<void> _continueLater() async {
-    if (_busyAction) {
-      return;
-    }
-
-    setState(() => _busyAction = true);
-    final saved = await _autosaveSetup(currentStepToPersist: 2);
-    if (!mounted) {
-      return;
-    }
-
-    setState(() => _busyAction = false);
-
-    if (!saved) {
-      return;
-    }
-
-    _logStep3Once(reason: 'continue_later');
-    _continuedLater = true;
-    context.showMessage('Rascunho salvo. Você pode continuar depois.');
-    context.go(AppRoute.home);
-  }
-
-  Future<void> _openStoryRoom() async {
-    if (_busyAction) {
-      return;
-    }
-
-    setState(() => _busyAction = true);
-    final saved = await _autosaveSetup(currentStepToPersist: 2);
-    if (!mounted) {
-      return;
-    }
-
-    setState(() => _busyAction = false);
-
-    if (!saved || _storyId == null) {
-      return;
-    }
-
-    _logStep3Once(reason: 'open_story_room');
+    _logStepCompleted(reason: completionReason);
     _flowCompleted = true;
     await _clearLocalDraft();
     if (!mounted) {
-      return;
+      return false;
     }
-    context.go(AppRoute.storyRoom(_storyId!));
+    context.go(AppRoute.homePath(tab: HomeTab.game));
+    return true;
   }
 
-  Future<void> _publishNow() async {
+  Future<void> _createAdventure({required String completionReason}) async {
     if (_busyAction) {
       return;
     }
 
     setState(() => _busyAction = true);
 
-    final saved = await _autosaveSetup(currentStepToPersist: 2);
-    if (!saved || _storyId == null) {
-      if (mounted) {
-        setState(() => _busyAction = false);
-      }
+    await _createDraftFromStepOne(completionReason: completionReason);
+
+    if (!mounted) {
       return;
     }
 
-    try {
-      final result = await ref
-          .read(storyRoomControllerProvider.notifier)
-          .finalize(titleFinal: _titleController.text.trim());
-
-      if (!mounted) {
-        return;
-      }
-
-      if (result == null) {
-        final error = ref.read(storyRoomControllerProvider).error;
-        context.showMessage(error ?? 'Não foi possível publicar agora.');
-        setState(() => _busyAction = false);
-        return;
-      }
-
-      final autoCompletedSteps = result.publishMeta?.autoCompletedSteps ?? 0;
-      if (autoCompletedSteps > 0) {
-        context.showMessage(
-          'Capítulo publicado. $autoCompletedSteps etapas foram completadas automaticamente.',
-        );
-      }
-
-      _logStep3Once(reason: 'publish_now');
-      UxAnalytics.log(
-        'story_published',
-        params: <String, Object?>{
-          'story_id': result.story.id,
-          'steps': result.story.steps.length,
-          'source': 'create_story_screen',
-          'flow': 'wizard',
-          'auto_completed_steps': autoCompletedSteps,
-        },
-      );
-
-      await _clearLocalDraft();
-      _flowCompleted = true;
-
-      if (!mounted) {
-        return;
-      }
-
-      ChildInventoryModel? reward;
-      try {
-        final token = _accessToken();
-        if (token != null) {
-          reward = await ref
-              .read(inventoryApiProvider)
-              .rewardRandomItem(result.story.id, token);
-        }
-      } catch (error, stackTrace) {
-        AppLogger.warn(
-          'Falha ao buscar recompensa pós-publicação no wizard.',
-          error: error,
-          stackTrace: stackTrace,
-          scope: 'story_creation',
-        );
-      }
-
-      if (!mounted) {
-        return;
-      }
-
-      var action = PostPublishAction.backToVault;
-      try {
-        action = await showPostPublishCelebrationDialog(
-          context,
-          source: 'create_story_screen',
-          flow: 'wizard',
-          storyId: result.story.id,
-          gamification: result.gamification,
-          reward: reward,
-        );
-      } catch (error, stackTrace) {
-        AppLogger.warn(
-          'Falha ao abrir pós-publicação no wizard. Aplicando navegação de fallback.',
-          error: error,
-          stackTrace: stackTrace,
-          scope: 'story_creation',
-        );
-        action = PostPublishAction.backToVault;
-      }
-
-      if (!mounted) {
-        return;
-      }
-
-      await _handlePostPublishAction(action, result.story.id);
-      await _ensurePostPublishNavigation();
-    } catch (error) {
-      if (mounted) {
-        context.showError(error);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busyAction = false);
-      }
-    }
+    setState(() => _busyAction = false);
   }
 
-  Future<void> _handlePostPublishAction(
-    PostPublishAction action,
-    String storyId,
-  ) async {
-    switch (action) {
-      case PostPublishAction.continueSaga:
-        final token = _accessToken();
-        if (token == null) {
-          if (mounted) {
-            context.showMessage('Sua sessão expirou. Faça login novamente.');
-            context.go(AppRoute.homePath(tab: HomeTab.stories));
-          }
-          return;
-        }
-        try {
-          final session = await ref
-              .read(storyApiProvider)
-              .continueStory(token, storyId);
-          if (!mounted) {
-            return;
-          }
-          context.go(AppRoute.storyRoom(session.id));
-        } catch (error) {
-          if (!mounted) {
-            return;
-          }
-          context.showError(error);
-          context.go(AppRoute.homePath(tab: HomeTab.stories));
-        }
-        return;
-      case PostPublishAction.goGame:
-        if (mounted) {
-          context.go(AppRoute.homePath(tab: HomeTab.achievements));
-        }
-        return;
-      case PostPublishAction.backToVault:
-        if (mounted) {
-          context.go(AppRoute.homePath(tab: HomeTab.stories));
-        }
-        return;
-    }
-  }
+  Widget _buildIntroCard(BuildContext context) {
+    final colors = context.viscondeColors;
 
-  Widget _buildStepThreeActions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        FilledButton.icon(
-          key: const Key('wizard_publish_now_button'),
-          onPressed: _busyAction ? null : _publishNow,
-          icon: const Icon(Icons.publish),
-          label: Text(_busyAction ? 'Processando...' : 'Publicar agora'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          key: const Key('wizard_open_story_room_button'),
-          onPressed: _busyAction ? null : _openStoryRoom,
-          icon: const Icon(Icons.menu_book_outlined),
-          label: const Text('Ir para Sala de História'),
-        ),
-        const SizedBox(height: 4),
-        TextButton.icon(
-          key: const Key('wizard_continue_later_button'),
-          onPressed: _busyAction ? null : _continueLater,
-          icon: const Icon(Icons.pause_circle_outline),
-          label: const Text('Continuar depois'),
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = (_currentStep + 1) / 3;
-
-    if (_bootstrapLoading || _loadingChildren) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Criar Sala de História')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    return ViscondeGlassCard(
+      child: Row(
         children: [
-          ViscondeHeroBanner(
-            title: 'Criando com o Papai!',
-            subtitle: 'Fluxo guiado para rascunho, revisão e publicação.',
-            assetPath: ViscondeArtRegistry.resolve(
-              ViscondeArtKey.heroUnderwater,
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
             ),
-            variant: ViscondeHeroBannerVariant.compactModern,
-            showMascot: true,
-            mascotPose: ViscondeMascotPose.observingSpyglass,
+            child: Icon(Icons.auto_stories, color: colors.primaryDark),
           ),
-          const SizedBox(height: 12),
-          ViscondeGlassCard(
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const ViscondeSectionTitle(
-                  title: 'Configuração da História',
-                  subtitle: 'Wizard em 3 passos com autosave por etapa.',
-                ),
-                const SizedBox(height: 12),
-                LinearProgressIndicator(value: progress),
-                const SizedBox(height: 8),
                 Text(
-                  'Passo ${_currentStep + 1} de 3',
-                  style: Theme.of(context).textTheme.labelMedium,
+                  'Criar nova aventura',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Stepper(
-                  currentStep: _currentStep,
-                  margin: EdgeInsets.zero,
-                  controlsBuilder: (context, details) {
-                    if (!details.isActive) {
-                      return const SizedBox.shrink();
-                    }
-
-                    if (_currentStep == 2) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: _busyAction ? null : _goPreviousStep,
-                                child: const Text('Voltar'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.icon(
-                              key: const Key('wizard_save_continue_button'),
-                              onPressed: _busyAction ? null : _goNextStep,
-                              icon: Icon(
-                                _busyAction
-                                    ? Icons.hourglass_top
-                                    : Icons.arrow_forward,
-                              ),
-                              label: Text(
-                                _busyAction
-                                    ? 'Salvando...'
-                                    : 'Salvar e continuar',
-                              ),
-                            ),
-                          ),
-                          if (_currentStep > 0) ...[
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                key: const Key('wizard_back_button'),
-                                onPressed: _busyAction ? null : _goPreviousStep,
-                                child: const Text('Voltar'),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    );
-                  },
-                  onStepTapped: (value) {
-                    if (value <= _currentStep && !_busyAction) {
-                      _enterStep(value);
-                    }
-                  },
-                  steps: [
-                    Step(
-                      title: const Text('Criança e modo'),
-                      subtitle: const Text('Quem participa da aventura'),
-                      isActive: _currentStep >= 0,
-                      content: Column(
-                        children: [
-                          if (_children.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.only(bottom: 12),
-                              child: Text(
-                                'Cadastre ao menos uma criança em Perfil > Crianças antes de iniciar.',
-                              ),
-                            ),
-                          _buildRecommendationsBlock(context),
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedChildId,
-                            items: _children
-                                .map(
-                                  (child) => DropdownMenuItem(
-                                    value: child.id,
-                                    child: Text(child.name),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: _storyId != null
-                                ? null
-                                : (value) {
-                                    setState(() {
-                                      _selectedChildId = value;
-                                      _stepOneUsedRecommendation = false;
-                                      _recommendationFeedback = null;
-                                    });
-                                  },
-                            decoration: InputDecoration(
-                              labelText: 'Criança',
-                              helperText: _storyId == null
-                                  ? null
-                                  : 'A criança fica bloqueada após criar o rascunho.',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          SegmentedButton<StoryMode>(
-                            segments: const [
-                              ButtonSegment<StoryMode>(
-                                value: StoryMode.parentNarrator,
-                                label: Text('Pai narrador'),
-                              ),
-                              ButtonSegment<StoryMode>(
-                                value: StoryMode.childChooser,
-                                label: Text('Criança escolhe'),
-                              ),
-                            ],
-                            selected: <StoryMode>{_mode},
-                            onSelectionChanged: (values) {
-                              setState(() => _mode = values.first);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    Step(
-                      title: const Text('Template, virtude e estilo'),
-                      subtitle: const Text('Personalização principal'),
-                      isActive: _currentStep >= 1,
-                      content: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (_loadingVirtues ||
-                              _loadingArtStyles ||
-                              _loadingTemplates ||
-                              _applyingTemplate)
-                            const Padding(
-                              padding: EdgeInsets.only(bottom: 12),
-                              child: LinearProgressIndicator(),
-                            ),
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedVirtueId,
-                            items: _virtues
-                                .map(
-                                  (virtue) => DropdownMenuItem(
-                                    value: virtue.id,
-                                    child: Text(virtue.name),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: _virtues.isEmpty
-                                ? null
-                                : (value) {
-                                    setState(() => _selectedVirtueId = value);
-                                  },
-                            decoration: const InputDecoration(
-                              labelText: 'Virtude principal',
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          OutlinedButton.icon(
-                            onPressed:
-                                (_suggestingVirtue || _selectedChildId == null)
-                                ? null
-                                : _suggestVirtueAutomatically,
-                            icon: const Icon(Icons.auto_awesome),
-                            label: Text(
-                              _suggestingVirtue
-                                  ? 'Sugerindo...'
-                                  : 'Sugerir automaticamente por idade',
-                            ),
-                          ),
-                          if (_suggestionReason != null &&
-                              _suggestionReason!.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                _suggestionReason!,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedArtStyleId,
-                            decoration: const InputDecoration(
-                              labelText: 'Estilo de ilustração',
-                            ),
-                            items: _artStyles
-                                .map(
-                                  (style) => DropdownMenuItem(
-                                    value: style.id,
-                                    child: Text(style.name),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: _artStyles.isEmpty
-                                ? null
-                                : (value) {
-                                    setState(() => _selectedArtStyleId = value);
-                                  },
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String?>(
-                            initialValue: _selectedTemplateId,
-                            decoration: const InputDecoration(
-                              labelText: 'Template publicado (opcional)',
-                            ),
-                            items: [
-                              const DropdownMenuItem<String?>(
-                                value: null,
-                                child: Text('Sem template'),
-                              ),
-                              ..._templates.map(
-                                (template) => DropdownMenuItem<String?>(
-                                  value: template.id,
-                                  child: Text(template.title),
-                                ),
-                              ),
-                            ],
-                            onChanged: _loadingTemplates || _applyingTemplate
-                                ? null
-                                : _onTemplateSelected,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Step(
-                      title: const Text('Detalhes, revisão e publicar'),
-                      subtitle: const Text(
-                        'Revise e finalize em poucos toques',
-                      ),
-                      isActive: _currentStep >= 2,
-                      content: Column(
-                        children: [
-                          TextField(
-                            controller: _titleController,
-                            decoration: const InputDecoration(
-                              labelText: 'Título provisório',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _themeController,
-                            decoration: const InputDecoration(
-                              labelText: 'Tema',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _scenarioController,
-                            decoration: const InputDecoration(
-                              labelText: 'Cenário',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _objectiveController,
-                            decoration: const InputDecoration(
-                              labelText: 'Objetivo da aventura',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _charactersController,
-                            decoration: const InputDecoration(
-                              labelText: 'Personagens (separe por vírgula)',
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildStepThreeActions(),
-                        ],
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 2),
+                Text(
+                  'Escolha criança e personalização básica. O restante é automático.',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),
@@ -1614,5 +744,279 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildRecommendationsCompactCard(BuildContext context) {
+    final recommendation = _buildRecommendations();
+    if (recommendation == null || _children.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final hasLoadingDependencies =
+        _loadingVirtues ||
+        _loadingTemplates ||
+        _loadingCollections ||
+        _loadingArtStyles ||
+        _applyingTemplate;
+
+    final topTheme = recommendation.themeSuggestions.isEmpty
+        ? 'Aventura'
+        : recommendation.themeSuggestions.first;
+    final topVirtue = recommendation.virtueSuggestions.isEmpty
+        ? (_selectedVirtueId == null
+              ? 'Sem virtude'
+              : (_virtues
+                        .where((v) => v.id == _selectedVirtueId)
+                        .firstOrNull
+                        ?.name ??
+                    'Sem virtude'))
+        : recommendation.virtueSuggestions.first.name;
+
+    return ViscondeGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Para ${recommendation.child.name}',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            recommendation.reason,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Chip(
+                avatar: const Icon(Icons.palette_outlined, size: 16),
+                label: Text('Tema: $topTheme'),
+              ),
+              Chip(
+                avatar: const Icon(Icons.emoji_events_outlined, size: 16),
+                label: Text('Virtude: $topVirtue'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            key: const Key('wizard_recommendation_quick_start_button'),
+            onPressed:
+                (_storyId != null || _busyAction || hasLoadingDependencies)
+                ? null
+                : () => _startWithRecommendation(recommendation),
+            icon: Icon(_busyAction ? Icons.hourglass_top : Icons.auto_awesome),
+            label: Text(
+              _busyAction ? 'Criando...' : 'Aplicar sugestão e criar',
+            ),
+          ),
+          if (_recommendationFeedback != null &&
+              _recommendationFeedback!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                _recommendationFeedback!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalizationCard(BuildContext context) {
+    final selectedChildValue =
+        _children.any((item) => item.id == _selectedChildId)
+        ? _selectedChildId
+        : null;
+    final selectedVirtueValue =
+        _virtues.any((item) => item.id == _selectedVirtueId)
+        ? _selectedVirtueId
+        : null;
+    final selectedTemplateValue =
+        _templates.any((item) => item.id == _selectedTemplateId)
+        ? _selectedTemplateId
+        : null;
+
+    return ViscondeGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ViscondeSectionTitle(
+            title: 'Personalização',
+            subtitle: 'Ajuste o essencial antes de criar.',
+          ),
+          if (_loadingVirtues ||
+              _loadingTemplates ||
+              _loadingCollections ||
+              _loadingArtStyles ||
+              _applyingTemplate)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: LinearProgressIndicator(),
+            ),
+          const SizedBox(height: 12),
+          if (_children.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Cadastre ao menos uma criança em Perfil > Crianças antes de iniciar.',
+              ),
+            ),
+          DropdownButtonFormField<String>(
+            initialValue: selectedChildValue,
+            items: _children
+                .map(
+                  (child) => DropdownMenuItem(
+                    value: child.id,
+                    child: Text(child.name),
+                  ),
+                )
+                .toList(),
+            onChanged: _busyAction
+                ? null
+                : (value) {
+                    setState(() {
+                      _selectedChildId = value;
+                      _recommendationFeedback = null;
+                    });
+                  },
+            decoration: const InputDecoration(labelText: 'Criança'),
+          ),
+          const SizedBox(height: 12),
+          SegmentedButton<StoryMode>(
+            segments: const [
+              ButtonSegment<StoryMode>(
+                value: StoryMode.parentNarrator,
+                label: Text('Pai narrador'),
+              ),
+              ButtonSegment<StoryMode>(
+                value: StoryMode.childChooser,
+                label: Text('Criança escolhe'),
+              ),
+            ],
+            selected: <StoryMode>{_mode},
+            onSelectionChanged: _busyAction
+                ? null
+                : (values) {
+                    setState(() => _mode = values.first);
+                  },
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _themeController,
+            enabled: !_busyAction,
+            decoration: const InputDecoration(labelText: 'Tema da aventura'),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: selectedVirtueValue,
+            items: _virtues
+                .map(
+                  (virtue) => DropdownMenuItem(
+                    value: virtue.id,
+                    child: Text(virtue.name),
+                  ),
+                )
+                .toList(),
+            onChanged: _virtues.isEmpty || _busyAction
+                ? null
+                : (value) {
+                    setState(() => _selectedVirtueId = value);
+                  },
+            decoration: const InputDecoration(labelText: 'Virtude principal'),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String?>(
+            initialValue: selectedTemplateValue,
+            decoration: const InputDecoration(
+              labelText: 'Template publicado (opcional)',
+            ),
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('Sem template'),
+              ),
+              ..._templates.map(
+                (template) => DropdownMenuItem<String?>(
+                  value: template.id,
+                  child: Text(template.title),
+                ),
+              ),
+            ],
+            onChanged: _loadingTemplates || _applyingTemplate || _busyAction
+                ? null
+                : _onTemplateSelected,
+          ),
+          if (_suggestionReason != null && _suggestionReason!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                _suggestionReason!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loadingDependencies =
+        _loadingVirtues ||
+        _loadingTemplates ||
+        _loadingCollections ||
+        _loadingArtStyles ||
+        _applyingTemplate;
+
+    if (_bootstrapLoading || _loadingChildren) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Criar Aventura')),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          children: [
+            _buildIntroCard(context),
+            const SizedBox(height: 12),
+            _buildRecommendationsCompactCard(context),
+            const SizedBox(height: 12),
+            _buildPersonalizationCard(context),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: FilledButton.icon(
+            key: const Key('wizard_save_continue_button'),
+            onPressed: (_busyAction || loadingDependencies)
+                ? null
+                : () => _createAdventure(completionReason: 'manual_create'),
+            icon: Icon(_busyAction ? Icons.hourglass_top : Icons.explore),
+            label: Text(_busyAction ? 'Criando...' : 'Criar aventura'),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+extension on Iterable<VirtueModel> {
+  VirtueModel? get firstOrNull {
+    if (isEmpty) {
+      return null;
+    }
+    return first;
   }
 }

@@ -7,6 +7,7 @@ import 'package:visconde_app/app/router.dart';
 import 'package:visconde_app/core/models/child_profile.dart';
 import 'package:visconde_app/features/story_creation/create_story_wizard_draft_store.dart';
 import 'package:visconde_app/features/story_room/illustration_api.dart';
+import 'package:visconde_app/features/gamification/ui/game_blank_screen.dart';
 import 'package:visconde_app/features/story_room/models/illustration_models.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
 import 'package:visconde_app/features/story_room/story_api.dart';
@@ -343,7 +344,9 @@ Future<void> _tapWizardControl(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
-  testWidgets('inicia pelo botão de sugestão em um toque', (tester) async {
+  testWidgets('sugestão rápida cria sessão e redireciona para Game', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
 
     final user = buildTestUser();
@@ -439,10 +442,130 @@ void main() {
     );
 
     expect(storyApi.createSessionCalls, 1);
-    expect(find.text('Passo 2 de 3'), findsOneWidget);
+    final location = router.routeInformationProvider.value.uri.toString();
+    expect(location, '/?tab=game');
+    expect(find.byType(GameBlankScreen), findsOneWidget);
+    expect(find.text('Aventura de Lia'), findsOneWidget);
+    expect(find.text('Passo 2 de 3'), findsNothing);
   });
 
-  testWidgets('autosave por passo e continuar depois salva rascunho local', (
+  testWidgets(
+    'salvar e continuar no passo 1 redireciona para Game e limpa rascunho',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+
+      final user = buildTestUser();
+      final draftStore = InMemoryCreateStoryDraftStore();
+      final children = <ChildProfile>[
+        ChildProfile(
+          id: 'child-1',
+          name: 'Lia',
+          birthDate: DateTime(2018, 1, 1),
+          favoriteThemes: const <String>['Aventura'],
+          isArchived: false,
+        ),
+      ];
+      final virtues = <VirtueModel>[
+        const VirtueModel(
+          id: 'virtue-1',
+          slug: 'coragem',
+          name: 'Coragem',
+          shortDescription: 'Seguir em frente',
+          iconKey: 'courage',
+          sortOrder: 1,
+        ),
+      ];
+      final templates = <ContentStoryTemplateModel>[
+        const ContentStoryTemplateModel(
+          id: 'tpl-1',
+          slug: 'template-inicial',
+          title: 'Template Inicial',
+          description: 'template',
+          ageBand: AgeBand.age6_8,
+          version: 1,
+          defaultScenario: 'Bosque encantado',
+          defaultObjective: 'Aprender algo novo com coragem e gentileza.',
+          theme: StoryNamedRef(
+            id: 'theme-1',
+            slug: 'aventura',
+            name: 'Aventura',
+          ),
+          virtue: StoryNamedRef(
+            id: 'virtue-1',
+            slug: 'coragem',
+            name: 'Coragem',
+          ),
+          nodesCount: 3,
+          charactersCount: 2,
+        ),
+      ];
+      final storyApi = WizardStoryApi(
+        virtues: virtues,
+        session: _buildSession(),
+        templates: templates,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          ...authOverrides(user: user, authenticated: true),
+          childrenApiProvider.overrideWith(
+            (ref) => FakeChildrenApi(children: children),
+          ),
+          storyApiProvider.overrideWith((ref) => storyApi),
+          illustrationApiProvider.overrideWith(
+            (ref) => FakeIllustrationApi(const <ArtStyleModel>[
+              ArtStyleModel(
+                id: 'style-1',
+                name: 'Aquarela',
+                promptTemplate: 'watercolor',
+              ),
+            ]),
+          ),
+          createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
+          uxAnalyticsServiceProvider.overrideWith(
+            (ref) => UxAnalyticsService(
+              store: NoopUxStore(),
+              transport: NoopUxTransport(),
+              readAccessToken: () => null,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+          child: UncontrolledProviderScope(
+            container: container,
+            child: const ViscondeApp(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final router = container.read(appRouterProvider);
+      router.go('/stories/new');
+      await tester.pumpAndSettle();
+
+      await _tapWizardControl(
+        tester,
+        find.byKey(const Key('wizard_save_continue_button')),
+      );
+
+      expect(storyApi.createSessionCalls, 1);
+      expect(storyApi.updateSetupCalls, 0);
+      final location = router.routeInformationProvider.value.uri.toString();
+      expect(location, '/?tab=game');
+      expect(find.byType(GameBlankScreen), findsOneWidget);
+      expect(find.text('Aventura de Lia'), findsOneWidget);
+
+      final saved = await draftStore.read(user.id);
+      expect(saved, isNull);
+    },
+  );
+
+  testWidgets('fluxo antigo não avança para passo 2 após criação inicial', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
@@ -535,146 +658,17 @@ void main() {
 
     await _tapWizardControl(
       tester,
-      find.byKey(const Key('wizard_save_continue_button')),
-    );
-
-    await _tapWizardControl(
-      tester,
-      find.byKey(const Key('wizard_save_continue_button')),
-    );
-
-    await _tapWizardControl(
-      tester,
-      find.byKey(const Key('wizard_continue_later_button')),
+      find.byKey(const Key('wizard_recommendation_quick_start_button')),
     );
 
     expect(storyApi.createSessionCalls, 1);
-    expect(storyApi.updateSetupCalls, greaterThanOrEqualTo(1));
-
-    final saved = await draftStore.read(user.id);
-    expect(saved, isNotNull);
-    expect(saved?.currentStep, 2);
-  });
-
-  testWidgets('publicar agora executa fluxo híbrido e limpa rascunho local', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(430, 932));
-
-    final user = buildTestUser();
-    final draftStore = InMemoryCreateStoryDraftStore();
-    final children = <ChildProfile>[
-      ChildProfile(
-        id: 'child-1',
-        name: 'Lia',
-        birthDate: DateTime(2018, 1, 1),
-        favoriteThemes: const <String>['Aventura'],
-        isArchived: false,
-      ),
-    ];
-    final virtues = <VirtueModel>[
-      const VirtueModel(
-        id: 'virtue-1',
-        slug: 'coragem',
-        name: 'Coragem',
-        shortDescription: 'Seguir em frente',
-        iconKey: 'courage',
-        sortOrder: 1,
-      ),
-    ];
-    final templates = <ContentStoryTemplateModel>[
-      const ContentStoryTemplateModel(
-        id: 'tpl-1',
-        slug: 'template-inicial',
-        title: 'Template Inicial',
-        description: 'template',
-        ageBand: AgeBand.age6_8,
-        version: 1,
-        defaultScenario: 'Bosque encantado',
-        defaultObjective: 'Aprender algo novo com coragem e gentileza.',
-        theme: StoryNamedRef(id: 'theme-1', slug: 'aventura', name: 'Aventura'),
-        virtue: StoryNamedRef(id: 'virtue-1', slug: 'coragem', name: 'Coragem'),
-        nodesCount: 3,
-        charactersCount: 2,
-      ),
-    ];
-    final storyApi = WizardStoryApi(
-      virtues: virtues,
-      session: _buildSession(),
-      templates: templates,
-    );
-
-    final container = ProviderContainer(
-      overrides: [
-        ...authOverrides(user: user, authenticated: true),
-        childrenApiProvider.overrideWith(
-          (ref) => FakeChildrenApi(children: children),
-        ),
-        storyApiProvider.overrideWith((ref) => storyApi),
-        illustrationApiProvider.overrideWith(
-          (ref) => FakeIllustrationApi(const <ArtStyleModel>[
-            ArtStyleModel(
-              id: 'style-1',
-              name: 'Aquarela',
-              promptTemplate: 'watercolor',
-            ),
-          ]),
-        ),
-        createStoryWizardDraftStoreProvider.overrideWithValue(draftStore),
-        uxAnalyticsServiceProvider.overrideWith(
-          (ref) => UxAnalyticsService(
-            store: NoopUxStore(),
-            transport: NoopUxTransport(),
-            readAccessToken: () => null,
-          ),
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    await tester.pumpWidget(
-      MediaQuery(
-        data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
-        child: UncontrolledProviderScope(
-          container: container,
-          child: const ViscondeApp(),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final router = container.read(appRouterProvider);
-    router.go('/stories/new');
-    await tester.pumpAndSettle();
-
-    await _tapWizardControl(
-      tester,
-      find.byKey(const Key('wizard_save_continue_button')),
-    );
-
-    await _tapWizardControl(
-      tester,
-      find.byKey(const Key('wizard_save_continue_button')),
-    );
-
-    await _tapWizardControl(
-      tester,
-      find.byKey(const Key('wizard_publish_now_button')),
-    );
-
     expect(storyApi.createStepCalls, 0);
-    expect(storyApi.finalizeCalls, 1);
-
-    expect(find.text('Capítulo publicado!'), findsOneWidget);
-    expect(find.text('Continuar saga'), findsOneWidget);
-    expect(find.text('Ir para Conquistas'), findsOneWidget);
-    expect(find.text('Voltar ao baú'), findsOneWidget);
-    await tester.tap(find.text('Ir para Conquistas'));
-    await tester.pumpAndSettle();
-
+    expect(storyApi.finalizeCalls, 0);
     final location = router.routeInformationProvider.value.uri.toString();
-    expect(location, '/?tab=achievements');
+    expect(location, '/?tab=game');
+    expect(find.byType(GameBlankScreen), findsOneWidget);
     expect(find.byType(StoryRoomScreen), findsNothing);
+    expect(find.text('Passo 2 de 3'), findsNothing);
     final saved = await draftStore.read(user.id);
     expect(saved, isNull);
   });
