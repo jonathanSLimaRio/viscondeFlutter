@@ -10,6 +10,21 @@ Widget _wrapPanel(ParentNarratorPanel panel) {
   );
 }
 
+Widget _wrapPanelInScrollView(
+  ParentNarratorPanel panel, {
+  required ScrollController controller,
+}) {
+  return MaterialApp(
+    theme: ViscondeTheme.buildLightTheme(),
+    home: Scaffold(
+      body: SingleChildScrollView(
+        controller: controller,
+        child: Column(children: [const SizedBox(height: 520), panel]),
+      ),
+    ),
+  );
+}
+
 void main() {
   testWidgets('renders buttons with expected order and next-step label', (
     tester,
@@ -151,4 +166,49 @@ void main() {
     final textField = tester.widget<TextField>(find.byType(TextField).first);
     expect(textField.controller?.text, 'Trecho que deve permanecer após erro.');
   });
+
+  testWidgets(
+    'auto-scrolls to suggestions when idea request finishes with results',
+    (tester) async {
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+
+      await tester.pumpWidget(
+        _wrapPanelInScrollView(
+          ParentNarratorPanel(
+            onSaveNarration: (_) async => true,
+            onRequestIdeas: (_) {},
+            ideas: const <String>[],
+            ideasSource: null,
+            ideasSafetyAdjusted: false,
+            isRequestingIdeas: true,
+          ),
+          controller: scrollController,
+        ),
+      );
+
+      expect(scrollController.offset, 0);
+
+      await tester.pumpWidget(
+        _wrapPanelInScrollView(
+          ParentNarratorPanel(
+            onSaveNarration: (_) async => true,
+            onRequestIdeas: (_) {},
+            ideas: const <String>[
+              'Uma nova pista surge no caminho da aventura.',
+            ],
+            ideasSource: 'TEST',
+            ideasSafetyAdjusted: false,
+            isRequestingIdeas: false,
+          ),
+          controller: scrollController,
+        ),
+      );
+
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(scrollController.offset, greaterThan(0));
+    },
+  );
 }

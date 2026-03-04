@@ -156,6 +156,32 @@ class QueueTestStoryApi extends StoryApi {
       throw error;
     }
 
+    final nextStep = StoryStepModel(
+      id: 'step-$stepIndex',
+      stepIndex: stepIndex,
+      kind: kind,
+      modeUsed: session.currentMode,
+      localEventId: localEventId,
+      narratorPrompt: narratorPrompt,
+      childOptions: const <StoryChoiceOption>[],
+      selectedOptionId: selectedOptionId,
+      selectedOptionLabel: selectedOptionLabel,
+      narratorText: narratorText,
+      gameNodeIndex: gameNodeIndex,
+      gameActionKey: gameAction?.key,
+      gameActionLabel: gameAction?.label,
+    );
+    final nextSteps = <StoryStepModel>[
+      ...session.steps.where((item) => item.stepIndex != stepIndex),
+      nextStep,
+    ]..sort((a, b) => a.stepIndex.compareTo(b.stepIndex));
+    session = session.copyWith(
+      currentStepIndex: stepIndex > session.currentStepIndex
+          ? stepIndex
+          : session.currentStepIndex,
+      steps: nextSteps,
+    );
+
     return StoryStepSaveResult(story: session, idempotent: false);
   }
 
@@ -349,6 +375,46 @@ void main() {
       expect(state.pendingCount, 0);
       expect(state.syncStatus, StorySyncStatus.synced);
     });
+
+    test(
+      'addNarrationStep updates currentStepIndex and clears submittingStep on success',
+      () async {
+        final queue = FakeStorySyncQueue();
+        final api = QueueTestStoryApi(_sampleSession());
+        final connectivity = FakeConnectivity();
+
+        final container = ProviderContainer(
+          overrides: <Override>[
+            ...authOverrides(user: buildTestUser()),
+            storySyncQueueProvider.overrideWith((ref) => queue),
+            storyRoomControllerProvider.overrideWith((ref) {
+              return StoryRoomController(
+                ref: ref,
+                api: api,
+                syncQueue: queue,
+                connectivity: connectivity,
+              );
+            }),
+          ],
+        );
+
+        addTearDown(() async {
+          await connectivity.disposeFake();
+          container.dispose();
+        });
+
+        await _waitAuthReady(container);
+
+        final controller = container.read(storyRoomControllerProvider.notifier);
+        await controller.loadSession('story-1');
+        await controller.addNarrationStep(narratorText: 'Etapa 1');
+
+        final state = container.read(storyRoomControllerProvider);
+        expect(api.createStepCalls, 1);
+        expect(state.session?.currentStepIndex, 1);
+        expect(state.submittingStep, isFalse);
+      },
+    );
 
     test('marks queued event as conflict on 409 response', () async {
       final queue = FakeStorySyncQueue();

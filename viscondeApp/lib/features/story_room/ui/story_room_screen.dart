@@ -26,11 +26,25 @@ class StoryRoomScreen extends ConsumerStatefulWidget {
 }
 
 class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
-  int _lastKnownSteps = 0;
+  int _lastKnownStepIndex = 0;
   int _xpAnimationNonce = 0;
   static const int _minimumPublishSteps = 3;
   static const int _totalStorySteps = 12;
   static const int _maxStoryXp = 500;
+  static const List<String> _stageMapAssets = <String>[
+    'assets/design/maps/stage_01.png',
+    'assets/design/maps/stage_02.png',
+    'assets/design/maps/stage_03.png',
+    'assets/design/maps/stage_04.png',
+    'assets/design/maps/stage_05.png',
+    'assets/design/maps/stage_06.png',
+    'assets/design/maps/stage_07.png',
+    'assets/design/maps/stage_08.png',
+    'assets/design/maps/stage_09.png',
+    'assets/design/maps/stage_10.png',
+    'assets/design/maps/stage_11.png',
+    'assets/design/maps/stage_12.png',
+  ];
 
   int _missingStepsForPublish(StorySessionModel story) {
     final missing = _minimumPublishSteps - story.steps.length;
@@ -51,6 +65,11 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
     final normalizedStep = _normalizedStepIndex(stepIndex);
     final xp = ((normalizedStep / _totalStorySteps) * _maxStoryXp).round();
     return xp.clamp(0, _maxStoryXp).toInt();
+  }
+
+  String _mapAssetForStep(int step) {
+    final clampedStep = step.clamp(1, _stageMapAssets.length).toInt();
+    return _stageMapAssets[clampedStep - 1];
   }
 
   @override
@@ -454,22 +473,24 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
 
       final previousSession = previous?.session;
       final nextSession = next.session;
-      final previousSteps = previousSession?.steps.length ?? _lastKnownSteps;
-      final currentSteps = nextSession?.steps.length ?? previousSteps;
+      final previousStepIndex =
+          previousSession?.currentStepIndex ?? _lastKnownStepIndex;
+      final currentStepIndex =
+          nextSession?.currentStepIndex ?? previousStepIndex;
       if (previousSession != null &&
           nextSession != null &&
-          currentSteps > previousSteps) {
+          currentStepIndex > previousStepIndex) {
         context.showMessage(
           'Etapa salva. Próximo passo: continue narrando ou revise para publicar.',
         );
 
-        final previousXp = _xpForStepIndex(previousSession.currentStepIndex);
-        final currentXp = _xpForStepIndex(nextSession.currentStepIndex);
+        final previousXp = _xpForStepIndex(previousStepIndex);
+        final currentXp = _xpForStepIndex(currentStepIndex);
         if (currentXp > previousXp && mounted) {
           setState(() => _xpAnimationNonce += 1);
         }
       }
-      _lastKnownSteps = currentSteps;
+      _lastKnownStepIndex = currentStepIndex;
     });
 
     final state = ref.watch(storyRoomControllerProvider);
@@ -491,6 +512,17 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
     final missingStepsForPublish = _missingStepsForPublish(story);
     final currentStepVisual = _normalizedStepIndex(story.currentStepIndex);
     final currentXp = _xpForStepIndex(story.currentStepIndex);
+    final parentAvatarUrl = ref.watch(authControllerProvider).user?.imageUrl;
+    final headerTrailingAction = story.status == StoryStatus.draft
+        ? OutlinedButton.icon(
+            key: const ValueKey<String>('story_room_edit_details_button'),
+            onPressed: state.loading
+                ? null
+                : () => _openEditDetailsSheet(story),
+            icon: const Icon(Icons.edit_note_rounded),
+            label: const Text('Editar detalhes'),
+          )
+        : null;
     final illustrationAsync = ref.watch(
       storyIllustrationProvider((
         storyId: story.id,
@@ -515,28 +547,16 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             StoryRoomHeader(
-              title: story.title,
               currentStep: currentStepVisual,
               totalSteps: _totalStorySteps,
-              themeArtKey: ViscondeArtKey
-                  .heroUnderwater, // We should dynamically choose based on theme, hardcoded to underwater to match UI
+              backgroundImageAsset: _mapAssetForStep(currentStepVisual),
               xp: currentXp,
               maxXp: _maxStoryXp,
+              parentAvatarUrl: parentAvatarUrl,
+              childAvatarUrl: story.child.avatarUrl,
+              trailingAction: headerTrailingAction,
               xpAnimationNonce: _xpAnimationNonce,
             ),
-            if (story.status == StoryStatus.draft) ...[
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  onPressed: state.loading
-                      ? null
-                      : () => _openEditDetailsSheet(story),
-                  icon: const Icon(Icons.edit_note_rounded),
-                  label: const Text('Editar detalhes'),
-                ),
-              ),
-            ],
             const SizedBox(height: 12),
             illustrationAsync.when(
               data: (illustration) {
@@ -681,7 +701,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              Icons.child_care_rounded,
+                              Icons.explore_outlined,
                               color: story.currentMode == StoryMode.childChooser
                                   ? Colors.black87
                                   : Colors.black54,

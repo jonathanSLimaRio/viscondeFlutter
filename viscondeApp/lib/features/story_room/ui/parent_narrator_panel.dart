@@ -29,6 +29,7 @@ class ParentNarratorPanel extends StatefulWidget {
 class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
   final _narrationController = TextEditingController();
   final _hintController = TextEditingController();
+  final _suggestionsSectionKey = GlobalKey();
   bool _savingNarration = false;
 
   void _applyIdeaToNarration(String idea) {
@@ -36,6 +37,32 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
     _narrationController.selection = TextSelection.fromPosition(
       TextPosition(offset: _narrationController.text.length),
     );
+  }
+
+  @override
+  void didUpdateWidget(covariant ParentNarratorPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final ideasFinishedLoading =
+        oldWidget.isRequestingIdeas && !widget.isRequestingIdeas;
+    if (!ideasFinishedLoading || widget.ideas.isEmpty) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final suggestionsContext = _suggestionsSectionKey.currentContext;
+      if (suggestionsContext == null) {
+        return;
+      }
+      Scrollable.ensureVisible(
+        suggestionsContext,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+        alignment: 0.1,
+      );
+    });
   }
 
   @override
@@ -145,9 +172,12 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
         ),
         if (widget.ideas.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text(
-            'Sugestões (${widget.ideasSource ?? 'TEMPLATE'})${widget.ideasSafetyAdjusted ? ' · ajustado para segurança' : ''}',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+          Container(
+            key: _suggestionsSectionKey,
+            child: Text(
+              'Sugestões (${widget.ideasSource ?? 'TEMPLATE'})${widget.ideasSafetyAdjusted ? ' · ajustado para segurança' : ''}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
           const SizedBox(height: 8),
           ...widget.ideas.map(
