@@ -1,0 +1,5 @@
+{
+  "dart.hotReloadOnSave": "all",
+  "dart.flutterHotReloadOnSave": "all",
+  "editor.formatOnSave": true
+}

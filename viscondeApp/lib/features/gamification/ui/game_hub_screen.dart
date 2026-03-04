@@ -13,7 +13,8 @@ import '../../../shared/ux_analytics.dart';
 import '../../auth/auth_controller.dart';
 import '../../security/parental_gate_controller.dart';
 import '../models/gamification_models.dart';
-import '../inventory_models.dart';
+
+enum _GameHubLowerTab { missions, achievements }
 
 class GameHubScreen extends ConsumerStatefulWidget {
   const GameHubScreen({super.key});
@@ -29,15 +30,13 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
   List<AchievementModel> _achievements = const [];
   List<ChildProfile> _children = const [];
   ChildProgressionModel? _progression;
-  List<CatalogItemModel> _catalog = const [];
-  List<ChildInventoryModel> _childInventory = const [];
   String? _selectedChildId;
-  CatalogItemType? _selectedCatalogType;
   String? _blockingError;
   String? _inlineError;
   bool _gameHubOpenedLogged = false;
   String? _lastTrackedState;
   final Set<String> _trackedSectionStates = <String>{};
+  _GameHubLowerTab _selectedLowerTab = _GameHubLowerTab.missions;
 
   String? _accessToken() {
     return ref.read(authControllerProvider).accessToken;
@@ -155,14 +154,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         ref
             .read(gamificationApiProvider)
             .fetchChildProgression(token, childId: childId),
-        ref
-            .read(gamificationApiProvider)
-            .listCatalog(
-              token,
-              childProfileId: childId,
-              type: _selectedCatalogType,
-            ),
-        ref.read(inventoryApiProvider).getChildInventory(childId, token),
       ]);
 
       if (!mounted) {
@@ -173,8 +164,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         _wallet = results[0] as WalletModel;
         _achievements = results[1] as List<AchievementModel>;
         _progression = results[2] as ChildProgressionModel;
-        _catalog = results[3] as List<CatalogItemModel>;
-        _childInventory = results[4] as List<ChildInventoryModel>;
         _blockingError = null;
         _inlineError = null;
       });
@@ -199,90 +188,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     }
   }
 
-  Future<void> _unlockItem(CatalogItemModel item) async {
-    final token = _accessToken();
-    final childId = _selectedChildId;
-    if (token == null || childId == null) {
-      return;
-    }
-
-    final unlockToken = await ref
-        .read(parentalUnlockServiceProvider)
-        .ensureUnlocked(context, source: 'game_hub_unlock_item');
-    if (unlockToken == null) {
-      return;
-    }
-
-    setState(() => _loadingData = true);
-    try {
-      final result = await ref
-          .read(gamificationApiProvider)
-          .unlockItem(
-            token,
-            childId: childId,
-            itemId: item.id,
-            parentalUnlockToken: unlockToken,
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Item desbloqueado! -${result.spentCoins} moedas / -${result.spentStars} estrelas',
-          ),
-        ),
-      );
-
-      await _loadData();
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
-    } finally {
-      if (mounted) {
-        setState(() => _loadingData = false);
-      }
-    }
-  }
-
-  Future<void> _toggleEquip(CatalogItemModel item) async {
-    final token = _accessToken();
-    final childId = _selectedChildId;
-    if (token == null || childId == null) {
-      return;
-    }
-
-    setState(() => _loadingData = true);
-    try {
-      await ref
-          .read(gamificationApiProvider)
-          .equipItem(
-            token,
-            childId: childId,
-            itemId: item.id,
-            equipped: !item.equipped,
-          );
-      await _loadData();
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(parseDioError(error))));
-    } finally {
-      if (mounted) {
-        setState(() => _loadingData = false);
-      }
-    }
-  }
-
   String _missionStatusLabel(WeeklyMissionStatus value) {
     switch (value) {
       case WeeklyMissionStatus.completed:
@@ -291,6 +196,18 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
         return 'Expirada';
       case WeeklyMissionStatus.active:
         return 'Ativa';
+    }
+  }
+
+  Color _missionStatusColor(BuildContext context, WeeklyMissionStatus value) {
+    final colors = context.viscondeColors;
+    switch (value) {
+      case WeeklyMissionStatus.completed:
+        return Colors.green.shade700;
+      case WeeklyMissionStatus.expired:
+        return colors.textMuted;
+      case WeeklyMissionStatus.active:
+        return colors.primaryDark;
     }
   }
 
@@ -339,6 +256,18 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       params: <String, Object?>{
         'screen': 'game',
         'state': state,
+        'source': 'game_hub_screen',
+      },
+    );
+  }
+
+  void _trackLowerTabSwitched(_GameHubLowerTab tab) {
+    final childId = _selectedChildId;
+    UxAnalytics.log(
+      'game_hub_tab_switched',
+      params: <String, Object?>{
+        'tab': tab == _GameHubLowerTab.missions ? 'missions' : 'achievements',
+        'child_id': childId,
         'source': 'game_hub_screen',
       },
     );
@@ -418,7 +347,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       onRefresh: _retryGameLoad,
       child: CustomScrollView(
         slivers: [
-          // ── Compact Gamified Header ──
           SliverToBoxAdapter(child: _buildCompactGamifiedHeader(context, gate)),
 
           if (_loadingInitial)
@@ -468,7 +396,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ),
 
           if (!_loadingInitial && (_blockingError == null || _hasCoreData)) ...[
-            // ── Main Quest (Primary Mission) ──
             if (primaryMission != null)
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -477,53 +404,41 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                 ),
               ),
 
-            // ── Weekly Missions ──
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               sliver: SliverToBoxAdapter(
-                child: _buildWeeklyMissionsHeader(context, progression),
+                child: _buildWeeklyMissionsHeader(context),
               ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: _buildWeeklyMissionsSliverList(progression),
             ),
 
-            // ── Achievements ──
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               sliver: SliverToBoxAdapter(
-                child: _buildAchievementsHeader(context, dateFormat),
+                child: _buildLowerTabsSwitcher(context),
               ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: _buildAchievementsSliverList(dateFormat),
             ),
 
-            // ── Collector / Shop ──
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-              sliver: SliverToBoxAdapter(
-                child: _buildCollectorSection(context),
+            if (_selectedLowerTab == _GameHubLowerTab.missions)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: _buildWeeklyMissionsSliverList(progression),
               ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              sliver: SliverToBoxAdapter(child: _buildShopHeader(context)),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: _buildShopSliverGrid(),
-            ),
 
-            // ── Equipped Items ──
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
-              sliver: SliverToBoxAdapter(
-                child: _buildEquippedItemsCard(context, progression),
+            if (_selectedLowerTab == _GameHubLowerTab.achievements)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                sliver: SliverToBoxAdapter(
+                  child: _buildAchievementsTabHeader(context),
+                ),
               ),
-            ),
+
+            if (_selectedLowerTab == _GameHubLowerTab.achievements)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: _buildAchievementsSliverList(dateFormat),
+              ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
         ],
       ),
@@ -550,7 +465,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
       ),
       child: Column(
         children: [
-          // ── Stats Bar ──
           Row(
             children: [
               _buildStatItem(
@@ -574,7 +488,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
                 color: Colors.deepOrange,
               ),
               const SizedBox(width: 8),
-              // Compact Adult Gate Indicator
               GestureDetector(
                 onTap: () {
                   ref
@@ -599,7 +512,6 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          // ── Visual Child Switcher ──
           if (_children.isNotEmpty)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -795,103 +707,47 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     );
   }
 
-  // ── Weekly Missions ──
-  Widget _buildWeeklyMissionsHeader(
-    BuildContext context,
-    ChildProgressionModel? progression,
-  ) {
+  Widget _buildWeeklyMissionsHeader(BuildContext context) {
     final colors = context.viscondeColors;
-    final missions =
-        progression?.weeklyMissions ?? const <WeeklyMissionModel>[];
-    final showEmpty = missions.isEmpty;
-    if (showEmpty) {
-      _trackGameSectionState('empty_missions');
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ViscondeGlassCard(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Missões Semanais',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: colors.textStrong,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Objetivos da semana por criança.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildMiniBox(context),
-                  const SizedBox(width: 4),
-                  _buildMiniBox(context),
-                  const SizedBox(width: 6),
-                  const Icon(
-                    Icons.star_rounded,
-                    color: Color(0xFFDAA520),
-                    size: 22,
+    return ViscondeGlassCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Missões Semanais',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: colors.textStrong,
                   ),
-                ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Objetivos da semana por criança.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildMiniBox(context),
+              const SizedBox(width: 4),
+              _buildMiniBox(context),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.star_rounded,
+                color: Color(0xFFDAA520),
+                size: 22,
               ),
             ],
           ),
-        ),
-        if (showEmpty) ...[
-          const SizedBox(height: 8),
-          ViscondeContentState.empty(
-            title: UiStateCopy.gameMissionsEmptyTitle,
-            description: UiStateCopy.gameMissionsEmptyDescription,
-            primaryActionLabel: 'Ler histórias',
-            onPrimaryAction: _openStoriesHome,
-            mascotPose: ViscondeMascotPose.pointingScroll,
-          ),
         ],
-      ],
-    );
-  }
-
-  Widget _buildWeeklyMissionsSliverList(ChildProgressionModel? progression) {
-    final missions =
-        progression?.weeklyMissions ?? const <WeeklyMissionModel>[];
-    if (missions.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
-
-    return SliverList(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final mission = missions[index];
-        return Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: ViscondeGlassCard(
-            child: ListTile(
-              title: Text(mission.title),
-              subtitle: Text(
-                '${mission.description}\n${mission.progressValue}/${mission.targetValue} · ${_missionStatusLabel(mission.status)}',
-              ),
-              trailing: Text(
-                '+${mission.rewardCoins} / +${mission.rewardStars}⭐',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              isThreeLine: true,
-            ),
-          ),
-        );
-      }, childCount: missions.length),
+      ),
     );
   }
 
@@ -909,328 +765,242 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     );
   }
 
-  // ── Achievements ──
-  Widget _buildAchievementsHeader(BuildContext context, DateFormat dateFormat) {
+  Widget _buildLowerTabsSwitcher(BuildContext context) {
     final colors = context.viscondeColors;
-    final showEmpty = _achievements.isEmpty;
-    if (showEmpty) {
-      _trackGameSectionState('empty_achievements');
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.emoji_events_rounded,
-                color: Color(0xFFDAA520),
-                size: 24,
+    return ViscondeGlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<_GameHubLowerTab>(
+          key: const Key('game_hub_lower_tabs'),
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment<_GameHubLowerTab>(
+              value: _GameHubLowerTab.missions,
+              label: Text('Missões'),
+              icon: Icon(Icons.flag_rounded, size: 18),
+            ),
+            ButtonSegment<_GameHubLowerTab>(
+              value: _GameHubLowerTab.achievements,
+              label: Text('Conquistas'),
+              icon: Icon(Icons.emoji_events_rounded, size: 18),
+            ),
+          ],
+          selected: <_GameHubLowerTab>{_selectedLowerTab},
+          onSelectionChanged: (values) {
+            if (values.isEmpty) {
+              return;
+            }
+            final next = values.first;
+            if (next == _selectedLowerTab) {
+              return;
+            }
+            setState(() => _selectedLowerTab = next);
+            _trackLowerTabSwitched(next);
+          },
+          style: ButtonStyle(
+            minimumSize: WidgetStateProperty.all(const Size.fromHeight(48)),
+            textStyle: WidgetStateProperty.all(
+              Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: colors.textStrong,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Conquistas',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: colors.textStrong,
-                      ),
-                    ),
-                    Text(
-                      'Marcos já desbloqueados na conta.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-        if (showEmpty) ...[
-          const SizedBox(height: 8),
-          ViscondeContentState.empty(
-            title: UiStateCopy.gameAchievementsEmptyTitle,
-            description: UiStateCopy.gameAchievementsEmptyDescription,
-            primaryActionLabel: 'Criar história',
-            onPrimaryAction: _openCreateStory,
-            mascotPose: ViscondeMascotPose.enchantedHearts,
-          ),
-        ],
-      ],
+      ),
     );
   }
 
-  Widget _buildAchievementsSliverList(DateFormat dateFormat) {
-    if (_achievements.isEmpty) {
-      {
-        return const SliverToBoxAdapter(child: SizedBox.shrink());
-      }
+  SliverMultiBoxAdaptorWidget _buildWeeklyMissionsSliverList(
+    ChildProgressionModel? progression,
+  ) {
+    final missions =
+        progression?.weeklyMissions ?? const <WeeklyMissionModel>[];
+    if (missions.isEmpty) {
+      _trackGameSectionState('empty_missions');
+      return SliverList(
+        delegate: SliverChildListDelegate([
+          const SizedBox(height: 8),
+          ViscondeContentState.empty(
+            title: UiStateCopy.gameMissionsEmptyTitle,
+            description: UiStateCopy.gameMissionsEmptyDescription,
+            primaryActionLabel: 'Ler histórias',
+            onPrimaryAction: _openStoriesHome,
+            mascotPose: ViscondeMascotPose.pointingScroll,
+          ),
+        ]),
+      );
     }
 
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        final achievement = _achievements[index];
+        final mission = missions[index];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: ViscondeGlassCard(
-            child: ListTile(
-              leading: Icon(
-                achievement.unlocked ? Icons.emoji_events : Icons.lock_outline,
-                color: achievement.unlocked ? Colors.amber.shade700 : null,
-              ),
-              title: Text(
-                achievement.title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                '${achievement.description}\n+${achievement.rewardCoins} moedas / +${achievement.rewardStars}⭐'
-                '${achievement.unlockedAt != null ? '\nDesbloqueada em ${dateFormat.format(achievement.unlockedAt!)}' : ''}',
-              ),
-              isThreeLine: true,
-            ),
-          ),
+          padding: const EdgeInsets.only(top: 8),
+          child: _buildWeeklyMissionCard(context, mission),
         );
-      }, childCount: _achievements.length),
+      }, childCount: missions.length),
     );
   }
 
-  // ── Collector Section ──
-  Widget _buildCollectorSection(BuildContext context) {
-    final showEmpty = _childInventory.isEmpty;
-    if (showEmpty) {
-      _trackGameSectionState('empty_collector');
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const ViscondeSectionTitle(
-          title: 'O Colecionador',
-          subtitle: 'Seus itens e companheiros de aventura.',
-        ),
-        const SizedBox(height: 8),
-        if (showEmpty) ...[
-          ViscondeContentState.empty(
-            title: UiStateCopy.gameCollectorEmptyTitle,
-            description: UiStateCopy.gameCollectorEmptyDescription,
-            primaryActionLabel: 'Ler histórias',
-            onPrimaryAction: _openStoriesHome,
-            mascotPose: ViscondeMascotPose.readingBook,
-          ),
-        ],
-        if (_childInventory.isNotEmpty)
-          SizedBox(
-            height: 140,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _childInventory.length,
-              itemBuilder: (context, index) {
-                final inv = _childInventory[index];
-                final item = inv.item;
-                if (item == null) return const SizedBox.shrink();
-
-                return Container(
-                  width: 120,
-                  margin: const EdgeInsets.only(right: 8),
-                  child: ViscondeGlassCard(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8.0,
-                        vertical: 12.0,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            item.icon,
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.center,
-                              child: Text(
-                                item.name,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '${item.rarity} · Qtd: ${inv.qty}',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  // ── Shop & Catalog Section ──
-  Widget _buildShopHeader(BuildContext context) {
-    final showEmpty = _catalog.isEmpty;
-    if (showEmpty) {
-      _trackGameSectionState('empty_catalog');
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const ViscondeSectionTitle(
-          title: 'Loja e Inventário',
-          subtitle: 'Desbloqueie e equipe itens cosméticos.',
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('Todos'),
-              selected: _selectedCatalogType == null,
-              onSelected: (_) async {
-                setState(() => _selectedCatalogType = null);
-                await _loadData();
-              },
-            ),
-            ...CatalogItemType.values.map(
-              (type) => ChoiceChip(
-                label: Text(type.name.toUpperCase()),
-                selected: _selectedCatalogType == type,
-                onSelected: (_) async {
-                  setState(() => _selectedCatalogType = type);
-                  await _loadData();
-                },
-              ),
-            ),
-          ],
-        ),
-        if (showEmpty) ...[
-          const SizedBox(height: 8),
-          ViscondeContentState.empty(
-            title: UiStateCopy.gameCatalogEmptyTitle,
-            description: UiStateCopy.gameCatalogEmptyDescription,
-            primaryActionLabel: 'Tentar novamente',
-            onPrimaryAction: () {
-              _trackGameEmptyCta('retry_catalog');
-              _retryGameLoad();
-            },
-            mascotPose: ViscondeMascotPose.thumbsUpController,
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildShopSliverGrid() {
-    if (_catalog.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
-
-    return SliverGrid(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        mainAxisExtent: 220,
-      ),
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final item = _catalog[index];
-        return _buildCatalogItemCard(context, item);
-      }, childCount: _catalog.length),
-    );
-  }
-
-  Widget _buildCatalogItemCard(BuildContext context, CatalogItemModel item) {
+  Widget _buildWeeklyMissionCard(
+    BuildContext context,
+    WeeklyMissionModel mission,
+  ) {
     final colors = context.viscondeColors;
+    final safeTarget = mission.targetValue <= 0 ? 1 : mission.targetValue;
+    final progress = (mission.progressValue / safeTarget).clamp(0.0, 1.0);
+    final progressPercent = (progress * 100).toInt();
+    final statusColor = _missionStatusColor(context, mission.status);
+
     return ViscondeGlassCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-              ),
-              child: Center(
+          Row(
+            children: [
+              Expanded(
                 child: Text(
-                  item.iconKey.isNotEmpty ? item.iconKey : '✨',
-                  style: const TextStyle(fontSize: 40),
+                  mission.title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: colors.textStrong,
+                  ),
                 ),
               ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  _missionStatusLabel(mission.status),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            mission.description,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: colors.primary.withValues(alpha: 0.12),
+              valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                '${mission.progressValue}/${mission.targetValue}',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colors.textMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$progressPercent%',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colors.textMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              _buildRewardChip(
+                context,
+                icon: Icons.monetization_on_rounded,
+                label: '+${mission.rewardCoins}',
+              ),
+              const SizedBox(width: 6),
+              _buildRewardChip(
+                context,
+                icon: Icons.star_rounded,
+                label: '+${mission.rewardStars}',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRewardChip(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+  }) {
+    final colors = context.viscondeColors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colors.parchment,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFFDAA520)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: colors.textStrong,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementsTabHeader(BuildContext context) {
+    final colors = context.viscondeColors;
+    return ViscondeGlassCard(
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFDAA520).withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.emoji_events_rounded,
+              color: Color(0xFFDAA520),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.name,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  'Conquistas',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: colors.textStrong,
+                  ),
                 ),
-                const SizedBox(height: 2),
                 Text(
-                  '${item.priceCoins} 💰 / ${item.priceStars} ⭐',
+                  'Marcos desbloqueados e progresso atual.',
                   style: Theme.of(context).textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
-                item.unlocked
-                    ? OutlinedButton(
-                        onPressed: () => _toggleEquip(item),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(36),
-                          padding: EdgeInsets.zero,
-                          textStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        child: Text(item.equipped ? 'Desequipar' : 'Equipar'),
-                      )
-                    : FilledButton(
-                        onPressed: () => _unlockItem(item),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(36),
-                          padding: EdgeInsets.zero,
-                          textStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        child: const Text('Comprar'),
-                      ),
               ],
             ),
           ),
@@ -1239,48 +1009,137 @@ class _GameHubScreenState extends ConsumerState<GameHubScreen> {
     );
   }
 
-  // ── Equipped Items Card ──
-  Widget _buildEquippedItemsCard(
-    BuildContext context,
-    ChildProgressionModel? progression,
+  SliverMultiBoxAdaptorWidget _buildAchievementsSliverList(
+    DateFormat dateFormat,
   ) {
-    final equipped = progression?.inventorySummary.equippedItems ?? const [];
-    final showEmpty = equipped.isEmpty;
-    if (showEmpty) {
-      _trackGameSectionState('empty_equipped');
+    if (_achievements.isEmpty) {
+      _trackGameSectionState('empty_achievements');
+      return SliverList(
+        delegate: SliverChildListDelegate([
+          const SizedBox(height: 8),
+          ViscondeContentState.empty(
+            title: UiStateCopy.gameAchievementsEmptyTitle,
+            description: UiStateCopy.gameAchievementsEmptyDescription,
+            primaryActionLabel: 'Criar história',
+            onPrimaryAction: _openCreateStory,
+            mascotPose: ViscondeMascotPose.enchantedHearts,
+          ),
+        ]),
+      );
     }
 
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final achievement = _achievements[index];
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: _buildAchievementCard(context, achievement, dateFormat),
+        );
+      }, childCount: _achievements.length),
+    );
+  }
+
+  Widget _buildAchievementCard(
+    BuildContext context,
+    AchievementModel achievement,
+    DateFormat dateFormat,
+  ) {
+    final colors = context.viscondeColors;
+    final unlocked = achievement.unlocked;
+    final statusLabel = unlocked ? 'Desbloqueada' : 'Em progresso';
+    final statusColor = unlocked ? Colors.green.shade700 : colors.textMuted;
+
     return ViscondeGlassCard(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const ViscondeSectionTitle(
-              title: 'Itens equipados',
-              subtitle: 'Veja o que já está ativo para a criança.',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: unlocked
+                  ? const Color(0xFFDAA520).withValues(alpha: 0.16)
+                  : colors.parchmentSoft,
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: 6),
-            if (showEmpty) ...[
-              ViscondeContentState.empty(
-                title: UiStateCopy.gameEquippedEmptyTitle,
-                description: UiStateCopy.gameEquippedEmptyDescription,
-                primaryActionLabel: 'Abrir loja',
-                onPrimaryAction: () {
-                  _trackGameEmptyCta('open_shop');
-                  _retryGameLoad();
-                },
-                mascotPose: ViscondeMascotPose.studyingDesk,
-              ),
-            ] else
-              ...equipped.map(
-                (item) => Text(
-                  '- ${item.name} (${item.type.name})',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+            child: Icon(
+              unlocked ? Icons.workspace_premium_rounded : Icons.lock_outline,
+              color: unlocked ? const Color(0xFFDAA520) : colors.textMuted,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        achievement.title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: colors.textStrong,
+                            ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        statusLabel,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: statusColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-          ],
-        ),
+                const SizedBox(height: 4),
+                Text(
+                  achievement.description,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _buildRewardChip(
+                      context,
+                      icon: Icons.monetization_on_rounded,
+                      label: '+${achievement.rewardCoins}',
+                    ),
+                    const SizedBox(width: 6),
+                    _buildRewardChip(
+                      context,
+                      icon: Icons.star_rounded,
+                      label: '+${achievement.rewardStars}',
+                    ),
+                  ],
+                ),
+                if (achievement.unlockedAt != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Desbloqueada em ${dateFormat.format(achievement.unlockedAt!)}',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

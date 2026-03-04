@@ -307,24 +307,19 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text(UiStateCopy.gameAchievementsEmptyTitle, skipOffstage: false),
+      find.text('Ler histórias', skipOffstage: false),
       findsAtLeastNWidgets(1),
     );
 
+    await tester.tap(find.text('Conquistas'));
+    await tester.pumpAndSettle();
+
     expect(
-      find.text('Ler histórias', skipOffstage: false),
+      find.text(UiStateCopy.gameAchievementsEmptyTitle, skipOffstage: false),
       findsAtLeastNWidgets(1),
     );
     expect(
       find.text('Criar história', skipOffstage: false),
-      findsAtLeastNWidgets(1),
-    );
-
-    await tester.drag(find.byType(ListView).first, const Offset(0, -1400));
-    await tester.pump(const Duration(milliseconds: 250));
-
-    expect(
-      find.text('Abrir loja', skipOffstage: false),
       findsAtLeastNWidgets(1),
     );
   });
