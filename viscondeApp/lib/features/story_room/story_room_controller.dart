@@ -33,6 +33,7 @@ class StoryRoomState {
   const StoryRoomState({
     this.loading = false,
     this.submittingStep = false,
+    this.requestingIdeas = false,
     this.finalizing = false,
     this.session,
     this.ideas = const [],
@@ -45,6 +46,7 @@ class StoryRoomState {
 
   final bool loading;
   final bool submittingStep;
+  final bool requestingIdeas;
   final bool finalizing;
   final StorySessionModel? session;
   final List<String> ideas;
@@ -57,6 +59,7 @@ class StoryRoomState {
   StoryRoomState copyWith({
     bool? loading,
     bool? submittingStep,
+    bool? requestingIdeas,
     bool? finalizing,
     StorySessionModel? session,
     List<String>? ideas,
@@ -71,6 +74,7 @@ class StoryRoomState {
     return StoryRoomState(
       loading: loading ?? this.loading,
       submittingStep: submittingStep ?? this.submittingStep,
+      requestingIdeas: requestingIdeas ?? this.requestingIdeas,
       finalizing: finalizing ?? this.finalizing,
       session: session ?? this.session,
       ideas: clearIdeas ? const [] : (ideas ?? this.ideas),
@@ -445,7 +449,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
       return;
     }
 
-    state = state.copyWith(loading: true, clearError: true);
+    state = state.copyWith(requestingIdeas: true, clearError: true);
     try {
       final ideas = await _api.requestIdeas(
         token,
@@ -467,13 +471,16 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
       }
 
       state = state.copyWith(
-        loading: false,
+        requestingIdeas: false,
         ideas: ideas.ideas,
         ideasSource: ideas.source,
         ideasSafetyAdjusted: ideas.safetyAdjusted,
       );
     } catch (error) {
-      state = state.copyWith(loading: false, error: parseDioError(error));
+      state = state.copyWith(
+        requestingIdeas: false,
+        error: parseDioError(error),
+      );
     }
   }
 
@@ -528,7 +535,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
         'selectedOptionLabel': selectedOptionLabel.trim(),
       if (selectedOptionId != null && selectedOptionId.trim().isNotEmpty)
         'selectedOptionId': selectedOptionId.trim(),
-      'gameNodeIndex': ?gameNodeIndex,
+      if (gameNodeIndex != null) 'gameNodeIndex': gameNodeIndex,
       if (gameAction != null)
         'gameAction': <String, dynamic>{
           'key': gameAction.key,

@@ -10,12 +10,18 @@ const devAutoLoginEnabled = bool.fromEnvironment(
 
 const devLoginPrefillEnabled = bool.fromEnvironment(
   'DEV_LOGIN_PREFILL',
-  defaultValue: false,
+  defaultValue: true,
 );
 
-const devAdminEmail = String.fromEnvironment('DEV_ADMIN_EMAIL');
+const devAdminEmail = String.fromEnvironment(
+  'DEV_ADMIN_EMAIL',
+  defaultValue: 'admin@visconde.app',
+);
 
-const devAdminPassword = String.fromEnvironment('DEV_ADMIN_PASSWORD');
+const devAdminPassword = String.fromEnvironment(
+  'DEV_ADMIN_PASSWORD',
+  defaultValue: 'admin123',
+);
 
 bool get hasExplicitDevCredentials =>
     devAdminEmail.trim().isNotEmpty && devAdminPassword.trim().isNotEmpty;

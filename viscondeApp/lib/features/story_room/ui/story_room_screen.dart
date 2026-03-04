@@ -27,11 +27,30 @@ class StoryRoomScreen extends ConsumerStatefulWidget {
 
 class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
   int _lastKnownSteps = 0;
+  int _xpAnimationNonce = 0;
   static const int _minimumPublishSteps = 3;
+  static const int _totalStorySteps = 12;
+  static const int _maxStoryXp = 500;
 
   int _missingStepsForPublish(StorySessionModel story) {
     final missing = _minimumPublishSteps - story.steps.length;
     return missing > 0 ? missing : 0;
+  }
+
+  int _normalizedStepIndex(int rawStepIndex) {
+    if (rawStepIndex <= 0) {
+      return 1;
+    }
+    if (rawStepIndex > _totalStorySteps) {
+      return _totalStorySteps;
+    }
+    return rawStepIndex;
+  }
+
+  int _xpForStepIndex(int stepIndex) {
+    final normalizedStep = _normalizedStepIndex(stepIndex);
+    final xp = ((normalizedStep / _totalStorySteps) * _maxStoryXp).round();
+    return xp.clamp(0, _maxStoryXp).toInt();
   }
 
   @override
@@ -433,12 +452,22 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
         ).showSnackBar(SnackBar(content: Text(next.error!)));
       }
 
-      final previousSteps = previous?.session?.steps.length ?? _lastKnownSteps;
-      final currentSteps = next.session?.steps.length ?? previousSteps;
-      if (currentSteps > previousSteps) {
+      final previousSession = previous?.session;
+      final nextSession = next.session;
+      final previousSteps = previousSession?.steps.length ?? _lastKnownSteps;
+      final currentSteps = nextSession?.steps.length ?? previousSteps;
+      if (previousSession != null &&
+          nextSession != null &&
+          currentSteps > previousSteps) {
         context.showMessage(
           'Etapa salva. Próximo passo: continue narrando ou revise para publicar.',
         );
+
+        final previousXp = _xpForStepIndex(previousSession.currentStepIndex);
+        final currentXp = _xpForStepIndex(nextSession.currentStepIndex);
+        if (currentXp > previousXp && mounted) {
+          setState(() => _xpAnimationNonce += 1);
+        }
       }
       _lastKnownSteps = currentSteps;
     });
@@ -460,10 +489,12 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
 
     final options = controller.currentChoiceOptions();
     final missingStepsForPublish = _missingStepsForPublish(story);
+    final currentStepVisual = _normalizedStepIndex(story.currentStepIndex);
+    final currentXp = _xpForStepIndex(story.currentStepIndex);
     final illustrationAsync = ref.watch(
       storyIllustrationProvider((
         storyId: story.id,
-        stepIndex: story.currentStepIndex == 0 ? 1 : story.currentStepIndex,
+        stepIndex: currentStepVisual,
       )),
     );
 
@@ -485,14 +516,13 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
           children: [
             StoryRoomHeader(
               title: story.title,
-              currentStep: story.currentStepIndex == 0
-                  ? 1
-                  : story.currentStepIndex,
-              totalSteps: 12,
+              currentStep: currentStepVisual,
+              totalSteps: _totalStorySteps,
               themeArtKey: ViscondeArtKey
                   .heroUnderwater, // We should dynamically choose based on theme, hardcoded to underwater to match UI
-              xp: 340, // Mocked for UI
-              maxXp: 500, // Mocked for UI
+              xp: currentXp,
+              maxXp: _maxStoryXp,
+              xpAnimationNonce: _xpAnimationNonce,
             ),
             if (story.status == StoryStatus.draft) ...[
               const SizedBox(height: 8),
@@ -651,7 +681,7 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              Icons.radio_button_unchecked,
+                              Icons.child_care_rounded,
                               color: story.currentMode == StoryMode.childChooser
                                   ? Colors.black87
                                   : Colors.black54,
@@ -683,12 +713,15 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
             const SizedBox(height: 16),
             if (story.currentMode == StoryMode.parentNarrator)
               ParentNarratorPanel(
-                loading: state.submittingStep || state.loading,
+                isSavingStep: state.submittingStep,
+                isRequestingIdeas: state.requestingIdeas,
                 ideas: state.ideas,
                 ideasSource: state.ideasSource,
                 ideasSafetyAdjusted: state.ideasSafetyAdjusted,
-                onSaveNarration: (text) {
-                  controller.addNarrationStep(narratorText: text);
+                onSaveNarration: (text) async {
+                  await controller.addNarrationStep(narratorText: text);
+                  final nextState = ref.read(storyRoomControllerProvider);
+                  return nextState.error == null;
                 },
                 onRequestIdeas: (hint) {
                   controller.requestIdeas(contextHint: hint);

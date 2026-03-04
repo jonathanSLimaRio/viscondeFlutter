@@ -199,7 +199,7 @@ class StoryApi {
         if (selectedOptionLabel != null &&
             selectedOptionLabel.trim().isNotEmpty)
           'selectedOptionLabel': selectedOptionLabel.trim(),
-        'gameNodeIndex': gameNodeIndex,
+        if (gameNodeIndex != null) 'gameNodeIndex': gameNodeIndex,
         if (gameAction != null)
           'gameAction': {'key': gameAction.key, 'label': gameAction.label},
         'localEventId': localEventId,

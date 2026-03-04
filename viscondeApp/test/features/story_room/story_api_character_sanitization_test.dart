@@ -103,5 +103,32 @@ void main() {
         ]);
       },
     );
+
+    test('createStep omits null gameNodeIndex from payload', () async {
+      RequestOptions? captured;
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = FakeDioAdapter((options) async {
+        captured = options;
+        return jsonResponse(<String, dynamic>{
+          'story': _sessionPayload(),
+          'idempotent': false,
+        }, statusCode: 201);
+      });
+      final api = StoryApi(dio);
+
+      await api.createStep(
+        'access-token',
+        'story-1',
+        kind: StoryStepKind.narration,
+        stepIndex: 1,
+        narratorText: 'Um novo trecho da aventura.',
+        gameNodeIndex: null,
+        localEventId: 'evt-1',
+      );
+
+      final data = captured?.data as Map<String, dynamic>?;
+      expect(data, isNotNull);
+      expect(data?.containsKey('gameNodeIndex'), isFalse);
+    });
   });
 }

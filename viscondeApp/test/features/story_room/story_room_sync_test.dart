@@ -35,6 +35,7 @@ class QueueTestStoryApi extends StoryApi {
   StorySessionModel session;
   Object? createStepError;
   Object? updateSessionSetupError;
+  Completer<StoryIdeasResult>? requestIdeasCompleter;
   int createStepCalls = 0;
   int updateSessionSetupCalls = 0;
 
@@ -174,6 +175,11 @@ class QueueTestStoryApi extends StoryApi {
     String storyId, {
     String? contextHint,
   }) async {
+    final completer = requestIdeasCompleter;
+    if (completer != null) {
+      return completer.future;
+    }
+
     return const StoryIdeasResult(
       ideas: <String>['Ideia A', 'Ideia B'],
       source: 'TEST',
@@ -505,6 +511,57 @@ void main() {
         expect(state.error, isNotNull);
       },
     );
+
+    test('requestIdeas toggles requestingIdeas state during request', () async {
+      final queue = FakeStorySyncQueue();
+      final api = QueueTestStoryApi(_sampleSession());
+      final connectivity = FakeConnectivity();
+
+      final container = ProviderContainer(
+        overrides: <Override>[
+          ...authOverrides(user: buildTestUser()),
+          storySyncQueueProvider.overrideWith((ref) => queue),
+          storyRoomControllerProvider.overrideWith((ref) {
+            return StoryRoomController(
+              ref: ref,
+              api: api,
+              syncQueue: queue,
+              connectivity: connectivity,
+            );
+          }),
+        ],
+      );
+
+      addTearDown(() async {
+        await connectivity.disposeFake();
+        container.dispose();
+      });
+
+      await _waitAuthReady(container);
+
+      final controller = container.read(storyRoomControllerProvider.notifier);
+      await controller.loadSession('story-1');
+
+      api.requestIdeasCompleter = Completer<StoryIdeasResult>();
+      final inFlight = controller.requestIdeas(contextHint: 'amizade');
+
+      final stateDuringRequest = container.read(storyRoomControllerProvider);
+      expect(stateDuringRequest.requestingIdeas, isTrue);
+
+      api.requestIdeasCompleter!.complete(
+        const StoryIdeasResult(
+          ideas: <String>['Ideia A', 'Ideia B'],
+          source: 'TEST',
+          safetyAdjusted: false,
+        ),
+      );
+      await inFlight;
+
+      final stateAfterRequest = container.read(storyRoomControllerProvider);
+      expect(stateAfterRequest.requestingIdeas, isFalse);
+      expect(stateAfterRequest.ideas, isNotEmpty);
+      expect(stateAfterRequest.ideasSource, 'TEST');
+    });
 
     test(
       'handles createSession, mode change, ideas and finalize flows',

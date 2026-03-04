@@ -10,15 +10,17 @@ class ParentNarratorPanel extends StatefulWidget {
     required this.ideas,
     required this.ideasSource,
     required this.ideasSafetyAdjusted,
-    this.loading = false,
+    this.isSavingStep = false,
+    this.isRequestingIdeas = false,
   });
 
-  final ValueChanged<String> onSaveNarration;
+  final Future<bool> Function(String) onSaveNarration;
   final ValueChanged<String?> onRequestIdeas;
   final List<String> ideas;
   final String? ideasSource;
   final bool ideasSafetyAdjusted;
-  final bool loading;
+  final bool isSavingStep;
+  final bool isRequestingIdeas;
 
   @override
   State<ParentNarratorPanel> createState() => _ParentNarratorPanelState();
@@ -27,6 +29,14 @@ class ParentNarratorPanel extends StatefulWidget {
 class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
   final _narrationController = TextEditingController();
   final _hintController = TextEditingController();
+  bool _savingNarration = false;
+
+  void _applyIdeaToNarration(String idea) {
+    _narrationController.text = idea;
+    _narrationController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _narrationController.text.length),
+    );
+  }
 
   @override
   void dispose() {
@@ -35,18 +45,28 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
     super.dispose();
   }
 
-  void _saveNarration() {
+  Future<void> _saveNarration() async {
     final text = _narrationController.text.trim();
     if (text.isEmpty) {
       return;
     }
 
-    widget.onSaveNarration(text);
-    _narrationController.clear();
+    setState(() => _savingNarration = true);
+    final saved = await widget.onSaveNarration(text);
+    if (!mounted) {
+      return;
+    }
+    setState(() => _savingNarration = false);
+
+    if (saved) {
+      _narrationController.clear();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isSavingStep = widget.isSavingStep || _savingNarration;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -70,15 +90,8 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
         Row(
           children: [
             Expanded(
-              child: ViscondePrimaryCta(
-                onPressed: widget.loading ? null : _saveNarration,
-                icon: Icons.save_outlined,
-                label: 'Salvar Etapa',
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton.icon(
+              child: ElevatedButton(
+                key: const ValueKey<String>('story_room_generate_idea_button'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1F5B6F),
                   foregroundColor: Colors.white,
@@ -87,13 +100,45 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
                     borderRadius: BorderRadius.circular(24),
                   ),
                 ),
-                onPressed: widget.loading
+                onPressed: widget.isRequestingIdeas
                     ? null
                     : () {
-                        widget.onRequestIdeas(_hintController.text.trim());
+                        final hint = _hintController.text.trim();
+                        widget.onRequestIdeas(hint.isEmpty ? null : hint);
                       },
-                icon: const Icon(Icons.auto_awesome),
-                label: const Text('Gerar ideia'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (widget.isRequestingIdeas) ...[
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ] else ...[
+                      const Icon(Icons.auto_awesome, size: 18),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      widget.isRequestingIdeas ? 'Gerando...' : 'Gerar ideia',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ViscondePrimaryCta(
+                key: const ValueKey<String>('story_room_next_step_button'),
+                onPressed: isSavingStep ? null : _saveNarration,
+                icon: Icons.arrow_forward_rounded,
+                label: 'Próximo passo',
               ),
             ),
           ],
@@ -109,15 +154,14 @@ class _ParentNarratorPanelState extends State<ParentNarratorPanel> {
             (idea) => ViscondeGlassCard(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
+                onTap: isSavingStep ? null : () => _applyIdeaToNarration(idea),
                 title: Text(idea),
                 trailing: IconButton(
                   icon: const Icon(Icons.add_comment_outlined),
-                  onPressed: widget.loading
+                  onPressed: isSavingStep
                       ? null
-                      : () {
-                          widget.onSaveNarration(idea);
-                        },
-                  tooltip: 'Usar ideia como narrativa',
+                      : () => _applyIdeaToNarration(idea),
+                  tooltip: 'Preencher narrativa com esta ideia',
                 ),
               ),
             ),

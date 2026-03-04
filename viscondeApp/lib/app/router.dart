@@ -143,6 +143,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final personaState = ref.read(sessionPersonaControllerProvider);
 
       if (auth.status == AuthStatus.loading) {
+        // During login/signup submits we keep auth routes stable to avoid
+        // bouncing /login -> /loading -> /login on failures.
+        if (isAuthRoute) {
+          return null;
+        }
         return location == AppRoute.loading ? null : AppRoute.loading;
       }
 

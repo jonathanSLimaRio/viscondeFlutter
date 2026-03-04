@@ -20,17 +20,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool get _shouldPrefillDevCredentials =>
       kDebugMode && devLoginPrefillEnabled && hasExplicitDevCredentials;
 
-  final _emailController = TextEditingController(
-    text: kDebugMode && devLoginPrefillEnabled && hasExplicitDevCredentials
-        ? devAdminEmail
-        : '',
-  );
-  final _passwordController = TextEditingController(
-    text: kDebugMode && devLoginPrefillEnabled && hasExplicitDevCredentials
-        ? devAdminPassword
-        : '',
-  );
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _hasAppliedDevPrefill = false;
+
+  void _applyDevPrefillIfNeeded() {
+    if (_hasAppliedDevPrefill || !_shouldPrefillDevCredentials) {
+      return;
+    }
+
+    if (_emailController.text.trim().isEmpty) {
+      _emailController.text = devAdminEmail;
+    }
+    if (_passwordController.text.isEmpty) {
+      _passwordController.text = devAdminPassword;
+    }
+
+    _hasAppliedDevPrefill = true;
+  }
 
   @override
   void dispose() {
@@ -52,6 +60,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _applyDevPrefillIfNeeded();
+
     final authState = ref.watch(authControllerProvider);
 
     if (authState.status == AuthStatus.loading) {
