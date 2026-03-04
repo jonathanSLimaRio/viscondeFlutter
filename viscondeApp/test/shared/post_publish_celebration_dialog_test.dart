@@ -54,11 +54,11 @@ void main() {
 
     expect(find.text('Capítulo publicado!'), findsOneWidget);
     expect(find.text('Continuar saga'), findsOneWidget);
-    expect(find.text('Ir para Game'), findsOneWidget);
+    expect(find.text('Ir para Conquistas'), findsOneWidget);
     expect(find.text('Voltar ao baú'), findsOneWidget);
     expect(find.textContaining('+20 moedas'), findsOneWidget);
 
-    await tester.tap(find.text('Ir para Game'));
+    await tester.tap(find.text('Ir para Conquistas'));
     await tester.pumpAndSettle();
 
     expect(selectedAction, PostPublishAction.goGame);

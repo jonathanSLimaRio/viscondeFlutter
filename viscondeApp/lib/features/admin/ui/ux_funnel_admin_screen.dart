@@ -393,7 +393,10 @@ class _PostPublishCard extends StatelessWidget {
             'Continuar saga',
             '${postPublish.ctaClicksByTarget.continueSaga}',
           ),
-          metric('Ir para Game', '${postPublish.ctaClicksByTarget.goGame}'),
+          metric(
+            'Ir para Conquistas',
+            '${postPublish.ctaClicksByTarget.goGame}',
+          ),
           metric(
             'Voltar ao baú',
             '${postPublish.ctaClicksByTarget.backToVault}',

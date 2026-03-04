@@ -884,7 +884,7 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
           },
         );
         _showSnackMessage(
-          'Cadastre uma criança na aba Crianças para começar a aventura.',
+          'Cadastre uma criança em Perfil > Crianças para começar a aventura.',
         );
         return;
       }

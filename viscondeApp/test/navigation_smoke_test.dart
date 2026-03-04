@@ -6,6 +6,9 @@ import 'package:visconde_app/app/app.dart';
 import 'package:visconde_app/app/router.dart';
 import 'package:visconde_app/core/models/child_profile.dart';
 import 'package:visconde_app/features/story_creation/ui/create_story_screen.dart';
+import 'package:visconde_app/features/gamification/ui/game_blank_screen.dart';
+import 'package:visconde_app/features/gamification/ui/game_hub_screen.dart';
+import 'package:visconde_app/features/profile/ui/profile_hub_tab.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
 import 'package:visconde_app/features/story_room/ui/story_room_screen.dart';
 import 'package:visconde_app/features/story_room/ui/story_summary_screen.dart';
@@ -165,6 +168,19 @@ void main() {
 
     router.go('/?tab=game');
     await tester.pumpAndSettle();
-    expect(find.text('Game'), findsWidgets);
+    expect(find.byType(GameBlankScreen), findsOneWidget);
+    expect(find.byType(GameHubScreen), findsNothing);
+
+    router.go('/?tab=achievements');
+    await tester.pumpAndSettle();
+    expect(find.byType(GameHubScreen), findsOneWidget);
+
+    router.go('/?tab=children');
+    await tester.pumpAndSettle();
+    expect(find.byType(ProfileHubTab), findsOneWidget);
+
+    router.go('/?tab=adult');
+    await tester.pumpAndSettle();
+    expect(find.byType(ProfileHubTab), findsOneWidget);
   });
 }

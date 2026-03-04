@@ -1256,7 +1256,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         return;
       case PostPublishAction.goGame:
         if (mounted) {
-          context.go(AppRoute.homePath(tab: HomeTab.game));
+          context.go(AppRoute.homePath(tab: HomeTab.achievements));
         }
         return;
       case PostPublishAction.backToVault:
@@ -1408,7 +1408,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
                             const Padding(
                               padding: EdgeInsets.only(bottom: 12),
                               child: Text(
-                                'Cadastre ao menos uma criança na aba Crianças antes de iniciar.',
+                                'Cadastre ao menos uma criança em Perfil > Crianças antes de iniciar.',
                               ),
                             ),
                           _buildRecommendationsBlock(context),

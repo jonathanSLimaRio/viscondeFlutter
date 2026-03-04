@@ -304,7 +304,7 @@ void main() {
     expect(storyApi.createCalls, 0);
     expect(
       find.text(
-        'Cadastre uma criança na aba Crianças para começar a aventura.',
+        'Cadastre uma criança em Perfil > Crianças para começar a aventura.',
       ),
       findsOneWidget,
     );

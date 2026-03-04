@@ -134,7 +134,7 @@ Future<PostPublishAction> showPostPublishCelebrationDialog(
                 logAction('go_game');
                 Navigator.of(dialogContext).pop(PostPublishAction.goGame);
               },
-              child: const Text('Ir para Game'),
+              child: const Text('Ir para Conquistas'),
             ),
             TextButton(
               onPressed: () {

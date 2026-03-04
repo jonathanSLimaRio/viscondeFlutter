@@ -667,11 +667,13 @@ void main() {
 
     expect(find.text('Capítulo publicado!'), findsOneWidget);
     expect(find.text('Continuar saga'), findsOneWidget);
-    expect(find.text('Ir para Game'), findsOneWidget);
+    expect(find.text('Ir para Conquistas'), findsOneWidget);
     expect(find.text('Voltar ao baú'), findsOneWidget);
-    await tester.tap(find.text('Voltar ao baú'));
+    await tester.tap(find.text('Ir para Conquistas'));
     await tester.pumpAndSettle();
 
+    final location = router.routeInformationProvider.value.uri.toString();
+    expect(location, '/?tab=achievements');
     expect(find.byType(StoryRoomScreen), findsNothing);
     final saved = await draftStore.read(user.id);
     expect(saved, isNull);

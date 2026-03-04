@@ -7,12 +7,11 @@ import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../features/auth/auth_controller.dart';
 import '../../../shared/providers.dart';
-import '../../children/ui/children_tab.dart';
+import '../../gamification/ui/game_blank_screen.dart';
 import '../../gamification/ui/game_hub_screen.dart';
 import '../../security/parental_gate_controller.dart';
-import '../../security/ui/adult_gate_tab.dart';
 import '../../story_vault/ui/story_vault_screen.dart';
-import 'profile_tab.dart';
+import 'profile_hub_tab.dart';
 
 class HomeShellScreen extends ConsumerStatefulWidget {
   const HomeShellScreen({super.key, this.initialTab = HomeTab.stories});
@@ -25,6 +24,7 @@ class HomeShellScreen extends ConsumerStatefulWidget {
 
 class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   static const _menuAnimationDuration = Duration(milliseconds: 260);
+  static const _tabCount = 4;
 
   int _index = 0;
   final Map<int, Widget> _tabCache = <int, Widget>{0: const StoryVaultScreen()};
@@ -100,13 +100,11 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
       case 0:
         return const StoryVaultScreen();
       case 1:
-        return const GameHubScreen();
+        return const GameBlankScreen();
       case 2:
-        return const ChildrenTab();
+        return const GameHubScreen();
       case 3:
-        return const ProfileTab();
-      case 4:
-        return const AdultGateTab();
+        return const ProfileHubTab();
       default:
         return const SizedBox.shrink();
     }
@@ -119,11 +117,9 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
       case 1:
         return 'Game';
       case 2:
-        return 'Crianças';
+        return 'Conquistas';
       case 3:
         return 'Perfil';
-      case 4:
-        return 'Área adulta';
       default:
         return '';
     }
@@ -135,19 +131,17 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
         return 0;
       case HomeTab.game:
         return 1;
-      case HomeTab.children:
+      case HomeTab.achievements:
         return 2;
       case HomeTab.profile:
         return 3;
-      case HomeTab.adult:
-        return 4;
     }
   }
 
   Widget _buildAnimatedBody() {
     return Stack(
       fit: StackFit.expand,
-      children: List<Widget>.generate(5, (index) {
+      children: List<Widget>.generate(_tabCount, (index) {
         final tab = _tabCache[index] ?? const SizedBox.expand();
         final selected = _index == index;
 
@@ -345,21 +339,15 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
               ),
               _destination(
                 index: 2,
-                icon: Icons.child_care_outlined,
-                selectedIcon: Icons.child_care,
-                label: 'Crianças',
+                icon: Icons.emoji_events_outlined,
+                selectedIcon: Icons.emoji_events,
+                label: 'Conquistas',
               ),
               _destination(
                 index: 3,
                 icon: Icons.account_circle_outlined,
                 selectedIcon: Icons.account_circle,
                 label: 'Perfil',
-              ),
-              _destination(
-                index: 4,
-                icon: Icons.lock_outline,
-                selectedIcon: Icons.lock,
-                label: 'Área adulta',
               ),
             ],
           ),

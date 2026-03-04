@@ -427,6 +427,53 @@ void main() {
     expect(location, '/stories/story-continued/room');
   });
 
+  testWidgets('ir para conquistas abre aba de conquistas após publicar', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    final api = _SummaryStoryApi(session: _buildSession());
+
+    final container = ProviderContainer(
+      overrides: [
+        ...authOverrides(user: buildTestUser(), authenticated: true),
+        storyApiProvider.overrideWith((ref) => api),
+        inventoryApiProvider.overrideWith((ref) => _SummaryInventoryApi()),
+        storySyncQueueProvider.overrideWith((ref) => FakeStorySyncQueue()),
+        uxAnalyticsServiceProvider.overrideWith(
+          (ref) => UxAnalyticsService(
+            store: _NoopUxStore(),
+            transport: _NoopUxTransport(),
+            readAccessToken: () => null,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(0.8)),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const ViscondeApp(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final router = container.read(appRouterProvider);
+    router.go('/stories/story-test/summary');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('story_summary_publish_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ir para Conquistas'));
+    await tester.pumpAndSettle();
+
+    final location = router.routeInformationProvider.value.uri.toString();
+    expect(location, '/?tab=achievements');
+  });
+
   testWidgets('voltar ao baú sai do resumo após publicar', (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
     final api = _SummaryStoryApi(session: _buildSession());

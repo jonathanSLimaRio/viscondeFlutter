@@ -205,7 +205,7 @@ class _StorySummaryScreenState extends ConsumerState<StorySummaryScreen> {
         return;
       case PostPublishAction.goGame:
         if (mounted) {
-          context.go(AppRoute.homePath(tab: HomeTab.game));
+          context.go(AppRoute.homePath(tab: HomeTab.achievements));
         }
         return;
       case PostPublishAction.backToVault:

@@ -1,4 +1,4 @@
-enum HomeTab { stories, game, children, profile, adult }
+enum HomeTab { stories, game, achievements, profile }
 
 abstract final class AppRoute {
   static const loading = '/loading';
@@ -53,12 +53,14 @@ abstract final class AppRoute {
     switch (raw?.trim().toLowerCase()) {
       case 'game':
         return HomeTab.game;
+      case 'achievements':
+      case 'conquistas':
+        return HomeTab.achievements;
       case 'children':
-        return HomeTab.children;
+      case 'adult':
+        return HomeTab.profile;
       case 'profile':
         return HomeTab.profile;
-      case 'adult':
-        return HomeTab.adult;
       case 'stories':
       default:
         return HomeTab.stories;
@@ -71,12 +73,10 @@ abstract final class AppRoute {
         return 'stories';
       case HomeTab.game:
         return 'game';
-      case HomeTab.children:
-        return 'children';
+      case HomeTab.achievements:
+        return 'achievements';
       case HomeTab.profile:
         return 'profile';
-      case HomeTab.adult:
-        return 'adult';
     }
   }
 
