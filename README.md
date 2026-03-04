@@ -61,6 +61,38 @@ Opcionalmente, sobrescreva credenciais:
 - `DEV_ADMIN_EMAIL`
 - `DEV_ADMIN_PASSWORD`
 
+## Reset + Seed QA completo
+
+Comando unico para reset destrutivo do banco atual no `.env`, migracoes, seed QA, backfill e verificacao:
+
+```bash
+DB_RESET_CONFIRM=RESET_VISCONDE npm run db:reset:seed:qa
+```
+
+Comandos auxiliares:
+
+```bash
+npm run db:reset
+npm run db:seed:qa
+```
+
+Credenciais demo seedadas:
+
+- admin: `admin@visconde.app / admin123`
+- demo: `demo@visconde.app / demo123`
+- PIN demo: `123456`
+
+Flags uteis no Flutter para validacao rapida:
+
+```bash
+flutter run \
+  --dart-define=API_BASE_URL=http://localhost:3000/api/v1 \
+  --dart-define=DEV_AUTO_LOGIN=true \
+  --dart-define=DEV_ADMIN_EMAIL=demo@visconde.app \
+  --dart-define=DEV_ADMIN_PASSWORD=demo123 \
+  --dart-define=STORY_GAME_ROOM_ENABLED=true
+```
+
 ## Sala remota (multiplayer)
 
 Backend exposto em `/api/v1` com endpoints de sala remota:

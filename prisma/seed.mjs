@@ -675,6 +675,39 @@ const demoCollectionsBlueprint = [
           },
         ],
       },
+      {
+        key: "viagem_espaco_ep3",
+        episodeNumber: 3,
+        status: "DRAFT",
+        title: "Viagem ao Espaco - Episodio 3",
+        theme: "Fantasia",
+        scenario: "Corredor de nebulas com sinais misteriosos",
+        objective: "Escolher o melhor caminho para ajudar outra nave",
+        virtueSlug: "cooperacao",
+        ageBand: "AGE_6_8",
+        ageSnapshotYears: 8,
+        sourceTemplate: false,
+        continuedFromStoryKey: "viagem_espaco_ep2",
+        currentMode: "PARENT_NARRATOR",
+        currentStepIndex: 1,
+        startedAt: new Date("2026-02-21T19:00:00.000Z"),
+        publishedAt: null,
+        completedAt: null,
+        referenceAt: new Date("2026-02-21T19:08:00.000Z"),
+        characters: [
+          { key: "maya", name: "Maya", role: "pilota aprendiz" },
+          { key: "nina", name: "Nina", role: "amiga viajante" },
+        ],
+        steps: [
+          {
+            stepIndex: 1,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "Maya e Nina observam duas rotas seguras na nebulosa e combinam agir em equipe.",
+          },
+        ],
+      },
     ],
   },
   {
@@ -771,6 +804,55 @@ const demoCollectionsBlueprint = [
               { id: "mostrar_castelo", label: "Mostrar o castelo com calma" },
               { id: "brincar_juntos", label: "Convidar para brincar juntos" },
               { id: "buscar_ajuda", label: "Buscar ajuda de um guardiao" },
+            ],
+          },
+        ],
+      },
+      {
+        key: "castelo_ep2",
+        episodeNumber: 3,
+        status: "DRAFT",
+        title: "Castelo Encantado - Episodio 2",
+        theme: "Fantasia",
+        scenario: "Patio do castelo com trilhas coloridas",
+        objective: "Criar um plano para integrar Nico ao time",
+        virtueSlug: "cooperacao",
+        ageBand: "AGE_4_5",
+        ageSnapshotYears: 6,
+        sourceTemplate: false,
+        continuedFromStoryKey: "castelo_ep1",
+        currentMode: "CHILD_CHOOSER",
+        currentStepIndex: 2,
+        startedAt: new Date("2026-02-28T17:00:00.000Z"),
+        publishedAt: null,
+        completedAt: null,
+        referenceAt: new Date("2026-02-28T17:19:00.000Z"),
+        characters: [
+          { key: "sofia", name: "Sofia", role: "heroina" },
+          { key: "nico", name: "Nico", role: "amigo novo" },
+          { key: "milo", name: "Milo", role: "guia do castelo" },
+        ],
+        steps: [
+          {
+            stepIndex: 1,
+            kind: "NARRATION",
+            modeUsed: "PARENT_NARRATOR",
+            narratorText:
+              "Sofia monta um plano em equipe para que Nico conheca cada canto do castelo.",
+          },
+          {
+            stepIndex: 2,
+            kind: "CHILD_CHOICE",
+            modeUsed: "CHILD_CHOOSER",
+            selectedOptionId: "dividir_tarefas",
+            selectedOptionLabel: "Dividir tarefas para todos ajudarem",
+            childOptions: [
+              {
+                id: "dividir_tarefas",
+                label: "Dividir tarefas para todos ajudarem",
+              },
+              { id: "seguir_sozinha", label: "Sofia segue sozinha primeiro" },
+              { id: "chamar_guardiao", label: "Chamar o guardiao da torre" },
             ],
           },
         ],
@@ -896,7 +978,6 @@ const qaBookProjectConfig = {
 };
 
 const qaRemoteRoomConfig = {
-  accountKey: "demo",
   storyKey: "castelo_ep1",
   joinCode: "SEED42",
   callMode: "AUDIO",
@@ -922,6 +1003,59 @@ const qaWalletBaselineByAccount = {
   admin: { coins: 180, stars: 4 },
   demo: { coins: 140, stars: 3 },
 };
+
+const MAX_STORY_STEPS = 12;
+const GAME_MAP_VERSION = 1;
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function hashSeed(value) {
+  let hashValue = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hashValue ^= value.charCodeAt(index);
+    hashValue = Math.imul(hashValue, 16777619);
+  }
+  return Math.abs(hashValue >>> 0);
+}
+
+function computeStoryGameSeed(input) {
+  return hashSeed(`${input.storyId}|${input.theme}|${input.scenario}|${input.objective}`);
+}
+
+function buildLinearTrailMap(seed) {
+  let randomState = seed || 1;
+  const nextRandom = () => {
+    randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0;
+    return randomState / 0xffffffff;
+  };
+
+  const biomes = ["FOREST", "CASTLE", "UNDERWATER", "SPACE", "TREASURE"];
+  const biome = biomes[seed % biomes.length] ?? "FOREST";
+  const nodes = [];
+
+  for (let index = 1; index <= MAX_STORY_STEPS; index += 1) {
+    const progress = (index - 1) / (MAX_STORY_STEPS - 1);
+    const x = clamp(0.08 + progress * 0.84, 0.06, 0.94);
+    const wave = Math.sin(progress * Math.PI * 2.6 + nextRandom() * 0.8) * 0.18;
+    const jitter = (nextRandom() - 0.5) * 0.06;
+    const y = clamp(0.5 + wave + jitter, 0.2, 0.8);
+
+    nodes.push({
+      index,
+      x: Number(x.toFixed(4)),
+      y: Number(y.toFixed(4)),
+      kind: index === 1 ? "START" : index === MAX_STORY_STEPS ? "FINISH" : "PATH",
+    });
+  }
+
+  return {
+    biome,
+    totalNodes: MAX_STORY_STEPS,
+    nodes,
+  };
+}
 
 function seedId(...parts) {
   return `seed_${parts.join("_")}`;
@@ -958,6 +1092,26 @@ function getStoryReferenceDate(story) {
   }
 
   return story.referenceAt ?? story.startedAt ?? new Date();
+}
+
+function resolveStepGameplayMeta(step) {
+  const gameNodeIndex = step.gameNodeIndex ?? step.stepIndex;
+  const gameActionKey =
+    step.gameActionKey ??
+    (step.kind === "CHILD_CHOICE"
+      ? step.selectedOptionId ?? `choice_step_${step.stepIndex}`
+      : `narration_step_${step.stepIndex}`);
+  const gameActionLabel =
+    step.gameActionLabel ??
+    (step.kind === "CHILD_CHOICE"
+      ? step.selectedOptionLabel ?? "Escolha da crianca"
+      : step.narratorText ?? `Narracao da etapa ${step.stepIndex}`);
+
+  return {
+    gameNodeIndex,
+    gameActionKey,
+    gameActionLabel,
+  };
 }
 
 function hashJoinCode(value) {
@@ -1513,6 +1667,13 @@ async function applyDemoForUser(accountState, coreRefs) {
       const storyPrefix = seedId(accountState.key, "story", story.key);
       const titleFinal =
         story.status === "PUBLISHED" || story.status === "ARCHIVED" ? story.title : null;
+      const gameSeed = computeStoryGameSeed({
+        storyId,
+        theme: story.theme,
+        scenario: story.scenario,
+        objective: story.objective,
+      });
+      const gameMap = buildLinearTrailMap(gameSeed);
 
       await prisma.story.upsert({
         where: { id: storyId },
@@ -1537,6 +1698,10 @@ async function applyDemoForUser(accountState, coreRefs) {
           status: story.status,
           currentMode: story.currentMode,
           currentStepIndex: story.currentStepIndex,
+          gameMode: "TRAIL_LINEAR",
+          gameSeed,
+          gameMapVersion: GAME_MAP_VERSION,
+          gameMapJson: gameMap,
           ageSnapshotYears: story.ageSnapshotYears,
           startedAt: story.startedAt,
           publishedAt: story.publishedAt,
@@ -1564,6 +1729,10 @@ async function applyDemoForUser(accountState, coreRefs) {
           status: story.status,
           currentMode: story.currentMode,
           currentStepIndex: story.currentStepIndex,
+          gameMode: "TRAIL_LINEAR",
+          gameSeed,
+          gameMapVersion: GAME_MAP_VERSION,
+          gameMapJson: gameMap,
           ageSnapshotYears: story.ageSnapshotYears,
           startedAt: story.startedAt,
           publishedAt: story.publishedAt,
@@ -1610,6 +1779,7 @@ async function applyDemoForUser(accountState, coreRefs) {
       const stepIndexes = [];
       for (const step of story.steps) {
         const localEventId = `seed_evt_${accountState.key}_${story.key}_${step.stepIndex}`;
+        const gameplayMeta = resolveStepGameplayMeta(step);
         stepIndexes.push(step.stepIndex);
         await prisma.storyStep.upsert({
           where: {
@@ -1627,6 +1797,9 @@ async function applyDemoForUser(accountState, coreRefs) {
             selectedOptionId: step.selectedOptionId ?? null,
             selectedOptionLabel: step.selectedOptionLabel ?? null,
             narratorText: step.narratorText ?? null,
+            gameNodeIndex: gameplayMeta.gameNodeIndex,
+            gameActionKey: gameplayMeta.gameActionKey,
+            gameActionLabel: gameplayMeta.gameActionLabel,
             autoSavedAt: story.referenceAt,
           },
           create: {
@@ -1647,6 +1820,9 @@ async function applyDemoForUser(accountState, coreRefs) {
             selectedOptionId: step.selectedOptionId ?? null,
             selectedOptionLabel: step.selectedOptionLabel ?? null,
             narratorText: step.narratorText ?? null,
+            gameNodeIndex: gameplayMeta.gameNodeIndex,
+            gameActionKey: gameplayMeta.gameActionKey,
+            gameActionLabel: gameplayMeta.gameActionLabel,
             autoSavedAt: story.referenceAt,
             createdAt: story.startedAt,
           },
@@ -1902,171 +2078,177 @@ async function ensureQaBookProjectsData(usersByKey) {
 }
 
 async function ensureQaRemoteRoomData(usersByKey) {
-  const accountState = usersByKey.get(qaRemoteRoomConfig.accountKey);
-  if (!accountState) {
-    return {
-      roomsCount: 0,
-      participantsCount: 0,
-      interactionsCount: 0,
-    };
-  }
+  let roomsCount = 0;
+  let participantsCount = 0;
+  let interactionsCount = 0;
 
-  const storyId = seedId(accountState.key, "story", qaRemoteRoomConfig.storyKey);
-  const room = await prisma.remoteStoryRoom.upsert({
-    where: { storyId },
-    update: {
-      ownerUserId: accountState.user.id,
-      status: "OPEN",
-      joinCodeHash: hashJoinCode(qaRemoteRoomConfig.joinCode),
-      joinCodeExpiresAt: new Date("2099-12-31T23:59:59.000Z"),
-      joinCodeConsumedAt: null,
-      callMode: qaRemoteRoomConfig.callMode,
-      maxParticipants: 2,
-      closedAt: null,
-    },
-    create: {
-      id: seedId(accountState.key, "remote_room", qaRemoteRoomConfig.storyKey),
-      storyId,
-      ownerUserId: accountState.user.id,
-      status: "OPEN",
-      joinCodeHash: hashJoinCode(qaRemoteRoomConfig.joinCode),
-      joinCodeExpiresAt: new Date("2099-12-31T23:59:59.000Z"),
-      joinCodeConsumedAt: null,
-      callMode: qaRemoteRoomConfig.callMode,
-      maxParticipants: 2,
-      closedAt: null,
-    },
-    select: {
-      id: true,
-    },
-  });
+  for (const account of demoUsersCatalog) {
+    const accountState = usersByKey.get(account.key);
+    if (!accountState) {
+      continue;
+    }
 
-  await prisma.story.updateMany({
-    where: {
-      id: storyId,
-      status: "DRAFT",
-    },
-    data: {
-      sessionKind: "REMOTE",
-    },
-  });
-
-  const hostParticipant = await prisma.remoteStoryParticipant.upsert({
-    where: {
-      remoteRoomId_role: {
-        remoteRoomId: room.id,
-        role: "HOST_PARENT",
-      },
-    },
-    update: {
-      displayName: accountState.user.name ?? "Responsavel",
-      status: "CONNECTED",
-      lastSeenAt: new Date("2026-03-01T12:00:00.000Z"),
-      leftAt: null,
-      deviceInfo: "seed-host",
-    },
-    create: {
-      id: seedId(accountState.key, "remote_participant", "host"),
-      remoteRoomId: room.id,
-      role: "HOST_PARENT",
-      displayName: accountState.user.name ?? "Responsavel",
-      status: "CONNECTED",
-      lastSeenAt: new Date("2026-03-01T12:00:00.000Z"),
-      joinedAt: new Date("2026-03-01T11:58:00.000Z"),
-      leftAt: null,
-      deviceInfo: "seed-host",
-    },
-    select: {
-      id: true,
-      displayName: true,
-    },
-  });
-
-  const guestChild = accountState.childrenByKey.get("sofia");
-  const guestParticipant = await prisma.remoteStoryParticipant.upsert({
-    where: {
-      remoteRoomId_role: {
-        remoteRoomId: room.id,
-        role: "GUEST_CHILD",
-      },
-    },
-    update: {
-      displayName: guestChild?.name ?? "Convidado",
-      status: "CONNECTED",
-      lastSeenAt: new Date("2026-03-01T12:01:00.000Z"),
-      leftAt: null,
-      deviceInfo: "seed-guest-tablet",
-    },
-    create: {
-      id: seedId(accountState.key, "remote_participant", "guest"),
-      remoteRoomId: room.id,
-      role: "GUEST_CHILD",
-      displayName: guestChild?.name ?? "Convidado",
-      status: "CONNECTED",
-      lastSeenAt: new Date("2026-03-01T12:01:00.000Z"),
-      joinedAt: new Date("2026-03-01T11:59:00.000Z"),
-      leftAt: null,
-      deviceInfo: "seed-guest-tablet",
-    },
-    select: {
-      id: true,
-      displayName: true,
-    },
-  });
-
-  const interactionIds = [];
-  for (const [index, interaction] of qaRemoteRoomConfig.interactions.entries()) {
-    const interactionId = seedId(accountState.key, "remote_interaction", interaction.key);
-    interactionIds.push(interactionId);
-
-    const isHost = interaction.authorRole === "HOST_PARENT";
-    await prisma.storyInteraction.upsert({
-      where: { id: interactionId },
+    const storyId = seedId(accountState.key, "story", qaRemoteRoomConfig.storyKey);
+    const room = await prisma.remoteStoryRoom.upsert({
+      where: { storyId },
       update: {
-        storyId,
-        remoteRoomId: room.id,
-        type: interaction.type,
-        authorRole: interaction.authorRole,
-        authorUserId: isHost ? accountState.user.id : null,
-        authorParticipantId: isHost ? hostParticipant.id : guestParticipant.id,
-        authorDisplayName: isHost
-          ? hostParticipant.displayName
-          : guestParticipant.displayName,
-        messageText: interaction.messageText,
-        emoji: interaction.emoji,
+        ownerUserId: accountState.user.id,
+        status: "OPEN",
+        joinCodeHash: hashJoinCode(qaRemoteRoomConfig.joinCode),
+        joinCodeExpiresAt: new Date("2099-12-31T23:59:59.000Z"),
+        joinCodeConsumedAt: null,
+        callMode: qaRemoteRoomConfig.callMode,
+        maxParticipants: 2,
+        closedAt: null,
       },
       create: {
-        id: interactionId,
+        id: seedId(accountState.key, "remote_room", qaRemoteRoomConfig.storyKey),
         storyId,
-        remoteRoomId: room.id,
-        type: interaction.type,
-        authorRole: interaction.authorRole,
-        authorUserId: isHost ? accountState.user.id : null,
-        authorParticipantId: isHost ? hostParticipant.id : guestParticipant.id,
-        authorDisplayName: isHost
-          ? hostParticipant.displayName
-          : guestParticipant.displayName,
-        messageText: interaction.messageText,
-        emoji: interaction.emoji,
-        createdAt: new Date(`2026-03-01T12:0${index}:00.000Z`),
+        ownerUserId: accountState.user.id,
+        status: "OPEN",
+        joinCodeHash: hashJoinCode(qaRemoteRoomConfig.joinCode),
+        joinCodeExpiresAt: new Date("2099-12-31T23:59:59.000Z"),
+        joinCodeConsumedAt: null,
+        callMode: qaRemoteRoomConfig.callMode,
+        maxParticipants: 2,
+        closedAt: null,
+      },
+      select: {
+        id: true,
       },
     });
+
+    await prisma.story.updateMany({
+      where: {
+        id: storyId,
+        status: "DRAFT",
+      },
+      data: {
+        sessionKind: "REMOTE",
+      },
+    });
+
+    const hostParticipant = await prisma.remoteStoryParticipant.upsert({
+      where: {
+        remoteRoomId_role: {
+          remoteRoomId: room.id,
+          role: "HOST_PARENT",
+        },
+      },
+      update: {
+        displayName: accountState.user.name ?? "Responsavel",
+        status: "CONNECTED",
+        lastSeenAt: new Date("2026-03-01T12:00:00.000Z"),
+        leftAt: null,
+        deviceInfo: "seed-host",
+      },
+      create: {
+        id: seedId(accountState.key, "remote_participant", "host"),
+        remoteRoomId: room.id,
+        role: "HOST_PARENT",
+        displayName: accountState.user.name ?? "Responsavel",
+        status: "CONNECTED",
+        lastSeenAt: new Date("2026-03-01T12:00:00.000Z"),
+        joinedAt: new Date("2026-03-01T11:58:00.000Z"),
+        leftAt: null,
+        deviceInfo: "seed-host",
+      },
+      select: {
+        id: true,
+        displayName: true,
+      },
+    });
+
+    const guestChild = accountState.childrenByKey.get("sofia");
+    const guestParticipant = await prisma.remoteStoryParticipant.upsert({
+      where: {
+        remoteRoomId_role: {
+          remoteRoomId: room.id,
+          role: "GUEST_CHILD",
+        },
+      },
+      update: {
+        displayName: guestChild?.name ?? "Convidado",
+        status: "CONNECTED",
+        lastSeenAt: new Date("2026-03-01T12:01:00.000Z"),
+        leftAt: null,
+        deviceInfo: "seed-guest-tablet",
+      },
+      create: {
+        id: seedId(accountState.key, "remote_participant", "guest"),
+        remoteRoomId: room.id,
+        role: "GUEST_CHILD",
+        displayName: guestChild?.name ?? "Convidado",
+        status: "CONNECTED",
+        lastSeenAt: new Date("2026-03-01T12:01:00.000Z"),
+        joinedAt: new Date("2026-03-01T11:59:00.000Z"),
+        leftAt: null,
+        deviceInfo: "seed-guest-tablet",
+      },
+      select: {
+        id: true,
+        displayName: true,
+      },
+    });
+
+    const interactionIds = [];
+    for (const [index, interaction] of qaRemoteRoomConfig.interactions.entries()) {
+      const interactionId = seedId(accountState.key, "remote_interaction", interaction.key);
+      interactionIds.push(interactionId);
+
+      const isHost = interaction.authorRole === "HOST_PARENT";
+      await prisma.storyInteraction.upsert({
+        where: { id: interactionId },
+        update: {
+          storyId,
+          remoteRoomId: room.id,
+          type: interaction.type,
+          authorRole: interaction.authorRole,
+          authorUserId: isHost ? accountState.user.id : null,
+          authorParticipantId: isHost ? hostParticipant.id : guestParticipant.id,
+          authorDisplayName: isHost
+            ? hostParticipant.displayName
+            : guestParticipant.displayName,
+          messageText: interaction.messageText,
+          emoji: interaction.emoji,
+        },
+        create: {
+          id: interactionId,
+          storyId,
+          remoteRoomId: room.id,
+          type: interaction.type,
+          authorRole: interaction.authorRole,
+          authorUserId: isHost ? accountState.user.id : null,
+          authorParticipantId: isHost ? hostParticipant.id : guestParticipant.id,
+          authorDisplayName: isHost
+            ? hostParticipant.displayName
+            : guestParticipant.displayName,
+          messageText: interaction.messageText,
+          emoji: interaction.emoji,
+          createdAt: new Date(`2026-03-01T12:0${index}:00.000Z`),
+        },
+      });
+    }
+
+    await prisma.storyInteraction.deleteMany({
+      where: {
+        remoteRoomId: room.id,
+        id: {
+          startsWith: `seed_${accountState.key}_remote_interaction_`,
+          notIn: interactionIds,
+        },
+      },
+    });
+
+    roomsCount += 1;
+    participantsCount += 2;
+    interactionsCount += interactionIds.length;
   }
 
-  await prisma.storyInteraction.deleteMany({
-    where: {
-      remoteRoomId: room.id,
-      id: {
-        startsWith: `seed_${accountState.key}_remote_interaction_`,
-        notIn: interactionIds,
-      },
-    },
-  });
-
   return {
-    roomsCount: 1,
-    participantsCount: 2,
-    interactionsCount: interactionIds.length,
+    roomsCount,
+    participantsCount,
+    interactionsCount,
   };
 }
 
@@ -2299,6 +2481,54 @@ async function ensureQaGamificationBaselineData(coreRefs, usersByKey) {
   };
 }
 
+async function logStoryRoomTargets(usersByKey) {
+  console.log("Historias alvo para abrir sala:");
+
+  for (const account of demoUsersCatalog) {
+    const accountState = usersByKey.get(account.key);
+    if (!accountState) {
+      continue;
+    }
+
+    const stories = await prisma.story.findMany({
+      where: {
+        userId: accountState.user.id,
+        id: {
+          startsWith: `seed_${account.key}_story_`,
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        sessionKind: true,
+        currentStepIndex: true,
+        titleDraft: true,
+        titleFinal: true,
+      },
+    });
+
+    const statusPriority = {
+      DRAFT: 0,
+      PUBLISHED: 1,
+      ARCHIVED: 2,
+    };
+
+    const ordered = [...stories].sort((left, right) => {
+      const statusDiff = (statusPriority[left.status] ?? 99) - (statusPriority[right.status] ?? 99);
+      if (statusDiff !== 0) {
+        return statusDiff;
+      }
+      return right.currentStepIndex - left.currentStepIndex;
+    });
+
+    for (const story of ordered) {
+      console.log(
+        `- account=${account.key} storyId=${story.id} status=${story.status} session=${story.sessionKind} steps=${story.currentStepIndex} route=/stories/${story.id}/room title="${story.titleFinal ?? story.titleDraft}"`
+      );
+    }
+  }
+}
+
 async function main() {
   const usersByKey = await ensureDemoUsersAndProfiles();
   const adminState = usersByKey.get("admin");
@@ -2357,6 +2587,7 @@ async function main() {
     `Unlocks de gamificacao QA aplicados: ${gamificationBaselineSummary.unlocksCount}`
   );
   console.log(`PIN demo configurado para contas seedadas: ${demoPin}`);
+  await logStoryRoomTargets(usersByKey);
 }
 
 main()
