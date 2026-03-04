@@ -535,7 +535,7 @@ class StoryRoomController extends StateNotifier<StoryRoomState> {
         'selectedOptionLabel': selectedOptionLabel.trim(),
       if (selectedOptionId != null && selectedOptionId.trim().isNotEmpty)
         'selectedOptionId': selectedOptionId.trim(),
-      if (gameNodeIndex != null) 'gameNodeIndex': gameNodeIndex,
+      'gameNodeIndex': ?gameNodeIndex,
       if (gameAction != null)
         'gameAction': <String, dynamic>{
           'key': gameAction.key,
