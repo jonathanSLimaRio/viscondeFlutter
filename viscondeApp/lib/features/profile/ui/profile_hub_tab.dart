@@ -41,7 +41,7 @@ class _ProfileHubTabState extends State<ProfileHubTab> {
       case ProfileHubSection.children:
         return 'Cadastre e edite perfis das crianças em um só lugar.';
       case ProfileHubSection.adult:
-        return 'Gerencie PIN e acessos protegidos da área adulta.';
+        return 'Gerencie PIN e acessos protegidos da área do pai.';
     }
   }
 
@@ -84,7 +84,7 @@ class _ProfileHubTabState extends State<ProfileHubTab> {
                       ButtonSegment<ProfileHubSection>(
                         value: ProfileHubSection.adult,
                         icon: Icon(Icons.lock_outline),
-                        label: Text('Área adulta'),
+                        label: Text('Área do pai'),
                       ),
                     ],
                     selected: <ProfileHubSection>{_section},

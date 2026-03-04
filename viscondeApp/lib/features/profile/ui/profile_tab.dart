@@ -137,10 +137,9 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
-          _buildProfileHeader(context),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           _buildAvatarSection(context, user),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           _buildFormCard(context),
           const SizedBox(height: 16),
           Padding(
@@ -166,37 +165,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildProfileHeader(BuildContext context) {
-    final colors = context.viscondeColors;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Spacer(),
-        Text(
-          'Visconde App',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            color: colors.textStrong,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const Spacer(),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: context.viscondeGradients.glass,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: colors.borderSoft, width: 1),
-          ),
-          child: IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.ios_share_outlined, size: 20),
-            tooltip: 'Compartilhar',
-          ),
-        ),
-      ],
     );
   }
 
@@ -239,9 +207,9 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                   )
                 : CircleAvatar(
                     radius: 56,
-                    backgroundColor: colors.parchmentSoft,
+                    backgroundColor: colors.parchment,
                     child: Icon(
-                      Icons.person,
+                      Icons.person_pin_rounded,
                       size: 56,
                       color: colors.textMuted,
                     ),
@@ -343,7 +311,7 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
         hintText: hintText,
         hintStyle: TextStyle(color: colors.textMuted, fontSize: 15),
         filled: true,
-        fillColor: const Color(0xFFFBF7F0),
+        fillColor: colors.parchmentSoft,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
           vertical: 16,

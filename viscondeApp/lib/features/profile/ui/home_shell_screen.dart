@@ -264,7 +264,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Área adulta desbloqueada por $remainingMinutes min',
+                                  'Área do pai desbloqueada por $remainingMinutes min',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context).textTheme.labelLarge,

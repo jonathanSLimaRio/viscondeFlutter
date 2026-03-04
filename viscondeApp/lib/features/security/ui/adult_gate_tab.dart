@@ -149,7 +149,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            valid.verified ? 'Área adulta liberada.' : 'PIN inválido.',
+            valid.verified ? 'Área do pai liberada.' : 'PIN inválido.',
           ),
         ),
       );
@@ -214,17 +214,17 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Área adulta bloqueada agora.')),
+      const SnackBar(content: Text('Área do pai bloqueada agora.')),
     );
   }
 
   String _unlockStatusLabel(ParentalGateState gate) {
     if (!gate.isUnlocked) {
-      return 'Área adulta bloqueada.';
+      return 'Área do pai bloqueada.';
     }
 
     final minutes = gate.remainingWholeMinutesAt(DateTime.now()) ?? 0;
-    return 'Área adulta desbloqueada por $minutes min.';
+    return 'Área do pai desbloqueada por $minutes min.';
   }
 
   @override
@@ -245,7 +245,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
             children: [
               Expanded(
                 child: ViscondeSectionTitle(
-                  title: 'Área adulta protegida',
+                  title: 'Área do pai protegida',
                   subtitle:
                       'Gerencie PIN e recursos sensíveis com proteção extra.',
                 ),
@@ -288,7 +288,7 @@ class _AdultGateTabState extends ConsumerState<AdultGateTab> {
           ),
           FilledButton(
             onPressed: _verifyPin,
-            child: const Text('Desbloquear área adulta'),
+            child: const Text('Desbloquear área do pai'),
           ),
           const SizedBox(height: 16),
           const Divider(),

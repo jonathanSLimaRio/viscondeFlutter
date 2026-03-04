@@ -32,7 +32,7 @@ class _FakeSecurityApi extends SecurityApi {
 }
 
 void main() {
-  testWidgets('ProfileHubTab alterna Conta, Crianças e Área adulta', (
+  testWidgets('ProfileHubTab alterna Conta, Crianças e Área do pai', (
     tester,
   ) async {
     final user = buildTestUser();
@@ -70,12 +70,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Adicionar criança'), findsOneWidget);
 
-    await tester.tap(find.text('Área adulta'));
+    await tester.tap(find.text('Área do pai'));
     await tester.pumpAndSettle();
     expect(
-      find.text('Gerencie PIN e acessos protegidos da área adulta.'),
+      find.text('Gerencie PIN e acessos protegidos da área do pai.'),
       findsOneWidget,
     );
-    expect(find.text('Área adulta protegida'), findsOneWidget);
+    expect(find.text('Área do pai protegida'), findsOneWidget);
   });
 }
