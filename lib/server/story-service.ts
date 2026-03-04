@@ -45,6 +45,26 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function isPrismaUnknownFieldOrArgument(error: unknown, fieldName: string) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const message = error.message;
+  return (
+    message.includes(`Unknown field \`${fieldName}\``) ||
+    message.includes(`Unknown argument \`${fieldName}\``)
+  );
+}
+
+function isPrismaGameFieldCompatibilityError(error: unknown) {
+  return (
+    isPrismaUnknownFieldOrArgument(error, "gameMode") ||
+    isPrismaUnknownFieldOrArgument(error, "gameNodeIndex") ||
+    isPrismaUnknownFieldOrArgument(error, "gameActionKey") ||
+    isPrismaUnknownFieldOrArgument(error, "gameActionLabel")
+  );
+}
+
 function hashSeed(value: string) {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -1078,22 +1098,60 @@ export async function createStoryStep(
     localEventId: string;
   }
 ) {
-  const story = await prisma.story.findFirst({
-    where: {
-      id: storyId,
-      userId,
-    },
-    select: {
-      id: true,
-      collectionId: true,
-      status: true,
-      currentMode: true,
-      currentStepIndex: true,
-      scenario: true,
-      objective: true,
-      gameMode: true,
-    },
-  });
+  const baseStorySelect = {
+    id: true,
+    collectionId: true,
+    status: true,
+    currentMode: true,
+    currentStepIndex: true,
+    scenario: true,
+    objective: true,
+  } as const;
+
+  const story = await (async () => {
+    try {
+      const storyWithGame = await prisma.story.findFirst({
+        where: {
+          id: storyId,
+          userId,
+        },
+        select: {
+          ...baseStorySelect,
+          gameMode: true,
+        },
+      });
+
+      if (!storyWithGame) {
+        return null;
+      }
+
+      return {
+        ...storyWithGame,
+        gameMode: storyWithGame.gameMode ?? "TRAIL_LINEAR",
+      };
+    } catch (error) {
+      if (!isPrismaUnknownFieldOrArgument(error, "gameMode")) {
+        throw error;
+      }
+
+      const legacyStory = await prisma.story.findFirst({
+        where: {
+          id: storyId,
+          userId,
+        },
+        select: baseStorySelect,
+      });
+
+      if (!legacyStory) {
+        return null;
+      }
+
+      return {
+        ...legacyStory,
+        gameMode: "TRAIL_LINEAR" as StoryGameMode,
+      };
+    }
+  })();
 
   if (!story) {
     throw new ApiError("Sessao de historia nao encontrada.", 404, "STORY_NOT_FOUND");
@@ -1228,24 +1286,41 @@ export async function createStoryStep(
   const now = new Date();
 
   const created = await prisma.$transaction(async (tx) => {
-    const step = await tx.storyStep.create({
-      data: {
-        storyId,
-        stepIndex: input.stepIndex,
-        kind: input.kind,
-        modeUsed: story.currentMode,
-        localEventId: input.localEventId,
-        narratorPrompt: moderatedNarratorPrompt,
-        childOptionsJson: childOptions as never,
-        selectedOptionId: input.selectedOptionId,
-        selectedOptionLabel: moderatedSelectedOptionLabel,
-        narratorText: fallbackNarratorText,
-        gameNodeIndex: resolvedGameNodeIndex,
-        gameActionKey: input.gameAction?.key?.trim() || null,
-        gameActionLabel: moderatedGameActionLabel ?? null,
-        autoSavedAt: now,
-      },
-    });
+    const baseStepData = {
+      storyId,
+      stepIndex: input.stepIndex,
+      kind: input.kind,
+      modeUsed: story.currentMode,
+      localEventId: input.localEventId,
+      narratorPrompt: moderatedNarratorPrompt,
+      childOptionsJson: childOptions as never,
+      selectedOptionId: input.selectedOptionId,
+      selectedOptionLabel: moderatedSelectedOptionLabel,
+      narratorText: fallbackNarratorText,
+      autoSavedAt: now,
+    };
+
+    const gameStepData = {
+      ...baseStepData,
+      gameNodeIndex: resolvedGameNodeIndex,
+      gameActionKey: input.gameAction?.key?.trim() || null,
+      gameActionLabel: moderatedGameActionLabel ?? null,
+    };
+
+    let step;
+    try {
+      step = await tx.storyStep.create({
+        data: gameStepData,
+      });
+    } catch (error) {
+      if (!isPrismaGameFieldCompatibilityError(error)) {
+        throw error;
+      }
+
+      step = await tx.storyStep.create({
+        data: baseStepData,
+      });
+    }
 
     await tx.story.update({
       where: {
