@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/app_route.dart';
 import '../../../design_system/visconde.dart';
 import '../../../features/auth/auth_controller.dart';
+import '../../../features/auth/session_persona_controller.dart';
 import '../../../shared/providers.dart';
 import '../../gamification/ui/game_blank_screen.dart';
 import '../../gamification/ui/game_hub_screen.dart';
@@ -185,6 +186,8 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   Widget build(BuildContext context) {
     final colors = context.viscondeColors;
     final gate = ref.watch(parentalGateControllerProvider);
+    final personaState = ref.watch(sessionPersonaControllerProvider);
+    final isChildMode = personaState.persona == SessionPersona.child;
     final isAdultUnlocked = gate.isUnlocked;
     final remainingMinutes = gate.remainingWholeMinutesAt(DateTime.now()) ?? 0;
 
@@ -192,6 +195,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
       key: const ValueKey('home_scaffold'), // Optional, for testing
       drawer: _HomeDrawer(
         index: _index,
+        showParentArea: !isChildMode,
         onTabSelected: _onMenuTabSelected,
         onLogout: () {
           Navigator.of(context).pop();
@@ -212,7 +216,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
           height: 32,
           fit: BoxFit.contain,
         ),
-        bottom: isAdultUnlocked
+        bottom: !isChildMode && isAdultUnlocked
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(42),
                 child: Padding(
@@ -341,11 +345,13 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
 class _HomeDrawer extends ConsumerWidget {
   const _HomeDrawer({
     required this.index,
+    required this.showParentArea,
     required this.onTabSelected,
     required this.onLogout,
   });
 
   final int index;
+  final bool showParentArea;
   final ValueChanged<int> onTabSelected;
   final VoidCallback onLogout;
 
@@ -375,12 +381,13 @@ class _HomeDrawer extends ConsumerWidget {
                   icon: Icons.person_outline_rounded,
                   label: 'Meu Perfil',
                 ),
-                _buildItem(
-                  context: context,
-                  index: 3, // Perfil tab, will then navigate to adult gate
-                  icon: Icons.security_rounded,
-                  label: 'Área do pai',
-                ),
+                if (showParentArea)
+                  _buildItem(
+                    context: context,
+                    index: 3, // Perfil tab, will then navigate to adult gate
+                    icon: Icons.security_rounded,
+                    label: 'Área do pai',
+                  ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   child: Divider(),

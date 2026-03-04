@@ -3,8 +3,10 @@ import 'package:go_router/go_router.dart';
 
 import 'app_route.dart';
 import '../features/auth/auth_controller.dart';
+import '../features/auth/session_persona_controller.dart';
 import '../features/auth/ui/forgot_password_screen.dart';
 import '../features/auth/ui/login_screen.dart';
+import '../features/auth/ui/session_persona_screen.dart';
 import '../features/auth/ui/signup_screen.dart';
 import '../features/admin/ui/admin_access_denied_screen.dart';
 import '../features/admin/ui/admin_hub_screen.dart';
@@ -27,6 +29,34 @@ import '../features/story_room/ui/story_summary_screen.dart';
 import '../features/story_vault/ui/story_vault_collection_redirect_screen.dart';
 import '../shared/loading_screen.dart';
 
+String _sanitizeFromForPersonaSelection(String? raw) {
+  final candidate = raw?.trim();
+  if (candidate == null || candidate.isEmpty) {
+    return AppRoute.home;
+  }
+
+  final parsed = Uri.tryParse(candidate);
+  final path = parsed?.path ?? candidate;
+  if (!path.startsWith('/')) {
+    return AppRoute.home;
+  }
+
+  if (path == AppRoute.loading ||
+      AppRoute.isAuthRoute(path) ||
+      AppRoute.isSessionPersonaRoute(path)) {
+    return AppRoute.home;
+  }
+  return candidate;
+}
+
+String _resolvePostPersonaTarget(String? rawFrom, SessionPersona persona) {
+  final sanitized = _sanitizeFromForPersonaSelection(rawFrom);
+  if (persona == SessionPersona.child && AppRoute.isAdultAreaRoute(sanitized)) {
+    return AppRoute.home;
+  }
+  return sanitized;
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: AppRoute.loading,
@@ -46,6 +76,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoute.forgotPassword,
         builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.sessionPersona,
+        builder: (context, state) =>
+            SessionPersonaScreen(from: state.uri.queryParameters['from']),
       ),
       GoRoute(
         path: AppRoute.adultVirtueReports,
@@ -151,9 +186,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final auth = ref.read(authControllerProvider);
       final location = state.matchedLocation;
       final isAuthRoute = AppRoute.isAuthRoute(location);
+      final isSessionPersonaRoute = AppRoute.isSessionPersonaRoute(location);
       final isRemotePublicRoute = AppRoute.isRemotePublicRoute(location);
       final isAdminDeniedRoute = AppRoute.isAdminDeniedRoute(location);
       final isAdminProtectedRoute = AppRoute.isAdminProtectedRoute(location);
+      final personaState = ref.read(sessionPersonaControllerProvider);
+      final persona = personaState.persona;
 
       if (auth.status == AuthStatus.loading) {
         return location == AppRoute.loading ? null : AppRoute.loading;
@@ -172,15 +210,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (auth.status == AuthStatus.authenticated) {
+        if (persona == SessionPersona.child &&
+            AppRoute.isAdultAreaRoute(location)) {
+          return AppRoute.home;
+        }
+
+        if (!personaState.hasSelection) {
+          if (isSessionPersonaRoute) {
+            return null;
+          }
+          final from = _sanitizeFromForPersonaSelection(state.uri.toString());
+          return Uri(
+            path: AppRoute.sessionPersona,
+            queryParameters: from == AppRoute.home
+                ? null
+                : <String, String>{'from': from},
+          ).toString();
+        }
+
+        if (isSessionPersonaRoute) {
+          final from = state.uri.queryParameters['from'];
+          return _resolvePostPersonaTarget(from, persona!);
+        }
+
         final isAdmin = auth.user?.isAdmin ?? false;
         if (location == AppRoute.loading || isAuthRoute) {
           final from = state.uri.queryParameters['from'];
-          if (from != null &&
-              from.startsWith('/') &&
-              !AppRoute.isAuthRoute(from)) {
-            return from;
-          }
-          return AppRoute.home;
+          return _resolvePostPersonaTarget(from, persona!);
         }
         if (isAdminProtectedRoute && !isAdmin) {
           return AppRoute.adminDenied;
@@ -194,10 +250,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
   );
 
-  ref.listen<AuthState>(authControllerProvider, (_, next) {
+  ref.listen<AuthState>(authControllerProvider, (previous, next) {
+    final wasAuthenticated = previous?.status == AuthStatus.authenticated;
+    final isAuthenticated = next.status == AuthStatus.authenticated;
+    if (wasAuthenticated && !isAuthenticated) {
+      ref.read(sessionPersonaControllerProvider.notifier).clear();
+    }
     if (next.status == AuthStatus.loading) {
       return;
     }
+    router.refresh();
+  });
+
+  ref.listen<SessionPersonaState>(sessionPersonaControllerProvider, (
+    previous,
+    next,
+  ) {
     router.refresh();
   });
 

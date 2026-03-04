@@ -7,6 +7,7 @@ import 'package:visconde_app/core/models/child_profile.dart';
 import 'package:visconde_app/features/profile/profile_api.dart';
 import 'package:visconde_app/features/profile/ui/profile_hub_tab.dart';
 import 'package:visconde_app/features/security/security_api.dart';
+import 'package:visconde_app/features/auth/session_persona_controller.dart';
 import 'package:visconde_app/shared/providers.dart';
 
 import '../../helpers/test_harness.dart';
@@ -77,5 +78,49 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Área do pai protegida'), findsOneWidget);
+  });
+
+  testWidgets('ProfileHubTab em modo FILHO esconde seção Área do pai', (
+    tester,
+  ) async {
+    final user = buildTestUser();
+
+    await tester.pumpWidget(
+      wrapTestApp(
+        const Scaffold(body: ProfileHubTab()),
+        overrides: [
+          ...authOverrides(
+            user: user,
+            authenticated: true,
+            sessionPersona: SessionPersona.child,
+          ),
+          profileApiProvider.overrideWith((ref) => _FakeProfileApi(user)),
+          childrenApiProvider.overrideWith(
+            (ref) => FakeChildrenApi(
+              children: [
+                ChildProfile(
+                  id: 'child-1',
+                  name: 'Lia',
+                  birthDate: DateTime(2018, 1, 1),
+                  favoriteThemes: const ['Aventura'],
+                  isArchived: false,
+                ),
+              ],
+            ),
+          ),
+          securityApiProvider.overrideWith((ref) => _FakeSecurityApi()),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Conta'), findsOneWidget);
+    expect(find.text('Crianças'), findsOneWidget);
+    expect(find.text('Área do pai'), findsNothing);
+    expect(
+      find.text('Gerencie PIN e acessos protegidos da área do pai.'),
+      findsNothing,
+    );
   });
 }

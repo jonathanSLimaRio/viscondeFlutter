@@ -1,37 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../design_system/visconde.dart';
+import '../../auth/session_persona_controller.dart';
 import '../../children/ui/children_tab.dart';
 import '../../security/ui/adult_gate_tab.dart';
 import 'profile_tab.dart';
 
 enum ProfileHubSection { account, children, adult }
 
-class ProfileHubTab extends StatefulWidget {
+class ProfileHubTab extends ConsumerStatefulWidget {
   const ProfileHubTab({super.key});
 
   @override
-  State<ProfileHubTab> createState() => _ProfileHubTabState();
+  ConsumerState<ProfileHubTab> createState() => _ProfileHubTabState();
 }
 
-class _ProfileHubTabState extends State<ProfileHubTab> {
+class _ProfileHubTabState extends ConsumerState<ProfileHubTab> {
   ProfileHubSection _section = ProfileHubSection.account;
 
-  late final List<Widget> _sections = <Widget>[
-    const ProfileTab(),
-    const ChildrenTab(),
-    const AdultGateTab(),
-  ];
+  late final Map<ProfileHubSection, Widget> _sections =
+      <ProfileHubSection, Widget>{
+        ProfileHubSection.account: const ProfileTab(),
+        ProfileHubSection.children: const ChildrenTab(),
+        ProfileHubSection.adult: const AdultGateTab(),
+      };
 
-  int _sectionIndex(ProfileHubSection section) {
-    switch (section) {
-      case ProfileHubSection.account:
-        return 0;
-      case ProfileHubSection.children:
-        return 1;
-      case ProfileHubSection.adult:
-        return 2;
+  List<ProfileHubSection> _availableSections({required bool isChildMode}) {
+    if (isChildMode) {
+      return const <ProfileHubSection>[
+        ProfileHubSection.account,
+        ProfileHubSection.children,
+      ];
     }
+
+    return const <ProfileHubSection>[
+      ProfileHubSection.account,
+      ProfileHubSection.children,
+      ProfileHubSection.adult,
+    ];
   }
 
   String _sectionDescription(ProfileHubSection section) {
@@ -45,9 +52,46 @@ class _ProfileHubTabState extends State<ProfileHubTab> {
     }
   }
 
+  String _sectionLabel(ProfileHubSection section) {
+    switch (section) {
+      case ProfileHubSection.account:
+        return 'Conta';
+      case ProfileHubSection.children:
+        return 'Crianças';
+      case ProfileHubSection.adult:
+        return 'Área do pai';
+    }
+  }
+
+  IconData _sectionIcon(ProfileHubSection section) {
+    switch (section) {
+      case ProfileHubSection.account:
+        return Icons.account_circle_outlined;
+      case ProfileHubSection.children:
+        return Icons.child_care_outlined;
+      case ProfileHubSection.adult:
+        return Icons.lock_outline;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.viscondeColors;
+    final personaState = ref.watch(sessionPersonaControllerProvider);
+    final isChildMode = personaState.persona == SessionPersona.child;
+    final availableSections = _availableSections(isChildMode: isChildMode);
+    final currentSection = availableSections.contains(_section)
+        ? _section
+        : ProfileHubSection.account;
+    if (_section != currentSection) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _section = currentSection;
+          });
+        }
+      });
+    }
 
     return Column(
       children: [
@@ -70,24 +114,16 @@ class _ProfileHubTabState extends State<ProfileHubTab> {
                   scrollDirection: Axis.horizontal,
                   child: SegmentedButton<ProfileHubSection>(
                     showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment<ProfileHubSection>(
-                        value: ProfileHubSection.account,
-                        icon: Icon(Icons.account_circle_outlined),
-                        label: Text('Conta'),
-                      ),
-                      ButtonSegment<ProfileHubSection>(
-                        value: ProfileHubSection.children,
-                        icon: Icon(Icons.child_care_outlined),
-                        label: Text('Crianças'),
-                      ),
-                      ButtonSegment<ProfileHubSection>(
-                        value: ProfileHubSection.adult,
-                        icon: Icon(Icons.lock_outline),
-                        label: Text('Área do pai'),
-                      ),
-                    ],
-                    selected: <ProfileHubSection>{_section},
+                    segments: availableSections
+                        .map(
+                          (section) => ButtonSegment<ProfileHubSection>(
+                            value: section,
+                            icon: Icon(_sectionIcon(section)),
+                            label: Text(_sectionLabel(section)),
+                          ),
+                        )
+                        .toList(growable: false),
+                    selected: <ProfileHubSection>{currentSection},
                     onSelectionChanged: (selection) {
                       setState(() {
                         _section = selection.first;
@@ -101,8 +137,8 @@ class _ProfileHubTabState extends State<ProfileHubTab> {
                   switchInCurve: Curves.easeOutCubic,
                   switchOutCurve: Curves.easeOutCubic,
                   child: Text(
-                    _sectionDescription(_section),
-                    key: ValueKey<ProfileHubSection>(_section),
+                    _sectionDescription(currentSection),
+                    key: ValueKey<ProfileHubSection>(currentSection),
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
@@ -114,8 +150,10 @@ class _ProfileHubTabState extends State<ProfileHubTab> {
         ),
         Expanded(
           child: IndexedStack(
-            index: _sectionIndex(_section),
-            children: _sections,
+            index: availableSections.indexOf(currentSection),
+            children: availableSections
+                .map((section) => _sections[section]!)
+                .toList(growable: false),
           ),
         ),
       ],

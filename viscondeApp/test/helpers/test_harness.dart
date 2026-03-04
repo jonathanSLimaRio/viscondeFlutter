@@ -9,6 +9,7 @@ import 'package:visconde_app/core/storage/session_storage.dart';
 import 'package:visconde_app/design_system/visconde.dart';
 import 'package:visconde_app/features/auth/auth_api.dart';
 import 'package:visconde_app/features/auth/auth_controller.dart';
+import 'package:visconde_app/features/auth/session_persona_controller.dart';
 import 'package:visconde_app/features/children/children_api.dart';
 import 'package:visconde_app/features/story_room/models/story_models.dart';
 import 'package:visconde_app/features/story_room/story_api.dart';
@@ -45,6 +46,12 @@ class FakeAuthApi extends AuthApi {
   Future<AppUser> me({required String accessToken}) async {
     return user;
   }
+
+  @override
+  Future<void> logout({
+    required String? accessToken,
+    required String? refreshToken,
+  }) async {}
 }
 
 class FakeChildrenApi extends ChildrenApi {
@@ -426,14 +433,29 @@ StoredSession buildStoredSession(AppUser user) {
 List<Override> authOverrides({
   required AppUser user,
   bool authenticated = true,
+  SessionPersona? sessionPersona,
+  bool selectParentPersonaWhenAuthenticated = true,
 }) {
   final storage = MemorySessionStorage(
     authenticated ? buildStoredSession(user) : null,
   );
+  final defaultPersona = authenticated && selectParentPersonaWhenAuthenticated
+      ? SessionPersona.parent
+      : null;
+  final effectivePersona = sessionPersona ?? defaultPersona;
 
   return [
     authApiProvider.overrideWith((ref) => FakeAuthApi(user: user)),
     sessionStorageProvider.overrideWith((ref) => storage),
+    sessionPersonaControllerProvider.overrideWith((ref) {
+      final controller = SessionPersonaController();
+      if (effectivePersona == SessionPersona.parent) {
+        controller.selectParent();
+      } else if (effectivePersona == SessionPersona.child) {
+        controller.selectChild();
+      }
+      return controller;
+    }),
     storySyncQueueProvider.overrideWith((ref) => FakeStorySyncQueue()),
   ];
 }

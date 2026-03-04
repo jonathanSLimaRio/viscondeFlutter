@@ -1412,6 +1412,116 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
     );
   }
 
+  Widget _buildLastUsedStoryCard(StoryVaultCollectionItem item) {
+    final colors = context.viscondeColors;
+    final lastEpisode = item.latestEpisode;
+
+    return GestureDetector(
+      onTap: () => _openCollectionAdventure(item),
+      child: ViscondeGlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.play_circle_outline,
+                        size: 14,
+                        color: colors.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'CONTINUAR LENDO',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: colors.primary,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                if (item.isFavorite)
+                  Icon(Icons.star, color: Colors.amber.shade700, size: 18),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              item.title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: colors.textStrong,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (lastEpisode != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Episódio ${lastEpisode.episodeNumber}: ${lastEpisode.title}',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (item.virtue != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.parchmentSoft,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      item.virtue!.name,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: colors.textMuted),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  '${item.episodesCount} episódios',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: colors.textMuted),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 12,
+                  color: colors.textMuted,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');
@@ -1457,10 +1567,12 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
               sliver: SliverToBoxAdapter(child: _buildInitialSkeleton()),
             ),
 
-          if (!_loadingInitial)
+          if (!_loadingInitial && _collections.isNotEmpty && !hasBlockingError)
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(child: _buildFiltersCard(dateFormat)),
+              sliver: SliverToBoxAdapter(
+                child: _buildLastUsedStoryCard(_collections.first),
+              ),
             ),
 
           if (!_loadingInitial && hasBlockingError) ...[
@@ -1541,11 +1653,20 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
 
           if (!_loadingInitial && !hasBlockingError && _collections.isNotEmpty)
             SliverPadding(
-              padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+              padding: const EdgeInsets.only(top: 24, left: 16, right: 16),
+              sliver: SliverToBoxAdapter(child: _buildFiltersCard(dateFormat)),
+            ),
+
+          if (!_loadingInitial && !hasBlockingError && _collections.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 24, left: 16, right: 16),
               sliver: SliverToBoxAdapter(
                 child: Text(
-                  'Toque em uma saga para continuar direto.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  'Sagas de Aventuras',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: context.viscondeColors.textStrong,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

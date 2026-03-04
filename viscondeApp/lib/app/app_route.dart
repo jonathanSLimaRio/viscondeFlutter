@@ -5,6 +5,7 @@ abstract final class AppRoute {
   static const login = '/login';
   static const signup = '/signup';
   static const forgotPassword = '/forgot-password';
+  static const sessionPersona = '/session/persona';
 
   static const home = '/';
 
@@ -33,6 +34,7 @@ abstract final class AppRoute {
   static const _storyRoomSuffix = '/room';
   static const _storyRemoteSuffix = '/remote';
   static const _storySummarySuffix = '/summary';
+  static const _adultAreaPrefix = '/adult/';
   static const _homeTabQuery = 'tab';
 
   static String vaultDetail(String collectionId) => '/vault/$collectionId';
@@ -96,6 +98,10 @@ abstract final class AppRoute {
         location == forgotPassword;
   }
 
+  static bool isSessionPersonaRoute(String location) {
+    return location == sessionPersona;
+  }
+
   static bool isRemotePublicRoute(String location) {
     return location == remoteJoin || location == remoteRoom;
   }
@@ -108,6 +114,10 @@ abstract final class AppRoute {
     final denied = isAdminDeniedRoute(location);
     return (location == adminHub || location.startsWith('$adminHub/')) &&
         !denied;
+  }
+
+  static bool isAdultAreaRoute(String location) {
+    return location.startsWith(_adultAreaPrefix);
   }
 
   static bool isStoryRoomPath(String location) {
