@@ -110,21 +110,6 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
     }
   }
 
-  String _tabLabel(int index) {
-    switch (index) {
-      case 0:
-        return 'Histórias';
-      case 1:
-        return 'Game';
-      case 2:
-        return 'Conquistas';
-      case 3:
-        return 'Perfil';
-      default:
-        return '';
-    }
-  }
-
   int _indexFromTab(HomeTab tab) {
     switch (tab) {
       case HomeTab.stories:
@@ -136,6 +121,14 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
       case HomeTab.profile:
         return 3;
     }
+  }
+
+  void _onMenuTabSelected(int index) {
+    setState(() {
+      _index = index;
+      _tabCache.putIfAbsent(index, () => _tabForIndex(index));
+    });
+    Navigator.of(context).pop(); // Close drawer
   }
 
   Widget _buildAnimatedBody() {
@@ -191,123 +184,111 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.viscondeColors;
-    final currentTabLabel = _tabLabel(_index);
     final gate = ref.watch(parentalGateControllerProvider);
     final isAdultUnlocked = gate.isUnlocked;
     final remainingMinutes = gate.remainingWholeMinutesAt(DateTime.now()) ?? 0;
 
     return Scaffold(
+      key: const ValueKey('home_scaffold'), // Optional, for testing
+      drawer: _HomeDrawer(
+        index: _index,
+        onTabSelected: _onMenuTabSelected,
+        onLogout: () {
+          Navigator.of(context).pop();
+          _confirmLogout();
+        },
+      ),
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
-              height: 30,
-              fit: BoxFit.contain,
-            ),
-            AnimatedSwitcher(
-              duration: _menuAnimationDuration,
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeOutCubic,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.16),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
-                ),
-              ),
-              child: Text(
-                currentTabLabel,
-                key: ValueKey<String>(currentTabLabel),
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colors.primaryDark,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ],
+        centerTitle: true,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu_rounded),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+            tooltip: 'Menu',
+          ),
+        ),
+        title: Image.asset(
+          ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
+          height: 32,
+          fit: BoxFit.contain,
         ),
         bottom: isAdultUnlocked
             ? PreferredSize(
-                preferredSize: const Size.fromHeight(88),
+                preferredSize: const Size.fromHeight(42),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: context.viscondeGradients.pill,
-                          borderRadius: BorderRadius.circular(
-                            context.viscondeRadii.pill,
-                          ),
-                          border: Border.all(color: colors.borderSoft),
-                          boxShadow: context.viscondeElevations.soft,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.lock_open_rounded,
-                                size: 16,
-                                color: colors.textStrong,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Área do pai desbloqueada por $remainingMinutes min',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.labelLarge,
-                                ),
-                              ),
-                            ],
-                          ),
+                  padding: const EdgeInsets.only(
+                    bottom: 10,
+                    left: 16,
+                    right: 16,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    decoration: ShapeDecoration(
+                      color: colors.primary.withValues(alpha: 0.1),
+                      shape: StadiumBorder(
+                        side: BorderSide(
+                          color: colors.primary.withValues(alpha: 0.3),
+                          width: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.verified_user_rounded,
+                          size: 14,
+                          color: colors.primaryDark,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Área do pai: ${remainingMinutes}min restantes',
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: colors.primaryDark,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                        ),
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: () {
                             ref
                                 .read(parentalUnlockServiceProvider)
                                 .lockNow(source: 'home_appbar_lock_now');
                           },
-                          icon: const Icon(Icons.lock_outline, size: 16),
-                          label: const Text('Bloquear agora'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.primaryDark,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'BLOQUEAR',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 8,
+                                  ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               )
             : null,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: context.viscondeGradients.glass,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: colors.borderSoft, width: 1),
-              ),
-              child: IconButton(
-                onPressed: _confirmLogout,
-                icon: const Icon(Icons.logout),
-                tooltip: 'Sair',
-              ),
-            ),
-          ),
+        actions: const [
+          SizedBox(width: 48), // Spacer to balance leading menu icon
         ],
       ),
       body: _buildAnimatedBody(),
@@ -353,6 +334,167 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _HomeDrawer extends ConsumerWidget {
+  const _HomeDrawer({
+    required this.index,
+    required this.onTabSelected,
+    required this.onLogout,
+  });
+
+  final int index;
+  final ValueChanged<int> onTabSelected;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.viscondeColors;
+    final user = ref.watch(authControllerProvider).user;
+
+    return Drawer(
+      backgroundColor: colors.parchment,
+      child: Column(
+        children: [
+          _buildHeader(context, user),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              children: [
+                _buildItem(
+                  context: context,
+                  index: 0,
+                  icon: Icons.menu_book_rounded,
+                  label: 'Histórias',
+                ),
+                _buildItem(
+                  context: context,
+                  index: 3,
+                  icon: Icons.person_outline_rounded,
+                  label: 'Meu Perfil',
+                ),
+                _buildItem(
+                  context: context,
+                  index: 3, // Perfil tab, will then navigate to adult gate
+                  icon: Icons.security_rounded,
+                  label: 'Área do pai',
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Divider(),
+                ),
+                ListTile(
+                  leading: Icon(Icons.logout_rounded, color: colors.warning),
+                  title: Text(
+                    'Sair do App',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: colors.warning,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onTap: onLogout,
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              'Visconde App v1.0.0',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, dynamic user) {
+    final colors = context.viscondeColors;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 24,
+        bottom: 24,
+        left: 20,
+        right: 20,
+      ),
+      decoration: BoxDecoration(
+        gradient: context.viscondeGradients.glass,
+        border: Border(bottom: BorderSide(color: colors.borderSoft)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: colors.primary, width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 32,
+              backgroundColor: colors.parchment,
+              backgroundImage: user?.imageUrl != null
+                  ? NetworkImage(user.imageUrl!)
+                  : null,
+              child: user?.imageUrl == null
+                  ? Icon(Icons.person, size: 32, color: colors.textMuted)
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            user?.name ?? 'Viajante',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: colors.textStrong,
+            ),
+          ),
+          Text(
+            user?.email ?? '',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItem({
+    required BuildContext context,
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final selected = this.index == index;
+    final colors = context.viscondeColors;
+
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: selected ? colors.primaryDark : colors.textMuted,
+      ),
+      title: Text(
+        label,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: selected ? colors.primaryDark : colors.textStrong,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+        ),
+      ),
+      selected: selected,
+      selectedTileColor: colors.primary.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onTap: () => onTabSelected(index),
     );
   }
 }

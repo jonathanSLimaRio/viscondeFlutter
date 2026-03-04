@@ -1429,16 +1429,24 @@ class _StoryVaultScreenState extends ConsumerState<StoryVaultScreen> {
               bottom: 12,
             ),
             sliver: SliverToBoxAdapter(
-              child: ViscondeHeroBanner(
-                title: 'Baú de Aventuras',
-                subtitle:
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Baú de Aventuras',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: context.viscondeColors.textStrong,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
                     '${_collections.length} sagas encontradas · toque e continue em 1 toque',
-                assetPath: ViscondeArtRegistry.resolve(
-                  ViscondeArtKey.heroTreasure,
-                ),
-                variant: ViscondeHeroBannerVariant.compactModern,
-                showMascot: true,
-                mascotPose: ViscondeMascotPose.readingBook,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: context.viscondeColors.textMuted,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
