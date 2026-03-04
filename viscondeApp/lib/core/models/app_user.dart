@@ -26,6 +26,9 @@ class AppUser {
     this.email,
     required this.timezone,
     this.imageUrl,
+    this.avatarPresetKey = 'guardian',
+    this.avatarVariant = 1,
+    this.avatarAccent = 'amber',
     this.role = AppUserRole.user,
   });
 
@@ -34,6 +37,9 @@ class AppUser {
   final String? email;
   final String timezone;
   final String? imageUrl;
+  final String avatarPresetKey;
+  final int avatarVariant;
+  final String avatarAccent;
   final AppUserRole role;
 
   bool get isAdmin => role == AppUserRole.admin;
@@ -45,6 +51,9 @@ class AppUser {
       email: json['email'] as String?,
       timezone: (json['timezone'] as String?) ?? 'UTC',
       imageUrl: json['imageUrl'] as String?,
+      avatarPresetKey: (json['avatarPresetKey'] as String?) ?? 'guardian',
+      avatarVariant: (json['avatarVariant'] as num?)?.toInt() ?? 1,
+      avatarAccent: (json['avatarAccent'] as String?) ?? 'amber',
       role: appUserRoleFromApi(json['role'] as String?),
     );
   }
@@ -56,6 +65,9 @@ class AppUser {
       'email': email,
       'timezone': timezone,
       'imageUrl': imageUrl,
+      'avatarPresetKey': avatarPresetKey,
+      'avatarVariant': avatarVariant,
+      'avatarAccent': avatarAccent,
       'role': appUserRoleToApi(role),
     };
   }
@@ -65,6 +77,9 @@ class AppUser {
     String? email,
     String? timezone,
     String? imageUrl,
+    String? avatarPresetKey,
+    int? avatarVariant,
+    String? avatarAccent,
     AppUserRole? role,
   }) {
     return AppUser(
@@ -73,6 +88,9 @@ class AppUser {
       email: email ?? this.email,
       timezone: timezone ?? this.timezone,
       imageUrl: imageUrl ?? this.imageUrl,
+      avatarPresetKey: avatarPresetKey ?? this.avatarPresetKey,
+      avatarVariant: avatarVariant ?? this.avatarVariant,
+      avatarAccent: avatarAccent ?? this.avatarAccent,
       role: role ?? this.role,
     );
   }

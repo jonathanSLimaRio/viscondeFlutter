@@ -20,6 +20,11 @@ const uxEventNameSchema = z.enum([
   "story_create_abandoned",
   "story_published",
   "game_hub_opened",
+  "game_home_opened",
+  "adventure_resume_clicked",
+  "avatar_editor_opened",
+  "avatar_saved",
+  "content_fallback_used",
   "vault_state_shown",
   "vault_retry_tapped",
   "vault_empty_cta_tapped",
@@ -113,6 +118,9 @@ export const resetPasswordSchema = z.object({
 export const updateMeSchema = z.object({
   name: optionalString,
   timezone: z.string().trim().min(1).max(100).optional(),
+  avatarPresetKey: z.string().trim().min(1).max(40).optional(),
+  avatarVariant: z.number().int().min(1).max(3).optional(),
+  avatarAccent: z.string().trim().min(1).max(40).optional(),
 });
 
 export const createChildSchema = z.object({
@@ -126,6 +134,9 @@ export const updateChildSchema = z.object({
   birthDate: z.coerce.date().optional(),
   favoriteThemes: z.array(z.string().trim().min(1).max(80)).optional(),
   isArchived: z.boolean().optional(),
+  avatarPresetKey: z.string().trim().min(1).max(40).optional(),
+  avatarVariant: z.number().int().min(1).max(3).optional(),
+  avatarAccent: z.string().trim().min(1).max(40).optional(),
 });
 
 export const setPinSchema = z.object({

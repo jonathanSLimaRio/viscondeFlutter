@@ -8,6 +8,9 @@ export function toUserDTO(
     | "email"
     | "timezone"
     | "imageUrl"
+    | "avatarPresetKey"
+    | "avatarVariant"
+    | "avatarAccent"
     | "role"
     | "createdAt"
     | "updatedAt"
@@ -19,6 +22,9 @@ export function toUserDTO(
     email: user.email,
     timezone: user.timezone,
     imageUrl: user.imageUrl,
+    avatarPresetKey: user.avatarPresetKey,
+    avatarVariant: user.avatarVariant,
+    avatarAccent: user.avatarAccent,
     role: user.role,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
@@ -32,6 +38,9 @@ export function toChildDTO(
     | "name"
     | "birthDate"
     | "avatarUrl"
+    | "avatarPresetKey"
+    | "avatarVariant"
+    | "avatarAccent"
     | "favoriteThemes"
     | "isArchived"
     | "createdAt"
@@ -43,6 +52,9 @@ export function toChildDTO(
     name: child.name,
     birthDate: child.birthDate.toISOString(),
     avatarUrl: child.avatarUrl,
+    avatarPresetKey: child.avatarPresetKey,
+    avatarVariant: child.avatarVariant,
+    avatarAccent: child.avatarAccent,
     favoriteThemes: child.favoriteThemes,
     isArchived: child.isArchived,
     createdAt: child.createdAt,

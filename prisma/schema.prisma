@@ -162,6 +162,11 @@ enum UxEventName {
   STORY_CREATE_ABANDONED
   STORY_PUBLISHED
   GAME_HUB_OPENED
+  GAME_HOME_OPENED
+  ADVENTURE_RESUME_CLICKED
+  AVATAR_EDITOR_OPENED
+  AVATAR_SAVED
+  CONTENT_FALLBACK_USED
   VAULT_STATE_SHOWN
   VAULT_RETRY_TAPPED
   VAULT_EMPTY_CTA_TAPPED
@@ -198,6 +203,9 @@ model User {
   pinHash      String?
   pinUpdatedAt DateTime?
   lastLoginAt  DateTime?
+  avatarPresetKey String @default("guardian")
+  avatarVariant   Int    @default(1)
+  avatarAccent    String @default("amber")
 
   accounts            Account[]
   sessions            Session[]
@@ -293,6 +301,9 @@ model ChildProfile {
   avatarUrl      String?
   favoriteThemes String[] @default([])
   isArchived     Boolean  @default(false)
+  avatarPresetKey String @default("guardian")
+  avatarVariant   Int    @default(1)
+  avatarAccent    String @default("amber")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   stories          Story[]

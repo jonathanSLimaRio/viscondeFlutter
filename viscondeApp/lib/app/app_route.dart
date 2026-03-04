@@ -8,12 +8,14 @@ abstract final class AppRoute {
   static const sessionPersona = '/session/persona';
 
   static const home = '/';
+  static const avatarEditor = '/family/avatars';
 
   static const adultVirtueReports = '/adult/virtues/reports';
   static const adultVoices = '/adult/voices';
 
   static const vaultDetailPattern = '/vault/:id';
   static const storyCreate = '/stories/new';
+  static const storyGameReady = '/stories/game-ready';
   static const storyRoomPattern = '/stories/:id/room';
   static const storySummaryPattern = '/stories/:id/summary';
 
@@ -25,6 +27,32 @@ abstract final class AppRoute {
   static String vaultDetail(String collectionId) => '/vault/$collectionId';
   static String storyRoom(String storyId) => '/stories/$storyId/room';
   static String storySummary(String storyId) => '/stories/$storyId/summary';
+  static String avatarEditorPath({String? source, String? childId}) {
+    final query = <String, String>{};
+    if (source != null && source.trim().isNotEmpty) {
+      query['source'] = source.trim();
+    }
+    if (childId != null && childId.trim().isNotEmpty) {
+      query['childId'] = childId.trim();
+    }
+    if (query.isEmpty) {
+      return avatarEditor;
+    }
+    return Uri(path: avatarEditor, queryParameters: query).toString();
+  }
+
+  static String storyGameReadyPath({
+    required String storyId,
+    required String title,
+  }) {
+    return Uri(
+      path: storyGameReady,
+      queryParameters: <String, String>{
+        'storyId': storyId,
+        'title': title,
+      },
+    ).toString();
+  }
   static String homePath({HomeTab tab = HomeTab.stories}) {
     if (tab == HomeTab.stories) {
       return home;

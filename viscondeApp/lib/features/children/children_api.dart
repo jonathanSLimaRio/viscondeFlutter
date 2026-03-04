@@ -42,17 +42,36 @@ class ChildrenApi {
   Future<ChildProfile> updateChild(
     String accessToken,
     String childId, {
-    required String name,
-    required DateTime birthDate,
-    required List<String> favoriteThemes,
+    String? name,
+    DateTime? birthDate,
+    List<String>? favoriteThemes,
+    String? avatarPresetKey,
+    int? avatarVariant,
+    String? avatarAccent,
   }) async {
+    final data = <String, dynamic>{};
+    if (name != null) {
+      data['name'] = name;
+    }
+    if (birthDate != null) {
+      data['birthDate'] = birthDate.toIso8601String();
+    }
+    if (favoriteThemes != null) {
+      data['favoriteThemes'] = favoriteThemes;
+    }
+    if (avatarPresetKey != null) {
+      data['avatarPresetKey'] = avatarPresetKey;
+    }
+    if (avatarVariant != null) {
+      data['avatarVariant'] = avatarVariant;
+    }
+    if (avatarAccent != null) {
+      data['avatarAccent'] = avatarAccent;
+    }
+
     final response = await _dio.patch<Map<String, dynamic>>(
       'children/$childId',
-      data: {
-        'name': name,
-        'birthDate': birthDate.toIso8601String(),
-        'favoriteThemes': favoriteThemes,
-      },
+      data: data,
       options: authOptions(accessToken),
     );
 
@@ -63,6 +82,22 @@ class ChildrenApi {
     await _dio.delete<Map<String, dynamic>>(
       'children/$childId',
       options: authOptions(accessToken),
+    );
+  }
+
+  Future<ChildProfile> updateAvatarPreset(
+    String accessToken,
+    String childId, {
+    required String avatarPresetKey,
+    required int avatarVariant,
+    required String avatarAccent,
+  }) {
+    return updateChild(
+      accessToken,
+      childId,
+      avatarPresetKey: avatarPresetKey,
+      avatarVariant: avatarVariant,
+      avatarAccent: avatarAccent,
     );
   }
 

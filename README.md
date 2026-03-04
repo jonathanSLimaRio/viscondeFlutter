@@ -38,7 +38,7 @@ cp .env.exemple .env
 
 ```bash
 npx prisma migrate dev
-npm run seed:admin
+npm run seed
 ```
 
 5. Suba o Next.js:
@@ -98,7 +98,6 @@ flutter run --dart-define=API_BASE_URL=http://192.168.0.10:3000/api/v1/
 
 - `DEV_AUTO_LOGIN=true`: login automatico (debug)
 - `DEV_LOGIN_PREFILL=true`: preenche login automaticamente
-- `DEV_ADMIN_EMAIL` e `DEV_ADMIN_PASSWORD`: credenciais de desenvolvimento
 - `STORY_GAME_ROOM_ENABLED=true`: habilita fluxo de game room
 
 Exemplo completo:
@@ -108,20 +107,7 @@ flutter run \
   --dart-define=API_BASE_URL=http://localhost:3000/api/v1/ \
   --dart-define=DEV_AUTO_LOGIN=true \
   --dart-define=DEV_LOGIN_PREFILL=true \
-  --dart-define=DEV_ADMIN_EMAIL=demo@visconde.app \
-  --dart-define=DEV_ADMIN_PASSWORD=demo123 \
   --dart-define=STORY_GAME_ROOM_ENABLED=true
-```
-
-## Seed admin (dev)
-
-Cria/atualiza o usuario de desenvolvimento:
-
-- email: `admin@visconde.app`
-- senha: `admin123`
-
-```bash
-npm run seed:admin
 ```
 
 ## Reset + Seed QA completo
@@ -141,22 +127,5 @@ npm run db:seed:qa
 
 Credenciais demo seedadas:
 
-- admin: `admin@visconde.app / admin123`
 - demo: `demo@visconde.app / demo123`
 - PIN demo: `123456`
-
-## Sala remota (multiplayer)
-
-Backend exposto em `/api/v1` com endpoints:
-
-- `POST /story-sessions/:id/remote/open`
-- `POST /story-sessions/:id/remote/close`
-- `POST /story-sessions/:id/remote/code/regenerate`
-- `GET /story-sessions/:id/remote/state`
-- `POST /story-sessions/remote/join`
-- `POST /story-sessions/:id/remote/steps`
-- `POST /story-sessions/:id/remote/chat`
-- `POST /story-sessions/:id/remote/reactions`
-- `GET /stories/:id/interactions`
-
-Variaveis de ambiente de gateway realtime e ICE estao em `.env.exemple`.

@@ -13,6 +13,9 @@ export async function getMe(userId: string) {
       email: true,
       timezone: true,
       imageUrl: true,
+      avatarPresetKey: true,
+      avatarVariant: true,
+      avatarAccent: true,
       role: true,
       createdAt: true,
       updatedAt: true,
@@ -42,6 +45,9 @@ export async function updateMe(
   input: {
     name?: string | null;
     timezone?: string;
+    avatarPresetKey?: string;
+    avatarVariant?: number;
+    avatarAccent?: string;
   }
 ) {
   const normalizedName =
@@ -59,6 +65,9 @@ export async function updateMe(
     data: {
       name: normalizedName,
       timezone: input.timezone,
+      avatarPresetKey: input.avatarPresetKey,
+      avatarVariant: input.avatarVariant,
+      avatarAccent: input.avatarAccent,
     },
     select: {
       id: true,
@@ -66,6 +75,9 @@ export async function updateMe(
       email: true,
       timezone: true,
       imageUrl: true,
+      avatarPresetKey: true,
+      avatarVariant: true,
+      avatarAccent: true,
       role: true,
       createdAt: true,
       updatedAt: true,
@@ -97,6 +109,9 @@ export async function updateMePhoto(userId: string, file: File) {
       email: true,
       timezone: true,
       imageUrl: true,
+      avatarPresetKey: true,
+      avatarVariant: true,
+      avatarAccent: true,
       role: true,
       createdAt: true,
       updatedAt: true,
@@ -175,6 +190,9 @@ export async function updateChild(
     birthDate?: Date;
     favoriteThemes?: string[];
     isArchived?: boolean;
+    avatarPresetKey?: string;
+    avatarVariant?: number;
+    avatarAccent?: string;
   }
 ) {
   const existing = await prisma.childProfile.findFirst({
@@ -205,6 +223,9 @@ export async function updateChild(
       birthDate: input.birthDate,
       favoriteThemes: input.favoriteThemes,
       isArchived: input.isArchived,
+      avatarPresetKey: input.avatarPresetKey,
+      avatarVariant: input.avatarVariant,
+      avatarAccent: input.avatarAccent,
     },
   });
 
