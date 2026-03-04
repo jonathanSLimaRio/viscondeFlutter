@@ -3,8 +3,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/app_route.dart';
+import '../../../core/models/child_profile.dart';
 import '../../../design_system/visconde.dart';
+import '../../../shared/avatar_presets.dart';
+import '../../../shared/providers.dart';
+import '../auth_controller.dart';
 import '../session_persona_controller.dart';
+
+final _sessionPersonaChildPreviewProvider =
+    FutureProvider.autoDispose<ChildProfile?>((ref) async {
+      final token = ref.watch(authControllerProvider).accessToken;
+      if (token == null || token.trim().isEmpty) {
+        return null;
+      }
+
+      try {
+        final children = await ref
+            .read(childrenApiProvider)
+            .listChildren(token);
+        for (final child in children) {
+          if (!child.isArchived) {
+            return child;
+          }
+        }
+      } catch (_) {
+        return null;
+      }
+
+      return null;
+    });
 
 class SessionPersonaScreen extends ConsumerWidget {
   const SessionPersonaScreen({super.key, this.from});
@@ -59,6 +86,26 @@ class SessionPersonaScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authControllerProvider);
+    final parentUser = authState.user;
+    final childPreview = ref
+        .watch(_sessionPersonaChildPreviewProvider)
+        .valueOrNull;
+
+    final parentAvatarImageUrl = parentUser?.imageUrl;
+    final parentAvatarFallback = resolveAvatarAsset(
+      isParent: true,
+      avatarPresetKey: parentUser?.avatarPresetKey,
+      avatarVariant: parentUser?.avatarVariant,
+    );
+
+    final childAvatarImageUrl = childPreview?.avatarUrl;
+    final childAvatarFallback = resolveAvatarAsset(
+      isParent: false,
+      avatarPresetKey: childPreview?.avatarPresetKey,
+      avatarVariant: childPreview?.avatarVariant,
+    );
+
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -74,13 +121,29 @@ class SessionPersonaScreen extends ConsumerWidget {
                     subtitle: 'Explorar histórias com segurança e foco.',
                     icon: Icons.child_care_rounded,
                     accentLabel: 'Entrar como filho',
-                    mascot: ViscondeArtRegistry.resolve(
-                      ViscondeArtKey.avatarChild,
-                    ),
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFF9ED8F5), Color(0xFFCAEFFF)],
+                      colors: [
+                        Color(0xFF7EC9F0),
+                        Color(0xFFAEE2FB),
+                        Color(0xFFE0F6FF),
+                      ],
+                    ),
+                    avatarImageUrl: childAvatarImageUrl,
+                    avatarFallbackAsset: childAvatarFallback,
+                    avatarBadgeIcon: Icons.auto_stories_rounded,
+                    avatarSquareKey: const ValueKey<String>(
+                      'persona_child_avatar_square',
+                    ),
+                    avatarImageKey: const ValueKey<String>(
+                      'persona_child_avatar_image',
+                    ),
+                    avatarSourceKey: ValueKey<String>(
+                      childAvatarImageUrl != null &&
+                              childAvatarImageUrl.trim().isNotEmpty
+                          ? 'persona_child_avatar_source_network'
+                          : 'persona_child_avatar_source_asset',
                     ),
                     onTap: () =>
                         _selectPersona(context, ref, SessionPersona.child),
@@ -93,13 +156,29 @@ class SessionPersonaScreen extends ConsumerWidget {
                     subtitle: 'Gerenciar jornada, perfil e área protegida.',
                     icon: Icons.shield_rounded,
                     accentLabel: 'Entrar como pai',
-                    mascot: ViscondeArtRegistry.resolve(
-                      ViscondeArtKey.avatarParent,
-                    ),
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFFF0D3A4), Color(0xFFF8E8C8)],
+                      colors: [
+                        Color(0xFFE6C58F),
+                        Color(0xFFF0D8AE),
+                        Color(0xFFF8EAD1),
+                      ],
+                    ),
+                    avatarImageUrl: parentAvatarImageUrl,
+                    avatarFallbackAsset: parentAvatarFallback,
+                    avatarBadgeIcon: Icons.shield_rounded,
+                    avatarSquareKey: const ValueKey<String>(
+                      'persona_parent_avatar_square',
+                    ),
+                    avatarImageKey: const ValueKey<String>(
+                      'persona_parent_avatar_image',
+                    ),
+                    avatarSourceKey: ValueKey<String>(
+                      parentAvatarImageUrl != null &&
+                              parentAvatarImageUrl.trim().isNotEmpty
+                          ? 'persona_parent_avatar_source_network'
+                          : 'persona_parent_avatar_source_asset',
                     ),
                     onTap: () =>
                         _selectPersona(context, ref, SessionPersona.parent),
@@ -247,8 +326,13 @@ class _PersonaHalf extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.accentLabel,
-    required this.mascot,
     required this.gradient,
+    required this.avatarImageUrl,
+    required this.avatarFallbackAsset,
+    required this.avatarBadgeIcon,
+    required this.avatarSquareKey,
+    required this.avatarImageKey,
+    required this.avatarSourceKey,
     required this.onTap,
   });
 
@@ -256,12 +340,19 @@ class _PersonaHalf extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final String accentLabel;
-  final String mascot;
   final Gradient gradient;
+  final String? avatarImageUrl;
+  final String avatarFallbackAsset;
+  final IconData avatarBadgeIcon;
+  final Key avatarSquareKey;
+  final Key avatarImageKey;
+  final Key avatarSourceKey;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.viscondeColors;
+
     return DecoratedBox(
       decoration: BoxDecoration(gradient: gradient),
       child: Material(
@@ -274,18 +365,51 @@ class _PersonaHalf extends StatelessWidget {
                 child: Image.asset(
                   ViscondeArtRegistry.resolve(ViscondeArtKey.paperTexture),
                   fit: BoxFit.cover,
-                  opacity: const AlwaysStoppedAnimation<double>(0.12),
+                  opacity: const AlwaysStoppedAnimation<double>(0.07),
+                ),
+              ),
+              Positioned(
+                top: -72,
+                left: -46,
+                child: _PersonaGlowOrb(
+                  color: Colors.white.withValues(alpha: 0.28),
+                  size: 220,
+                ),
+              ),
+              Positioned(
+                bottom: -92,
+                right: -58,
+                child: _PersonaGlowOrb(
+                  color: colors.primary.withValues(alpha: 0.18),
+                  size: 230,
                 ),
               ),
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      begin: Alignment.topCenter,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      stops: const [0, 0.55, 1],
+                      colors: [
+                        Colors.white.withValues(alpha: 0.18),
+                        Colors.white.withValues(alpha: 0.04),
+                        Colors.black.withValues(alpha: 0.08),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.white.withValues(alpha: 0.12),
-                        Colors.black.withValues(alpha: 0.08),
+                        Colors.white.withValues(alpha: 0.16),
+                        Colors.transparent,
+                        Colors.transparent,
                       ],
                     ),
                   ),
@@ -349,18 +473,185 @@ class _PersonaHalf extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Image.asset(
-                      mascot,
-                      width: 96,
-                      height: 96,
-                      fit: BoxFit.contain,
+                    const SizedBox(width: 16),
+                    _PersonaAvatarSquare(
+                      key: avatarSquareKey,
+                      imageUrl: avatarImageUrl,
+                      fallbackAsset: avatarFallbackAsset,
+                      badgeIcon: avatarBadgeIcon,
+                      avatarImageKey: avatarImageKey,
+                      avatarSourceKey: avatarSourceKey,
                     ),
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PersonaAvatarSquare extends StatelessWidget {
+  const _PersonaAvatarSquare({
+    super.key,
+    required this.imageUrl,
+    required this.fallbackAsset,
+    required this.badgeIcon,
+    required this.avatarImageKey,
+    required this.avatarSourceKey,
+  });
+
+  final String? imageUrl;
+  final String fallbackAsset;
+  final IconData badgeIcon;
+  final Key avatarImageKey;
+  final Key avatarSourceKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.viscondeColors;
+    final hasNetworkImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
+
+    return Transform.rotate(
+      angle: -0.022,
+      child: Container(
+        width: 108,
+        height: 108,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withValues(alpha: 0.78),
+              Colors.white.withValues(alpha: 0.44),
+            ],
+          ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.92),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.16),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            SizedBox(key: avatarSourceKey, width: 0, height: 0),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      colors.parchment.withValues(alpha: 0.84),
+                      colors.parchmentSoft.withValues(alpha: 0.62),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Center(
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    width: 2.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.primaryDark.withValues(alpha: 0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: hasNetworkImage
+                      ? Image.network(
+                          imageUrl!.trim(),
+                          key: avatarImageKey,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              fallbackAsset,
+                              key: avatarImageKey,
+                              fit: BoxFit.cover,
+                            );
+                          },
+                        )
+                      : Image.asset(
+                          fallbackAsset,
+                          key: avatarImageKey,
+                          fit: BoxFit.cover,
+                        ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: -5,
+              bottom: -5,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.96),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.98),
+                    width: 1.4,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.14),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(5),
+                  child: Icon(
+                    badgeIcon,
+                    size: 16,
+                    color: const Color(0xFF2A1C12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PersonaGlowOrb extends StatelessWidget {
+  const _PersonaGlowOrb({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, color.withValues(alpha: 0.02), Colors.transparent],
         ),
       ),
     );

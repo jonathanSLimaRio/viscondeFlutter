@@ -10,6 +10,7 @@ import '../../../features/auth/auth_controller.dart';
 import '../../../features/auth/session_persona_controller.dart';
 import '../../../shared/providers.dart';
 import '../../../shared/ux_analytics.dart';
+import '../../gamification/game_adventure_session_controller.dart';
 import '../../gamification/ui/game_blank_screen.dart';
 import '../../gamification/ui/game_hub_screen.dart';
 import '../../security/parental_gate_controller.dart';
@@ -28,6 +29,8 @@ class HomeShellScreen extends ConsumerStatefulWidget {
 class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   static const _menuAnimationDuration = Duration(milliseconds: 260);
   static const _tabCount = 4;
+  static const _gameTabIndex = 1;
+  static const _avatarFooterIndex = 4;
 
   int _index = 0;
   final Map<int, Widget> _tabCache = <int, Widget>{0: const StoryVaultScreen()};
@@ -127,11 +130,46 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   }
 
   void _onMenuTabSelected(int index) {
+    _selectTab(index);
+    Navigator.of(context).pop(); // Close drawer
+  }
+
+  void _selectTab(int index) {
     setState(() {
       _index = index;
       _tabCache.putIfAbsent(index, () => _tabForIndex(index));
     });
-    Navigator.of(context).pop(); // Close drawer
+  }
+
+  void _openAvatarsFromFooter() {
+    UxAnalytics.log(
+      'avatar_editor_opened',
+      params: const <String, Object?>{
+        'source': 'home_footer',
+        'target': 'family',
+      },
+    );
+    context.push(AppRoute.avatarEditorPath(source: 'home_footer'));
+  }
+
+  void _handleFooterDestinationSelection(int value) {
+    if (value == _avatarFooterIndex) {
+      _openAvatarsFromFooter();
+      return;
+    }
+
+    if (value == _gameTabIndex) {
+      final lastStoryId =
+          ref.read(gameAdventureSessionControllerProvider).storyId?.trim() ??
+          '';
+      if (lastStoryId.isNotEmpty) {
+        _selectTab(_gameTabIndex);
+        context.push(AppRoute.storyRoom(lastStoryId));
+        return;
+      }
+    }
+
+    _selectTab(value);
   }
 
   Widget _buildAnimatedBody() {
@@ -160,14 +198,16 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
   }
 
   NavigationDestination _destination({
-    required int index,
     required IconData icon,
     required IconData selectedIcon,
     required String label,
+    required int index,
+    required String keyValue,
   }) {
     final selected = _index == index;
 
     return NavigationDestination(
+      key: ValueKey<String>(keyValue),
       icon: AnimatedScale(
         scale: selected ? 1.08 : 1,
         duration: _menuAnimationDuration,
@@ -224,10 +264,27 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
             tooltip: 'Menu',
           ),
         ),
-        title: Image.asset(
-          ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
-          height: 32,
-          fit: BoxFit.contain,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                ViscondeArtRegistry.resolve(ViscondeArtKey.logoVisconde),
+                key: const ValueKey<String>('home_header_logo'),
+                height: 36,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Visconde',
+                key: const ValueKey<String>('home_header_title'),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
         ),
         bottom: !isChildMode && isAdultUnlocked
             ? PreferredSize(
@@ -316,36 +373,43 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
           borderRadius: BorderRadius.circular(context.viscondeRadii.xl),
           child: NavigationBar(
             selectedIndex: _index,
-            onDestinationSelected: (value) {
-              setState(() {
-                _index = value;
-                _tabCache.putIfAbsent(value, () => _tabForIndex(value));
-              });
-            },
+            onDestinationSelected: _handleFooterDestinationSelection,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             destinations: [
               _destination(
-                index: 0,
                 icon: Icons.menu_book_outlined,
                 selectedIcon: Icons.menu_book,
                 label: 'Histórias',
+                index: 0,
+                keyValue: 'home_footer_stories',
               ),
               _destination(
-                index: 1,
                 icon: Icons.videogame_asset_outlined,
                 selectedIcon: Icons.videogame_asset,
                 label: 'Game',
+                index: 1,
+                keyValue: 'home_footer_game',
               ),
               _destination(
-                index: 2,
                 icon: Icons.emoji_events_outlined,
                 selectedIcon: Icons.emoji_events,
                 label: 'Conquistas',
+                index: 2,
+                keyValue: 'home_footer_achievements',
               ),
               _destination(
-                index: 3,
                 icon: Icons.account_circle_outlined,
                 selectedIcon: Icons.account_circle,
                 label: 'Perfil',
+                index: 3,
+                keyValue: 'home_footer_profile',
+              ),
+              _destination(
+                icon: Icons.palette_outlined,
+                selectedIcon: Icons.palette,
+                label: 'Avatares',
+                index: _avatarFooterIndex,
+                keyValue: 'home_footer_avatars',
               ),
             ],
           ),

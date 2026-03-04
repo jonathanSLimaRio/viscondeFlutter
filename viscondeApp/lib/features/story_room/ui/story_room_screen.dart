@@ -8,6 +8,7 @@ import '../../../shared/providers.dart';
 import '../../../shared/logging/app_logger.dart';
 import '../../../shared/ui/app_feedback.dart';
 import '../../auth/auth_controller.dart';
+import '../../gamification/game_adventure_session_controller.dart';
 import '../illustration_api.dart';
 import '../models/story_models.dart';
 import '../story_room_controller.dart';
@@ -28,6 +29,7 @@ class StoryRoomScreen extends ConsumerStatefulWidget {
 class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
   int _lastKnownStepIndex = 0;
   int _xpAnimationNonce = 0;
+  String? _lastSyncedAdventureStoryId;
   static const int _minimumPublishSteps = 3;
   static const int _totalStorySteps = 12;
   static const int _maxStoryXp = 500;
@@ -473,6 +475,25 @@ class _StoryRoomScreenState extends ConsumerState<StoryRoomScreen> {
 
       final previousSession = previous?.session;
       final nextSession = next.session;
+      if (nextSession != null &&
+          _lastSyncedAdventureStoryId != nextSession.id) {
+        final resolvedTitle = nextSession.title.trim().isNotEmpty
+            ? nextSession.title.trim()
+            : nextSession.titleDraft.trim();
+
+        ref
+            .read(gameAdventureSessionControllerProvider.notifier)
+            .setFromStory(
+              storyId: nextSession.id,
+              title: resolvedTitle,
+              childProfileId: nextSession.childProfileId,
+              theme: nextSession.theme,
+              biome:
+                  nextSession.gameSummary?.biome ?? nextSession.game?.map.biome,
+            );
+        _lastSyncedAdventureStoryId = nextSession.id;
+      }
+
       final previousStepIndex =
           previousSession?.currentStepIndex ?? _lastKnownStepIndex;
       final currentStepIndex =
